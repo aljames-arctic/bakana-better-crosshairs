@@ -559,9 +559,8 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
     }
 
     /**
-     * Refresh the rendering and grid highlights of a preview Region or MeasuredTemplate.
-     * Prevents the native template/region borders/shapes from flashing visible on rendering cycles.
-     * @param {PlaceableObject} tmpl - The preview Region or MeasuredTemplate
+     * Refresh rendering & grid highlights for preview Region or MeasuredTemplate in V14.
+     * @param {PlaceableObject} tmpl - Preview placeable or document
      * @param {number} direction - The current direction in degrees
      * @returns {void}
      */
@@ -602,7 +601,9 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         tmpl.direction = direction;
 
         doc.direction = direction;
-        doc.updateSource({ direction });
+        if (typeof doc?.updateSource === "function") {
+            doc.updateSource({ direction });
+        }
         doc._shape = null;
         if (doc.shape?.clear) doc.shape.clear();
 
