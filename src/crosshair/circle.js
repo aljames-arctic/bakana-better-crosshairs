@@ -91,11 +91,8 @@ export class CircleCrosshairShape extends BaseCrosshairShape {
      */
     _getGraphicFile() {
         const rawFile = this.config.circleFile ?? this.config.file;
-        if (rawFile != null && rawFile !== "") {
-            return closest(rawFile);
-        }
         const radius = Math.round(this.config.radius ?? 20);
-        return resolveCircleAsset(null, radius * 2);
+        return resolveCircleAsset(rawFile, radius * 2);
     }
 }
 

@@ -40,7 +40,7 @@ export class BaseCrosshairMenuApplication extends HandlebarsApplicationMixin(App
         if (typeof target === "object" && target.element) {
             return this._normalizeElement(target.element);
         }
-        if (typeof target === "object" && (target.querySelector || target.querySelectorAll)) {
+        if (typeof target === "object" && (typeof target.querySelector === "function" || typeof target.querySelectorAll === "function")) {
             return target;
         }
         return null;
@@ -159,7 +159,7 @@ export class BaseCrosshairMenuApplication extends HandlebarsApplicationMixin(App
         root.querySelectorAll(".bbc-copy-btn").forEach(btn => {
             btn.addEventListener("click", (ev) => {
                 const text = ev.currentTarget.dataset.copyText;
-                if (text && navigator.clipboard) {
+                if (text && typeof navigator?.clipboard?.writeText === "function") {
                     navigator.clipboard.writeText(text);
                     notify.info(localize("BBC.autorecMenu.notify.copied", `Copied "${text}" to clipboard.`));
                 }

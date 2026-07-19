@@ -506,7 +506,7 @@ export class BaseCrosshairShape {
             const initialDist = dims?.distance ?? docProps.distance;
             const initialWidth = dims?.width ?? docProps.width;
             const isGridUnits = dims?.gridUnits ?? true;
-            const shapeType = this.type ?? this.config?.type ?? this.config?.t ?? "circle";
+            const shapeType = this.type ?? this.config?.type ?? "circle";
 
             crosshairAdapter.updatePreviewShape(doc, {
                 x: this.x,

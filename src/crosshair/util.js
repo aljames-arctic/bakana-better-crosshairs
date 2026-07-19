@@ -151,8 +151,8 @@ function refreshTemplateHighlights(tmpl, newDirDeg, rad, wheelEvent = null) {
         const isGridUnits = dims?.gridUnits ?? true;
 
         const cfg = tmpl._bbcConfig ?? doc._bbcConfig ?? {};
-        const shapeType = cfg.type ?? cfg.originalType ?? cfg.t ?? doc?.t ?? docProps.type ?? "circle";
-        const isSticky = Boolean(doc.flags?.bakana?.token ?? doc.flags?.bbc?.token ?? tmpl._bbcSticky ?? cfg.token);
+        const shapeType = cfg.type ?? cfg.originalType ?? docProps.type ?? "circle";
+        const isSticky = Boolean(doc.flags?.bbc?.token ?? doc.flags?.bakana?.token ?? tmpl._bbcSticky ?? cfg.token);
         let targetX = 0, targetY = 0;
 
         const visual = tmpl._bbcCrosshair ?? globalThis._activeBBCCrosshair;
