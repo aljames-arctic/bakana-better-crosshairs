@@ -1,6 +1,6 @@
 import { systemAdapter } from "../system/index.js";
 import { log } from "../../lib/logger.js";
-import { Token, Ray } from "../../lib/compat.js";
+import { Token, Ray, clearHighlightLayer } from "../../lib/compat.js";
 import { MODULE_ID } from "../../lib/constants.js";
 import { DEFAULT_AUTOREC_ENTRY, autorecManager } from "../../autorec/autorecManager.js";
 import { CrosshairConfiguration } from "../../autorec/CrosshairConfiguration.js";
@@ -266,12 +266,7 @@ export class BaseFoundryVTTAdapter {
             }
 
             const hId = obj.highlightId ?? obj.id ?? "preview";
-            if (typeof canvas !== "undefined") {
-                canvas.grid?.clearHighlightLayer?.(hId);
-                canvas.interface?.grid?.clearHighlightLayer?.(hId);
-                canvas.regions?.clearHighlightLayer?.(hId);
-                canvas.regions?.highlight?.clear?.();
-            }
+            clearHighlightLayer(hId);
         };
 
         try { Object.defineProperty(placeable, "visible", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}

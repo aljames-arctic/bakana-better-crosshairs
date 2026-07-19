@@ -14,7 +14,7 @@ export const Token = globalThis.foundry?.canvas?.placeables?.Token ?? globalThis
 export const Ray = globalThis.foundry?.canvas?.geometry?.Ray ?? globalThis.Ray;
 
 /**
- * Clears the specified grid highlight layer.
+ * Clears the specified grid highlight layer across Foundry canvas versions.
  *
  * @param {string} id - The identifier of the highlight layer to clear.
  * @returns {void}
@@ -22,8 +22,16 @@ export const Ray = globalThis.foundry?.canvas?.geometry?.Ray ?? globalThis.Ray;
 export function clearHighlightLayer(id) {
     if (typeof id !== "string" || !id) return;
     if (globalThis.canvas?.interface?.grid?.clearHighlightLayer) {
-        return globalThis.canvas.interface.grid.clearHighlightLayer(id);
+        globalThis.canvas.interface.grid.clearHighlightLayer(id);
     }
-    return globalThis.canvas?.grid?.clearHighlightLayer?.(id);
+    if (globalThis.canvas?.grid?.clearHighlightLayer) {
+        globalThis.canvas.grid.clearHighlightLayer(id);
+    }
+    if (globalThis.canvas?.regions?.clearHighlightLayer) {
+        globalThis.canvas.regions.clearHighlightLayer(id);
+    }
+    if (globalThis.canvas?.regions?.highlight?.clear) {
+        globalThis.canvas.regions.highlight.clear();
+    }
 }
 
