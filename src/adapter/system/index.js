@@ -1,6 +1,7 @@
 import { BaseSystemAdapter } from "./base-system-adapter.js";
 import { Dnd5eSystemAdapter } from "./dnd5e-adapter.js";
 import { Pf2eSystemAdapter } from "./pf2e-adapter.js";
+import { log } from "../../lib/logger.js";
 
 export let systemAdapter = new BaseSystemAdapter();
 
@@ -11,7 +12,8 @@ export let systemAdapter = new BaseSystemAdapter();
  * @returns {BaseSystemAdapter|Dnd5eSystemAdapter|Pf2eSystemAdapter} The initialized system adapter instance.
  */
 export function initializeSystemAdapter() {
-    switch (game.system.id) {
+    const systemId = typeof game !== "undefined" ? (game?.system?.id ?? "base") : "base";
+    switch (systemId) {
         case "dnd5e":
             systemAdapter = new Dnd5eSystemAdapter();
             break;
@@ -22,5 +24,6 @@ export function initializeSystemAdapter() {
             systemAdapter = new BaseSystemAdapter();
             break;
     }
+    log.info(`Initialized System Adapter for system: "${systemAdapter.systemId}"`);
     return systemAdapter;
 }

@@ -33,19 +33,22 @@ export class Pf2eSystemAdapter extends BaseSystemAdapter {
 
     /**
      * Extract calling item context from Pathfinder 2e template document flags or base context.
-     * @param {Document} document - Template or Region document placed on canvas
+     * @param {Document|PlaceableObject|null} target - Template or Region document or placeable placed on canvas
      * @param {Object} [baseContext={}] - Initial calling context (`{ item, itemName, itemId }`)
-     * @returns {{item?: Item|null, itemName?: string, itemId?: string, activity?: Object|null, activityName?: string, activityId?: string}} Refined calling context object
+     * @returns {{item: Item|null, itemName: string, itemId: string, activity: Object|null, activityName: string, activityId: string}} Refined calling context object
      */
-    extractCallingContext(document, baseContext = {}) {
-        let itemObj = baseContext.item ?? null;
+    extractCallingContext(target, baseContext = {}) {
+        const doc = target?.document ?? target;
+        let itemObj = baseContext?.item ?? null;
 
         // In PF2e, template origins are stored inside document.flags.pf2e.origin (or flags.pf2e.item)
-        const pf2eFlags = document?.flags?.pf2e ?? {};
+        const pf2eFlags = doc?.flags?.pf2e ?? {};
         let originRef = pf2eFlags.origin ?? pf2eFlags.item;
 
-        if (!originRef && document?.behaviors) {
-            const behaviors = typeof document.behaviors.contents !== "undefined" ? document.behaviors.contents : (Array.isArray(document.behaviors) ? document.behaviors : []);
+        if (!originRef && doc?.behaviors) {
+            const behaviors = typeof doc.behaviors.contents !== "undefined"
+                ? doc.behaviors.contents
+                : (Array.isArray(doc.behaviors) ? doc.behaviors : []);
             for (const behavior of behaviors) {
                 const bFlags = behavior?.flags?.pf2e ?? {};
                 originRef = bFlags.origin ?? bFlags.item ?? behavior?.system?.origin;
@@ -53,12 +56,16 @@ export class Pf2eSystemAdapter extends BaseSystemAdapter {
             }
         }
 
-        if (!itemObj && originRef && typeof foundry?.utils?.fromUuidSync === "function") {
+        const uuidResolver = typeof fromUuidSync === "function"
+            ? fromUuidSync
+            : (typeof foundry?.utils?.fromUuidSync === "function" ? foundry.utils.fromUuidSync : null);
+
+        if (!itemObj && originRef && uuidResolver) {
             try {
                 if (typeof originRef === "string") {
-                    itemObj = foundry.utils.fromUuidSync(originRef);
-                } else if (typeof originRef === "object" && originRef.uuid) {
-                    itemObj = foundry.utils.fromUuidSync(originRef.uuid);
+                    itemObj = uuidResolver(originRef);
+                } else if (typeof originRef === "object" && originRef !== null && typeof originRef.uuid === "string") {
+                    itemObj = uuidResolver(originRef.uuid);
                 }
             } catch (e) {
                 log.debug("Pf2eSystemAdapter.extractCallingContext | Could not resolve item from UUID origin:", originRef, e);
@@ -67,8 +74,8 @@ export class Pf2eSystemAdapter extends BaseSystemAdapter {
 
         return {
             item: itemObj,
-            itemName: itemObj?.name ?? baseContext.itemName ?? "",
-            itemId: itemObj?.id ?? baseContext.itemId ?? "",
+            itemName: itemObj?.name ?? baseContext?.itemName ?? "",
+            itemId: itemObj?.id ?? baseContext?.itemId ?? "",
             activity: null,
             activityName: "",
             activityId: ""
@@ -107,9 +114,7 @@ export class Pf2eSystemAdapter extends BaseSystemAdapter {
                     if (stillPending.coords.x !== undefined) createData.x = stillPending.coords.x;
                     if (stillPending.coords.y !== undefined) createData.y = stillPending.coords.y;
                     if (stillPending.coords.direction !== undefined) createData.direction = stillPending.coords.direction;
-                    else if (stillPending.coords.rotation !== undefined) createData.direction = stillPending.coords.rotation;
                     if (stillPending.coords.distance !== undefined) createData.distance = stillPending.coords.distance;
-                    else if (stillPending.coords.radius !== undefined) createData.distance = stillPending.coords.radius;
                 }
 
                 try {

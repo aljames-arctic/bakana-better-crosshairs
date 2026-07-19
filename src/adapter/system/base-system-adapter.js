@@ -54,13 +54,24 @@ export class BaseSystemAdapter {
 
     /**
      * Extract or refine calling context for the specific game system.
-     * Base implementation returns the standard calling context passed by upstream workflow.
-     * @param {Document} document - Template or Region document placed on canvas
+     * Base implementation normalizes calling context to explicit domain schema contract.
+     * @param {Document|PlaceableObject|null} target - Template or Region document or placeable placed on canvas
      * @param {Object} [baseContext={}] - Initial calling context (`{ item, itemName, itemId, activity, activityName, activityId }`)
-     * @returns {{item?: Item|null, itemName?: string, itemId?: string, activity?: Object|null, activityName?: string, activityId?: string}} Refined calling context object
+     * @returns {{item: Item|null, itemName: string, itemId: string, activity: Object|null, activityName: string, activityId: string}} Refined calling context object
      */
-    extractCallingContext(document, baseContext = {}) {
-        return baseContext;
+    extractCallingContext(target, baseContext = {}) {
+        const doc = target?.document ?? target;
+        const itemObj = baseContext?.item ?? null;
+        const activityObj = baseContext?.activity ?? null;
+
+        return {
+            item: itemObj,
+            itemName: baseContext?.itemName ?? itemObj?.name ?? "",
+            itemId: baseContext?.itemId ?? itemObj?.id ?? "",
+            activity: activityObj,
+            activityName: baseContext?.activityName ?? activityObj?.name ?? "",
+            activityId: baseContext?.activityId ?? activityObj?.id ?? ""
+        };
     }
 
     /**
@@ -135,8 +146,9 @@ export class BaseSystemAdapter {
      * @returns {void} No return value
      */
     addItemSheetHeaderControl(app, controls) {
-        const item = app.document;
-        if (!item || item.documentName !== "Item" || !Boolean(item.isOwner)) return;
+        const item = app?.document;
+        if (!item || item.documentName !== "Item" || !item.isOwner) return;
+        if (!Array.isArray(controls)) return;
         if (controls.some(c => c.label?.startsWith("BBC") || c.icon === "fa-solid fa-crosshairs")) return;
 
         const customConfig = item.getFlag("bakana-better-crosshairs", "customConfig") ?? null;
@@ -154,14 +166,26 @@ export class BaseSystemAdapter {
     }
 
     /**
+     * Return list of Hook names used for ApplicationV2 item sheet header controls.
+     * Protected hook for subclass override (Template Method Pattern).
+     * @protected
+     * @returns {string[]} Array of hook names
+     */
+    _getItemSheetHookNames() {
+        return ["getHeaderControlsApplicationV2", "getHeaderControlsItemSheetV2"];
+    }
+
+    /**
      * Register standard universal ApplicationV2 item sheet header hooks (`ApplicationV2` / `ItemSheetV2`).
+     * Template method executing common hook registration workflow.
      * @returns {void} No return value
      */
     registerItemSheetHooks() {
         if (typeof Hooks?.on === "function") {
             const handler = (app, controls) => this.addItemSheetHeaderControl(app, controls);
-            Hooks.on("getHeaderControlsApplicationV2", handler);
-            Hooks.on("getHeaderControlsItemSheetV2", handler);
+            for (const hookName of this._getItemSheetHookNames()) {
+                Hooks.on(hookName, handler);
+            }
         }
     }
 }

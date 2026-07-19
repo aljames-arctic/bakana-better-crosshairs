@@ -169,3 +169,61 @@ test('Square findings: MeasuredTemplate diagonal distance, sticky false evaluati
     assert.equal(formattedShape.y, 6500);
     assert.equal(formattedShape.rotation, 325);
 });
+
+test('RayCrosshairShape default anchors, Template Method hooks, and graphic dimensions', async () => {
+    game.modules.get("eskie-effects");
+    const { RayCrosshairShape } = await import('../../src/crosshair/ray.js');
+    const mockDocument = { x: 0, y: 0 };
+    const mockPlaceable = { x: 0, y: 0, document: mockDocument };
+    const shape = new RayCrosshairShape(mockPlaceable, { distance: 60, width: 10 });
+
+    assert.equal(shape.defaultShapeType, 'ray');
+    assert.equal(shape.getDefaultId(), 'Ray Crosshair');
+    assert.deepEqual(shape.animationAnchor, { x: 0, y: 0.5 });
+    assert.deepEqual(shape.shapeAnchor, { x: 0, y: 0.5 });
+
+    const mockCrosshairSeq = {
+        dist: 0,
+        w: 0,
+        distance(d) { this.dist = d; return this; },
+        width(w) { this.w = w; return this; }
+    };
+    shape.configureCrosshairShape(mockCrosshairSeq);
+    assert.equal(mockCrosshairSeq.dist, 60);
+    assert.equal(mockCrosshairSeq.w, 10);
+
+    const dims = shape.getGraphicDimensions();
+    assert.ok(dims.widthPx > 0);
+    assert.ok(dims.heightPx > 0);
+
+    const file = shape.getGraphicFile();
+    assert.ok(typeof file === 'string');
+});
+
+test('CircleCrosshairShape default anchors, Template Method hooks, and resolveCircleAsset', async () => {
+    game.modules.get("eskie-effects");
+    const { CircleCrosshairShape, resolveCircleAsset } = await import('../../src/crosshair/circle.js');
+    const mockDocument = { x: 0, y: 0 };
+    const mockPlaceable = { x: 0, y: 0, document: mockDocument };
+    const shape = new CircleCrosshairShape(mockPlaceable, { radius: 20 });
+
+    assert.equal(shape.defaultShapeType, 'circle');
+    assert.equal(shape.getDefaultId(), 'Circle Crosshair');
+    assert.deepEqual(shape.animationAnchor, { x: 0.5, y: 0.5 });
+
+    const mockCrosshairSeq = {
+        dist: 0,
+        distance(d) { this.dist = d; return this; }
+    };
+    shape.configureCrosshairShape(mockCrosshairSeq);
+    assert.equal(mockCrosshairSeq.dist, 20);
+
+    const dims = shape.getGraphicDimensions();
+    assert.equal(dims.widthPx, dims.heightPx);
+
+    assert.ok(resolveCircleAsset(null, 10));
+    assert.ok(resolveCircleAsset(null, 40));
+    assert.equal(resolveCircleAsset('custom/path.png'), 'custom/path.png');
+});
+
+

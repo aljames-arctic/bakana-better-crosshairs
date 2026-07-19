@@ -1,19 +1,23 @@
 import { closest } from "../lib/filemanager.js";
+import { log } from "../lib/logger.js";
 import { crosshairAdapter } from "../adapter/foundry/index.js";
 import { BaseCrosshairShape } from "./base.js";
 
 /**
  * Resolves the circle crosshair asset path based on the provided file path or key and the effect size.
  *
- * @param {string} pathOrKey - The asset file path or Sequencer database key.
- * @param {number} effectSize - The target effect size in feet or grid distance.
+ * @param {string|null} pathOrKey - The asset file path or Sequencer database key.
+ * @param {number} [effectSize=40] - The target effect size in feet or grid distance.
  * @returns {string} The resolved file path or asset key for the circle crosshair.
  */
 export function resolveCircleAsset(pathOrKey, effectSize = 40) {
-    if (pathOrKey) return closest(pathOrKey);
-    if (effectSize <= 10) return closest("eskie.crosshair.circle.thin.01.2x2");
-    if (effectSize <= 20) return closest("eskie.crosshair.circle.thin.01.4x4");
-    if (effectSize <= 30) return closest("eskie.crosshair.circle.thin.01.6x6");
+    if (pathOrKey != null && pathOrKey !== "") {
+        return closest(pathOrKey);
+    }
+    const size = effectSize ?? 40;
+    if (size <= 10) return closest("eskie.crosshair.circle.thin.01.2x2");
+    if (size <= 20) return closest("eskie.crosshair.circle.thin.01.4x4");
+    if (size <= 30) return closest("eskie.crosshair.circle.thin.01.6x6");
     return closest("eskie.crosshair.circle.thin.01.8x8");
 }
 
@@ -54,35 +58,69 @@ export class CircleCrosshairShape extends BaseCrosshairShape {
     }
 
     /**
-     * Configure circle distance on the Sequencer crosshair chain.
+     * Protected hook to configure circle distance on the Sequencer crosshair chain.
+     * @protected
+     * @param {Sequence} crosshairSeq - The Sequencer crosshair builder instance
+     * @returns {void}
+     */
+    _configureCrosshairShape(crosshairSeq) {
+        const radius = Math.round(this.config.radius ?? 20);
+        log.debug("CircleCrosshairShape._configureCrosshairShape | Configuring circle distance.", { radius });
+        crosshairSeq.distance(radius);
+    }
+
+    /**
+     * Configure circle distance on the Sequencer crosshair chain (Template Method entry).
      * @param {Sequence} crosshairSeq - The Sequencer crosshair builder instance
      * @returns {void}
      */
     configureCrosshairShape(crosshairSeq) {
-        crosshairSeq.distance(Math.round(this.config.radius));
+        this._configureCrosshairShape(crosshairSeq);
     }
 
     /**
-     * Calculate pixel diameter and scale factor for the circle graphic.
+     * Protected hook to calculate pixel diameter and scale factor for the circle graphic.
+     * @protected
      * @returns {{widthPx: number, heightPx: number, factor: number, gridUnits: boolean}} Calculated pixel and scale dimensions
      */
-    getGraphicDimensions() {
-        const radius = Math.round(this.config.radius);
+    _getGraphicDimensions() {
+        const radius = Math.round(this.config.radius ?? 20);
         const gridDist = canvas?.dimensions?.distance ?? 5;
         const gridSize = canvas?.dimensions?.size ?? 100;
         const diameterPixels = ((radius * 2) / gridDist) * gridSize;
         const { factor, gridUnits } = crosshairAdapter.getTemplatePixelFactor();
+        log.debug("CircleCrosshairShape._getGraphicDimensions | Sizing circle graphic.", { radius, diameterPixels, factor, gridUnits });
         return { widthPx: diameterPixels, heightPx: diameterPixels, factor, gridUnits };
     }
 
     /**
-     * Resolve the circle graphic asset path or Sequencer key.
+     * Calculate pixel diameter and scale factor for the circle graphic (Template Method entry).
+     * @returns {{widthPx: number, heightPx: number, factor: number, gridUnits: boolean}} Calculated pixel and scale dimensions
+     */
+    getGraphicDimensions() {
+        return this._getGraphicDimensions();
+    }
+
+    /**
+     * Protected hook to resolve the circle graphic asset path or Sequencer key.
+     * @protected
+     * @returns {string} Resolved file path or key
+     */
+    _getGraphicFile() {
+        const rawFile = this.config.circleFile ?? this.config.file;
+        if (rawFile != null && rawFile !== "") {
+            return closest(rawFile);
+        }
+        const radius = Math.round(this.config.radius ?? 20);
+        return resolveCircleAsset(null, radius * 2);
+    }
+
+    /**
+     * Resolve the circle graphic asset path or Sequencer key (Template Method entry).
      * @returns {string} Resolved file path or key
      */
     getGraphicFile() {
-        if (this.config.circleFile) return closest(this.config.circleFile);
-        const radius = Math.round(this.config.radius);
-        return resolveCircleAsset(this.config.file, radius * 2);
+        return this._getGraphicFile();
     }
 }
 
@@ -94,7 +132,9 @@ export class CircleCrosshairShape extends BaseCrosshairShape {
  * @returns {Promise<Array>} A promise resolving to an array containing the configured circle Sequence and targets.
  */
 async function create(placeable, config = {}) {
-    const shape = new CircleCrosshairShape(placeable, config);
+    const opts = config ?? {};
+    log.debug("circle.create | Instantiating CircleCrosshairShape.", { config: opts });
+    const shape = new CircleCrosshairShape(placeable, opts);
     return shape.create();
 }
 
@@ -106,6 +146,7 @@ async function create(placeable, config = {}) {
  * @returns {Promise<any>} A promise resolving when the crosshair sequence finishes playing.
  */
 async function play(placeable, config = {}) {
+    log.debug("circle.play | Executing circle sequence play.");
     const [seq] = await create(placeable, config);
     return seq.play();
 }
@@ -119,8 +160,11 @@ async function play(placeable, config = {}) {
  * @returns {Promise<void>} A promise resolving once matching Sequencer effects have ended.
  */
 async function stop(token, options = {}) {
-    const id = options?.id ?? "Circle Crosshair";
-    return BaseCrosshairShape.stop(token, { id, ...options });
+    const targetToken = crosshairAdapter.toToken(token);
+    const opts = options ?? {};
+    const id = opts.id ?? "Circle Crosshair";
+    log.debug("circle.stop | Stopping circle crosshair sequence effect.", { id, token: targetToken?.name });
+    return BaseCrosshairShape.stop(targetToken, { id, ...opts });
 }
 
 export const circle = {
@@ -129,3 +173,4 @@ export const circle = {
     stop,
     resolveCircleAsset,
 };
+

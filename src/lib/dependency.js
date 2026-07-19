@@ -10,6 +10,7 @@ import { localize } from "./utils.js";
  * @private
  */
 function _isAscending(min, version, max) {
+    if ((Boolean(min) || Boolean(max)) && !version) return false;
     let isValidVersion = true;
     if (min) isValidVersion = isValidVersion && !foundry.utils.isNewerVersion(min, version);
     if (max) isValidVersion = isValidVersion && !foundry.utils.isNewerVersion(version, max);
@@ -24,10 +25,12 @@ function _isAscending(min, version, max) {
  * @private
  */
 function _getEntity(dependency) {
-    const isModule = Boolean(game.modules.get(dependency?.id));
-    const entity = isModule ? game.modules.get(dependency?.id) : globalThis[dependency?.id];
-    if (dependency?.id === "foundry") return game;
-    return entity;
+    const depId = dependency?.id;
+    if (!depId) return undefined;
+    if (depId === "foundry") return game;
+    const moduleEntity = game?.modules?.get(depId);
+    if (moduleEntity) return moduleEntity;
+    return globalThis[depId];
 }
 
 /**
@@ -40,9 +43,11 @@ function _getEntity(dependency) {
  * @private
  */
 function _isInstalled(dependency) {
+    if (!dependency?.id) return false;
     const entity = _getEntity(dependency);
     if (!entity) return false;
-    return Boolean(_isAscending(dependency.min, entity?.version, dependency.max));
+    const versionStr = entity.version ?? (dependency.id === "foundry" ? game?.version : undefined);
+    return Boolean(_isAscending(dependency.min, versionStr, dependency.max));
 }
 
 /**
@@ -55,8 +60,11 @@ function _isInstalled(dependency) {
  * @private
  */
 function _isActivated(dependency) {
+    if (!dependency?.id) return false;
     const entity = _getEntity(dependency);
-    return Boolean(_isInstalled(dependency) && entity?.active);
+    if (!entity) return false;
+    const isActive = entity.active ?? true;
+    return Boolean(_isInstalled(dependency) && Boolean(isActive));
 }
 
 /**
@@ -70,8 +78,8 @@ function _isActivated(dependency) {
  */
 function _versionMessageAppend(dependency, version) {
     let msg = "";
-    if (dependency?.min) msg += `\n\t${localize("BBC.Dependency.MinVersion", "Minimum version: ")}${dependency?.min}`;
-    if (dependency?.max) msg += `\n\t${localize("BBC.Dependency.MaxVersion", "Maximum version: ")}${dependency?.max}`;
+    if (dependency?.min) msg += `\n\t${localize("BBC.Dependency.MinVersion", "Minimum version: ")}${dependency.min}`;
+    if (dependency?.max) msg += `\n\t${localize("BBC.Dependency.MaxVersion", "Maximum version: ")}${dependency.max}`;
     msg += version ? `\n\t${localize("BBC.Dependency.CurVersion", "Current version: ")}${version}` : "";
     msg += `\n\t${localize("BBC.Dependency.CurState", "Current state: ")}`;
 
@@ -97,11 +105,14 @@ function isActivated(dependency, warnMessage) {
     if (!dependency?.id) return false;
     const valid = _isActivated(dependency);
     if (!valid && warnMessage) {
-        if (warnMessage.length) warnMessage += "\n";
-        const depRef = dependency?.id + (dependency?.ref ? ` (${dependency?.ref})` : "");
-        warnMessage += `${localize("BBC.Dependency.WarnNotActivated", "Warning: not activated and between expected versions:")} ${depRef}`;
-        warnMessage += _versionMessageAppend(dependency, _getEntity(dependency)?.version);
-        log.warn(warnMessage);
+        let prefix = warnMessage;
+        if (prefix.length > 0) prefix += "\n";
+        const depRef = dependency.id + (dependency.ref ? ` (${dependency.ref})` : "");
+        let fullWarnMsg = `${prefix}${localize("BBC.Dependency.WarnNotActivated", "Warning: not activated and between expected versions:")} ${depRef}`;
+        const entity = _getEntity(dependency);
+        const versionStr = entity?.version ?? (dependency.id === "foundry" ? game?.version : undefined);
+        fullWarnMsg += _versionMessageAppend(dependency, versionStr);
+        log.warn(fullWarnMsg);
     }
     return valid;
 }
@@ -118,11 +129,14 @@ function isInstalled(dependency, warnMessage) {
     if (!dependency?.id) return false;
     const valid = _isInstalled(dependency);
     if (!valid && warnMessage) {
-        if (warnMessage.length) warnMessage += "\n";
-        const depRef = dependency?.id + (dependency?.ref ? ` (${dependency?.ref})` : "");
-        warnMessage += `${localize("BBC.Dependency.WarnNotInstalled", "Warning: not installed and between expected versions:")} ${depRef}`;
-        warnMessage += _versionMessageAppend(dependency, _getEntity(dependency)?.version);
-        log.warn(warnMessage);
+        let prefix = warnMessage;
+        if (prefix.length > 0) prefix += "\n";
+        const depRef = dependency.id + (dependency.ref ? ` (${dependency.ref})` : "");
+        let fullWarnMsg = `${prefix}${localize("BBC.Dependency.WarnNotInstalled", "Warning: not installed and between expected versions:")} ${depRef}`;
+        const entity = _getEntity(dependency);
+        const versionStr = entity?.version ?? (dependency.id === "foundry" ? game?.version : undefined);
+        fullWarnMsg += _versionMessageAppend(dependency, versionStr);
+        log.warn(fullWarnMsg);
     }
     return valid;
 }
@@ -134,6 +148,7 @@ function isInstalled(dependency, warnMessage) {
  * @returns {boolean} Whether the dependency is activated.
  */
 function hasRecommended(dependency) {
+    if (!dependency?.id) return false;
     return isActivated(dependency, localize("BBC.Dependency.RecommendInstalling", "Recommend installing the following:"));
 }
 
@@ -143,14 +158,16 @@ function hasRecommended(dependency) {
  * @returns {boolean} Whether at least one dependency is activated.
  */
 function hasSomeRecommended(dependencyList) {
+    if (!Array.isArray(dependencyList) || dependencyList.length === 0) return false;
     for (const dependency of dependencyList) {
         if (isActivated(dependency)) return true;
     }
 
     let warnMsg = localize("BBC.Dependency.RecommendInstallingOne", "Recommend installing one of the following:");
     for (const dependency of dependencyList) {
-        warnMsg += `\n${localize("BBC.Dependency.ModuleLabel", "Module: ")}${dependency?.id}`;
-        if (dependency?.ref) warnMsg += ` (${dependency?.ref})`;
+        if (!dependency?.id) continue;
+        warnMsg += `\n${localize("BBC.Dependency.ModuleLabel", "Module: ")}${dependency.id}`;
+        if (dependency.ref) warnMsg += ` (${dependency.ref})`;
     }
     log.warn(warnMsg);
     return false;
@@ -167,12 +184,15 @@ function required(dependencyList) {
     let dependencyMet = true;
 
     for (const dependency of dependencyList) {
+        if (!dependency?.id) continue;
         if (_isActivated(dependency)) continue;
         dependencyMet = false;
 
-        const depRef = dependency?.id + (dependency?.ref ? ` (${dependency?.ref})` : "");
+        const depRef = dependency.id + (dependency.ref ? ` (${dependency.ref})` : "");
         errorMsg += `\n${localize("BBC.Dependency.ModuleLabel", "Module: ")}${depRef}`;
-        errorMsg += _versionMessageAppend(dependency, _getEntity(dependency)?.version);
+        const entity = _getEntity(dependency);
+        const versionStr = entity?.version ?? (dependency.id === "foundry" ? game?.version : undefined);
+        errorMsg += _versionMessageAppend(dependency, versionStr);
     }
 
     if (!dependencyMet) {
@@ -186,14 +206,20 @@ function required(dependencyList) {
  * @returns {void} Throws an error if no required dependency is activated.
  */
 function someRequired(dependencyList) {
+    if (!Array.isArray(dependencyList) || dependencyList.length === 0) {
+        throw new Error("No dependencies specified for someRequired.\n");
+    }
     let errorMsg = localize("BBC.Dependency.RequiresOne", "Requires at least one of the following to be installed and activated:\n");
 
     for (const dependency of dependencyList) {
+        if (!dependency?.id) continue;
         if (_isActivated(dependency)) return;
-        if (errorMsg.length) errorMsg += "\n";
-        const depRef = dependency?.id + (dependency?.ref ? ` (${dependency?.ref})` : "");
+        if (errorMsg.length > 0) errorMsg += "\n";
+        const depRef = dependency.id + (dependency.ref ? ` (${dependency.ref})` : "");
         errorMsg += `${localize("BBC.Dependency.ModuleLabel", "Module: ")}${depRef}`;
-        errorMsg += _versionMessageAppend(dependency, _getEntity(dependency)?.version);
+        const entity = _getEntity(dependency);
+        const versionStr = entity?.version ?? (dependency.id === "foundry" ? game?.version : undefined);
+        errorMsg += _versionMessageAppend(dependency, versionStr);
     }
     throw new Error(errorMsg + "\n");
 }

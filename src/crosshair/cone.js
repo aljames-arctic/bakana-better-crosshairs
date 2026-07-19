@@ -1,4 +1,5 @@
 import { closest } from "../lib/filemanager.js";
+import { log } from "../lib/logger.js";
 import { crosshairAdapter } from "../adapter/foundry/index.js";
 import { BaseCrosshairShape } from "./base.js";
 
@@ -39,41 +40,73 @@ export class ConeCrosshairShape extends BaseCrosshairShape {
     }
 
     /**
-     * Configure cone distance and angle on the Sequencer crosshair chain.
+     * Protected hook to configure cone distance and angle on the Sequencer crosshair chain.
+     * @protected
      * @param {Sequence} crosshairSeq - The Sequencer crosshair builder instance
      * @returns {void}
      */
-    configureCrosshairShape(crosshairSeq) {
-        const distance = Math.round(this.config.distance);
-        const angle = this.config.angle;
+    _configureCrosshairShape(crosshairSeq) {
+        const distance = Math.round(this.config.distance ?? 30);
+        const angle = this.config.angle ?? 53.13;
+        log.debug("ConeCrosshairShape._configureCrosshairShape | Configuring cone distance and angle.", { distance, angle });
         crosshairSeq.distance(distance).angle(angle);
     }
 
     /**
-     * Calculate pixel length, width (base spread from angle), and scale factor for the cone graphic.
+     * Configure cone distance and angle on the Sequencer crosshair chain (Template Method entry).
+     * @param {Sequence} crosshairSeq - The Sequencer crosshair builder instance
+     * @returns {void}
+     */
+    configureCrosshairShape(crosshairSeq) {
+        this._configureCrosshairShape(crosshairSeq);
+    }
+
+    /**
+     * Protected hook to calculate pixel length, width (base spread from angle), and scale factor for the cone graphic.
+     * @protected
      * @returns {{widthPx: number, heightPx: number, factor: number, gridUnits: boolean}} Calculated pixel and scale dimensions
      */
-    getGraphicDimensions() {
-        const distance = Math.round(this.config.distance);
-        const angle = this.config.angle;
+    _getGraphicDimensions() {
+        const distance = Math.round(this.config.distance ?? 30);
+        const angle = this.config.angle ?? 53.13;
         const gridDist = canvas?.dimensions?.distance ?? 5;
         const gridSize = canvas?.dimensions?.size ?? 100;
         const lengthPixels = (distance / gridDist) * gridSize;
         const angleRad = (angle * Math.PI) / 180;
         const widthPixels = 2 * lengthPixels * Math.tan(angleRad / 2);
         const { factor, gridUnits } = crosshairAdapter.getTemplatePixelFactor();
+        log.debug("ConeCrosshairShape._getGraphicDimensions | Sizing cone graphic.", { distance, angle, lengthPixels, widthPixels, factor, gridUnits });
         return { widthPx: lengthPixels, heightPx: widthPixels, factor, gridUnits };
     }
 
     /**
-     * Resolve the cone graphic asset path or Sequencer key.
+     * Calculate pixel length, width (base spread from angle), and scale factor for the cone graphic (Template Method entry).
+     * @returns {{widthPx: number, heightPx: number, factor: number, gridUnits: boolean}} Calculated pixel and scale dimensions
+     */
+    getGraphicDimensions() {
+        return this._getGraphicDimensions();
+    }
+
+    /**
+     * Protected hook to resolve the cone graphic asset path or Sequencer key.
+     * @protected
+     * @returns {string} Resolved file path or key
+     */
+    _getGraphicFile() {
+        const rawFile = this.config.coneFile ?? this.config.file;
+        if (rawFile != null && rawFile !== "") {
+            return closest(rawFile);
+        }
+        const coneSize = this.config.coneSize ?? "thin";
+        return closest(`eskie.crosshair.cone.${coneSize}.fantasy_01.white.full`);
+    }
+
+    /**
+     * Resolve the cone graphic asset path or Sequencer key (Template Method entry).
      * @returns {string} Resolved file path or key
      */
     getGraphicFile() {
-        if (this.config.coneFile) return closest(this.config.coneFile);
-        const coneSize = this.config.coneSize ?? "thin";
-        const file = this.config.file ? closest(this.config.file) : undefined;
-        return file ?? closest(`eskie.crosshair.cone.${coneSize}.fantasy_01.white.full`);
+        return this._getGraphicFile();
     }
 }
 
@@ -85,7 +118,9 @@ export class ConeCrosshairShape extends BaseCrosshairShape {
  * @returns {Promise<Array>} A promise resolving to an array containing the configured cone sequence and targets [cone, targets]
  */
 async function create(placeable, config = {}) {
-    const shape = new ConeCrosshairShape(placeable, config);
+    const opts = config ?? {};
+    log.debug("cone.create | Instantiating ConeCrosshairShape.", { config: opts });
+    const shape = new ConeCrosshairShape(placeable, opts);
     return shape.create();
 }
 
@@ -97,6 +132,7 @@ async function create(placeable, config = {}) {
  * @returns {Promise<any>} A promise resolving when the crosshair sequence finishes playing
  */
 async function play(placeable, config = {}) {
+    log.debug("cone.play | Executing cone sequence play.");
     const [seq] = await create(placeable, config);
     return seq.play();
 }
@@ -110,8 +146,11 @@ async function play(placeable, config = {}) {
  * @returns {Promise<void>} A promise resolving when the matching crosshair effects have been terminated
  */
 async function stop(token, options = {}) {
-    const id = options?.id ?? "Cone Crosshair";
-    return BaseCrosshairShape.stop(token, { id, ...options });
+    const targetToken = crosshairAdapter.toToken(token);
+    const opts = options ?? {};
+    const id = opts.id ?? "Cone Crosshair";
+    log.debug("cone.stop | Stopping cone crosshair sequence effect.", { id, token: targetToken?.name });
+    return BaseCrosshairShape.stop(targetToken, { id, ...opts });
 }
 
 export const cone = {
@@ -119,3 +158,4 @@ export const cone = {
     play,
     stop,
 };
+

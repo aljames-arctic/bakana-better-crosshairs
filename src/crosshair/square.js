@@ -25,11 +25,19 @@ export class SquareCrosshairShape extends BaseCrosshairShape {
     }
 
     /**
+     * Check if shape is attached to a token for canonical boolean evaluation.
+     * @returns {boolean} True if stickToToken is enabled and token exists
+     */
+    get isAttached() {
+        return Boolean(this.stickToToken && this.token);
+    }
+
+    /**
      * Get the default normalized animation anchor coordinates (`{ x: 0, y: 0 }` for grid squares, `{ x: 0, y: 0.5 }` when attached to token).
      * @returns {{x: number, y: number}} Top-left corner anchor or left-middle origin anchor
      */
     get defaultAnimationAnchor() {
-        return (this.stickToToken && Boolean(this.token)) ? { x: 0, y: 0.5 } : { x: 0, y: 0 };
+        return this.isAttached ? { x: 0, y: 0.5 } : { x: 0, y: 0 };
     }
 
     /**
@@ -37,27 +45,39 @@ export class SquareCrosshairShape extends BaseCrosshairShape {
      * @returns {{x: number, y: number}} Top-left corner anchor or left-middle origin anchor
      */
     get defaultShapeAnchor() {
-        return (this.stickToToken && Boolean(this.token)) ? { x: 0, y: 0.5 } : { x: 0, y: 0 };
+        return this.isAttached ? { x: 0, y: 0.5 } : { x: 0, y: 0 };
     }
 
     /**
-     * Configure square distance and width on the Sequencer crosshair chain.
+     * Protected hook to configure square distance and width on the Sequencer crosshair chain.
+     * @protected
      * @param {Sequence} crosshairSeq - The Sequencer crosshair builder instance
      * @returns {void}
      */
-    configureCrosshairShape(crosshairSeq) {
-        const distance = Math.round(this.config.distance);
-        const width = Math.round(this.config.width);
+    _configureCrosshairShape(crosshairSeq) {
+        const distance = Math.round(this.config.distance ?? 30);
+        const width = Math.round(this.config.width ?? distance);
+        log.debug("SquareCrosshairShape._configureCrosshairShape | Configuring square distance and width.", { distance, width });
         crosshairSeq.distance(distance).width(width);
     }
 
     /**
-     * Calculate pixel length, width, and scale factor for the square graphic.
+     * Configure square distance and width on the Sequencer crosshair chain (Template Method entry).
+     * @param {Sequence} crosshairSeq - The Sequencer crosshair builder instance
+     * @returns {void}
+     */
+    configureCrosshairShape(crosshairSeq) {
+        this._configureCrosshairShape(crosshairSeq);
+    }
+
+    /**
+     * Protected hook to calculate pixel length, width, and scale factor for the square graphic.
+     * @protected
      * @returns {{widthPx: number, heightPx: number, factor: number, gridUnits: boolean}} Calculated pixel and scale dimensions
      */
-    getGraphicDimensions() {
-        const rawDistance = Math.round(this.config.distance);
-        const rawWidth = Math.round(this.config.width);
+    _getGraphicDimensions() {
+        const rawDistance = Math.round(this.config.distance ?? 30);
+        const rawWidth = Math.round(this.config.width ?? rawDistance);
         let distance = rawDistance;
         if (rawWidth > 0 && rawDistance > rawWidth) {
             const isSquareDiagonal = rawDistance <= rawWidth * 1.6;
@@ -70,17 +90,38 @@ export class SquareCrosshairShape extends BaseCrosshairShape {
         const lengthPixels = (distance / gridDist) * gridSize;
         const widthPixels = (width / gridDist) * gridSize;
         const { factor, gridUnits } = crosshairAdapter.getTemplatePixelFactor();
+        log.debug("SquareCrosshairShape._getGraphicDimensions | Sizing square graphic.", { distance, width, lengthPixels, widthPixels, factor, gridUnits });
         return { widthPx: lengthPixels, heightPx: widthPixels, factor, gridUnits };
     }
 
     /**
-     * Resolve the square graphic asset path or Sequencer key.
+     * Calculate pixel length, width, and scale factor for the square graphic (Template Method entry).
+     * @returns {{widthPx: number, heightPx: number, factor: number, gridUnits: boolean}} Calculated pixel and scale dimensions
+     */
+    getGraphicDimensions() {
+        return this._getGraphicDimensions();
+    }
+
+    /**
+     * Protected hook to resolve the square graphic asset path or Sequencer key.
+     * @protected
+     * @returns {string} Resolved file path or key
+     */
+    _getGraphicFile() {
+        const rawFile = this.config.squareFile ?? this.config.file;
+        if (rawFile != null && rawFile !== "") {
+            return closest(rawFile);
+        }
+        const defaultKey = "eskie.crosshair.square.thin.white.full";
+        return closest(defaultKey) ?? defaultKey;
+    }
+
+    /**
+     * Resolve the square graphic asset path or Sequencer key (Template Method entry).
      * @returns {string} Resolved file path or key
      */
     getGraphicFile() {
-        if (this.config.squareFile) return closest(this.config.squareFile);
-        if (this.config.file) return closest(this.config.file);
-        return closest("eskie.crosshair.square.thin.white.full") ?? "eskie.crosshair.square.thin.white.full";
+        return this._getGraphicFile();
     }
 
     /**
@@ -88,15 +129,15 @@ export class SquareCrosshairShape extends BaseCrosshairShape {
      * @returns {Promise<Array<*>>} Sequence and targets array
      */
     async create() {
-        if (this.stickToToken && Boolean(this.token)) {
+        if (this.isAttached) {
             log.debug("SquareCrosshairShape.create | Attached square detected. Converting to equivalent ray object.");
             const rayConfig = {
                 ...this.config,
                 type: "ray",
                 t: "ray",
                 originalType: "square",
-                distance: this.config.distance,
-                width: this.config.width,
+                distance: this.config.distance ?? 30,
+                width: this.config.width ?? 30,
                 rayFile: this.config.squareFile ?? this.config.file ?? "eskie.crosshair.ray.fantasy_01.white.full"
             };
             const rayShape = new RayCrosshairShape(this.placeable, rayConfig);
@@ -114,7 +155,9 @@ export class SquareCrosshairShape extends BaseCrosshairShape {
  * @returns {Promise<Array<*>>} A promise resolving to an array containing the configured square sequence and targets
  */
 async function create(placeable, config = {}) {
-    const shape = new SquareCrosshairShape(placeable, config);
+    const opts = config ?? {};
+    log.debug("square.create | Instantiating SquareCrosshairShape.", { config: opts });
+    const shape = new SquareCrosshairShape(placeable, opts);
     return shape.create();
 }
 
@@ -126,6 +169,7 @@ async function create(placeable, config = {}) {
  * @returns {Promise<any>} A promise resolving when the sequence finishes playing
  */
 async function play(placeable, config = {}) {
+    log.debug("square.play | Executing square sequence play.");
     const [seq] = await create(placeable, config);
     return seq.play();
 }
@@ -139,8 +183,11 @@ async function play(placeable, config = {}) {
  * @returns {Promise<void>} A promise resolving when matching effects have been terminated
  */
 async function stop(token, options = {}) {
-    const id = options.id ?? "Square Crosshair";
-    return BaseCrosshairShape.stop(token, { id, ...options });
+    const targetToken = crosshairAdapter.toToken(token);
+    const opts = options ?? {};
+    const id = opts.id ?? "Square Crosshair";
+    log.debug("square.stop | Stopping square crosshair sequence effect.", { id, token: targetToken?.name });
+    return BaseCrosshairShape.stop(targetToken, { id, ...opts });
 }
 
 export const square = {

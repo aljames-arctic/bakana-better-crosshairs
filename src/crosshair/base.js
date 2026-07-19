@@ -19,6 +19,7 @@ export class BaseCrosshairShape {
 
         // Entry-boundary normalization for target document and placeable
         const doc = placeable?.document ?? (placeable?.documentName ? placeable : null);
+        this.doc = doc;
         const flagsToken = doc?.flags?.bbc?.token ?? doc?.flags?.bakana?.token ?? placeable?._bbcSticky;
         const rawToken = config.token ?? flagsToken;
         this.token = crosshairAdapter.toToken(rawToken);
@@ -46,8 +47,8 @@ export class BaseCrosshairShape {
         this.sequencerCrosshair = null;
 
         // Position and direction state tracking
-        this.x = placeable?.x ?? 0;
-        this.y = placeable?.y ?? 0;
+        this.x = placeable?.x ?? doc?.x ?? 0;
+        this.y = placeable?.y ?? doc?.y ?? 0;
         this.direction = config.direction ?? 0;
 
         // Normalize boolean flags on config for clean direct boolean evaluation
@@ -405,29 +406,6 @@ export class BaseCrosshairShape {
             this.sequencerCrosshair.y = targetY;
         }
 
-        if (this.placeable?.document) {
-            const dims = this.placeable._bbcDimensions ?? this.placeable.document._bbcDimensions ?? globalThis._activeBBCDimensions;
-            const docProps = crosshairAdapter.detectProperties(this.placeable.document);
-            const initialDist = dims?.distance ?? docProps.distance;
-            const initialWidth = dims?.width ?? docProps.width;
-            const isGridUnits = dims?.gridUnits ?? true;
-
-            crosshairAdapter.updatePreviewShape(this.placeable.document, {
-                x: targetX,
-                y: targetY,
-                direction: this.direction,
-                rotation: this.direction,
-                distance: initialDist,
-                radius: initialDist,
-                width: initialWidth,
-                sticky: this.stickToToken,
-                gridUnits: isGridUnits
-            });
-
-            this.placeable.x = this.placeable.document.x;
-            this.placeable.y = this.placeable.document.y;
-        }
-
         this.refreshTemplateHighlights();
     }
 
@@ -436,7 +414,7 @@ export class BaseCrosshairShape {
      * @param {number} newAngleDeg - New direction in degrees
      */
     rotate(newAngleDeg) {
-        if (typeof newAngleDeg === "number") {
+        if (typeof newAngleDeg === "number" && Number.isFinite(newAngleDeg)) {
             while (newAngleDeg < 0) newAngleDeg += 360;
             newAngleDeg = newAngleDeg % 360;
         } else {
@@ -486,11 +464,16 @@ export class BaseCrosshairShape {
             alignCrosshairAndEffects(this.sequencerCrosshair, this.config, rad);
         }
 
-        if (this.placeable?.document) {
-            this.placeable.document.direction = newAngleDeg;
-            try {
-                this.placeable.document.updateSource({ direction: newAngleDeg });
-            } catch (e) {}
+        const doc = this.doc ?? this.placeable?.document ?? (this.placeable?.documentName ? this.placeable : null);
+        if (doc) {
+            doc.direction = newAngleDeg;
+            if (typeof doc.updateSource === "function") {
+                try {
+                    doc.updateSource({ direction: newAngleDeg });
+                } catch (e) {
+                    log.debug("BaseCrosshairShape.rotate | Exception updating source direction on document:", e);
+                }
+            }
         }
         if (this.placeable) {
             this.placeable.direction = newAngleDeg;
@@ -516,15 +499,16 @@ export class BaseCrosshairShape {
      * Refresh the template rendering highlights and update preview shape coordinates.
      */
     refreshTemplateHighlights() {
-        if (this.placeable?.document) {
-            const dims = this.placeable._bbcDimensions ?? this.placeable.document._bbcDimensions ?? globalThis._activeBBCDimensions;
-            const docProps = crosshairAdapter.detectProperties(this.placeable.document);
+        const doc = this.doc ?? this.placeable?.document ?? (this.placeable?.documentName ? this.placeable : null);
+        if (doc) {
+            const dims = this.placeable?._bbcDimensions ?? doc._bbcDimensions ?? globalThis._activeBBCDimensions;
+            const docProps = crosshairAdapter.detectProperties(doc);
             const initialDist = dims?.distance ?? docProps.distance;
             const initialWidth = dims?.width ?? docProps.width;
             const isGridUnits = dims?.gridUnits ?? true;
             const shapeType = this.type ?? this.config?.type ?? this.config?.t ?? "circle";
 
-            crosshairAdapter.updatePreviewShape(this.placeable.document, {
+            crosshairAdapter.updatePreviewShape(doc, {
                 x: this.x,
                 y: this.y,
                 direction: this.direction,
@@ -538,6 +522,11 @@ export class BaseCrosshairShape {
                 originalType: this.config?.originalType,
                 t: shapeType === "square" ? "rect" : shapeType
             });
+
+            if (this.placeable?.document) {
+                this.placeable.x = doc.x;
+                this.placeable.y = doc.y;
+            }
         }
         if (crosshairAdapter?.refreshTemplateHighlights && this.placeable) {
             crosshairAdapter.refreshTemplateHighlights(this.placeable, this.direction);
@@ -551,7 +540,7 @@ export class BaseCrosshairShape {
     getPlacementUpdates() {
         let posX = this.x;
         let posY = this.y;
-        if (this.sequencerCrosshair && typeof this.sequencerCrosshair.x === "number" && !isNaN(this.sequencerCrosshair.x) && typeof this.sequencerCrosshair.y === "number" && !isNaN(this.sequencerCrosshair.y)) {
+        if (this.sequencerCrosshair && Number.isFinite(this.sequencerCrosshair.x) && Number.isFinite(this.sequencerCrosshair.y)) {
             posX = this.sequencerCrosshair.x;
             posY = this.sequencerCrosshair.y;
         }

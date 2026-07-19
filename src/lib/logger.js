@@ -112,7 +112,7 @@ export const log = {
      * @returns {void}
      */
     groupEnd() {
-        if (groupStack.pop()) {
+        if (Boolean(groupStack.pop())) {
             console.groupEnd();
         }
     },

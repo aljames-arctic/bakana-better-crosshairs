@@ -132,26 +132,27 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
      * @returns {{type: string, distance: number, radius: number, width: number, angle: number, x: number, y: number}} Detected shape properties and dimensions
      */
     detectProperties(doc) {
+        const targetDoc = doc?.document ?? doc;
         const shapeMap = {
             circle: "circle",
             cone: "cone",
             ray: "ray",
             rect: "square"
         };
-        let distance = doc.distance ?? 0;
-        const width = doc.width ?? 0;
-        if (doc.t === "rect" && width > 0 && distance > width) {
+        let distance = targetDoc.distance ?? 0;
+        const width = targetDoc.width ?? 0;
+        if (targetDoc.t === "rect" && width > 0 && distance > width) {
             const isSquareDiagonal = distance <= width * 1.6;
             distance = isSquareDiagonal ? width : Math.round(Math.sqrt(Math.max(0, distance * distance - width * width)));
         }
         return {
-            type: shapeMap[doc.t] ?? "circle",
+            type: shapeMap[targetDoc.t] ?? "circle",
             distance,
             radius: distance,
             width,
-            angle: doc.angle ?? 0,
-            x: doc.x ?? 0,
-            y: doc.y ?? 0
+            angle: targetDoc.angle ?? 0,
+            x: targetDoc.x ?? 0,
+            y: targetDoc.y ?? 0
         };
     }
 
@@ -194,18 +195,19 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
      */
     updatePreviewShape(previewDoc, coords) {
         if (!previewDoc || !coords) return;
-        if (coords.x !== undefined) previewDoc.x = coords.x;
-        if (coords.y !== undefined) previewDoc.y = coords.y;
-        if (coords.direction !== undefined) previewDoc.direction = coords.direction;
-        const isRect = previewDoc.t === "rect" || coords.type === "square" || coords.type === "rect" || coords.originalType === "square" || coords.t === "rect";
+        const targetDoc = previewDoc.document ?? previewDoc;
+        if (coords.x !== undefined) targetDoc.x = coords.x;
+        if (coords.y !== undefined) targetDoc.y = coords.y;
+        if (coords.direction !== undefined) targetDoc.direction = coords.direction;
+        const isRect = targetDoc.t === "rect" || coords.type === "square" || coords.type === "rect" || coords.originalType === "square" || coords.t === "rect";
         if (isRect) {
-            previewDoc.t = "rect";
+            targetDoc.t = "rect";
             const w = coords.width ?? coords.distance ?? 20;
             const h = coords.distance ?? coords.width ?? w;
-            previewDoc.distance = Math.round(Math.sqrt(w * w + h * h) * 100) / 100;
-            previewDoc.width = w;
+            targetDoc.distance = Math.round(Math.sqrt(w * w + h * h) * 100) / 100;
+            targetDoc.width = w;
         } else if (coords.distance !== undefined) {
-            previewDoc.distance = coords.distance;
+            targetDoc.distance = coords.distance;
         }
     }
 
@@ -217,13 +219,15 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
      * @returns {void}
      */
     applyDocumentPlacement(doc, coords = {}, config = {}, data = null) {
+        if (!doc) return;
+        const targetDoc = doc.document ?? doc;
         const styling = this.extractPlacedStylingFlags(config);
         const updateData = {
             ...coords,
             flags: styling.flags
         };
 
-        const isRect = doc.t === "rect" || coords.type === "square" || coords.type === "rect" || coords.originalType === "square" || config.originalType === "square" || coords.t === "rect" || config.t === "rect" || config.type === "square" || config.type === "rect";
+        const isRect = targetDoc.t === "rect" || coords.type === "square" || coords.type === "rect" || coords.originalType === "square" || config.originalType === "square" || coords.t === "rect" || config.t === "rect" || config.type === "square" || config.type === "rect";
         if (isRect) {
             updateData.t = "rect";
             const w = coords.width ?? coords.distance ?? config.width ?? config.distance ?? 20;
@@ -238,7 +242,7 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         if (styling.placedBorderAlpha !== undefined) updateData.borderAlpha = styling.placedBorderAlpha;
         if (config.hidden || config.hideTemplate) updateData.hidden = true;
 
-        doc.updateSource(updateData);
+        targetDoc.updateSource(updateData);
         if (data && typeof data === "object") {
             if (typeof foundry?.utils?.mergeObject === "function") {
                 foundry.utils.mergeObject(data, updateData);

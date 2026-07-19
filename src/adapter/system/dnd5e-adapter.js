@@ -25,16 +25,21 @@ export class Dnd5eSystemAdapter extends BaseSystemAdapter {
 
     /**
      * Extract normalized calling item and activity context from a DnD5e Document and flags.
-     * @param {Document} document - Template or Region document placed on canvas
+     * @param {Document|PlaceableObject|null} target - Template or Region document or placeable placed on canvas
      * @param {Object} [baseContext={}] - Initial calling context (`{ item, itemName, itemId, activity, activityName, activityId }`)
      * @returns {{item: Item|null, itemName: string, itemId: string, activity: Object|null, activityName: string, activityId: string}} Normalized calling context containing item and activity references and identifiers
      */
-    extractCallingContext(document, baseContext = {}) {
-        let itemObj = baseContext.item ?? null;
-        let activityObj = baseContext.activity ?? null;
+    extractCallingContext(target, baseContext = {}) {
+        const doc = target?.document ?? target;
+        let itemObj = baseContext?.item ?? null;
+        let activityObj = baseContext?.activity ?? null;
 
-        if (!itemObj && document?.flags?.dnd5e?.origin && typeof fromUuidSync === "function") {
-            try { itemObj = fromUuidSync(document.flags.dnd5e.origin); } catch (e) {}
+        const uuidResolver = typeof fromUuidSync === "function"
+            ? fromUuidSync
+            : (typeof foundry?.utils?.fromUuidSync === "function" ? foundry.utils.fromUuidSync : null);
+
+        if (!itemObj && doc?.flags?.dnd5e?.origin && uuidResolver) {
+            try { itemObj = uuidResolver(doc.flags.dnd5e.origin); } catch (e) {}
         }
 
         if (itemObj && (itemObj.item || (itemObj.parent && itemObj.parent.documentName === "Item"))) {
@@ -42,10 +47,10 @@ export class Dnd5eSystemAdapter extends BaseSystemAdapter {
             itemObj = itemObj.item ?? itemObj.parent;
         }
 
-        const actIdentifier = document?.flags?.dnd5e?.activity;
+        const actIdentifier = doc?.flags?.dnd5e?.activity;
         if (!activityObj && actIdentifier) {
-            if (typeof fromUuidSync === "function" && typeof actIdentifier === "string" && actIdentifier.includes(".")) {
-                try { activityObj = fromUuidSync(actIdentifier); } catch (e) {}
+            if (uuidResolver && typeof actIdentifier === "string" && actIdentifier.includes(".")) {
+                try { activityObj = uuidResolver(actIdentifier); } catch (e) {}
             }
             if (!activityObj && itemObj?.system?.activities) {
                 activityObj = itemObj.system.activities.get?.(actIdentifier) ?? null;
@@ -54,11 +59,11 @@ export class Dnd5eSystemAdapter extends BaseSystemAdapter {
 
         const result = {
             item: itemObj,
-            itemName: itemObj?.name ?? baseContext.itemName ?? "",
-            itemId: itemObj?.id ?? baseContext.itemId ?? "",
+            itemName: itemObj?.name ?? baseContext?.itemName ?? "",
+            itemId: itemObj?.id ?? baseContext?.itemId ?? "",
             activity: activityObj,
-            activityName: activityObj?.name ?? baseContext.activityName ?? "",
-            activityId: activityObj?.id ?? baseContext.activityId ?? ""
+            activityName: activityObj?.name ?? baseContext?.activityName ?? "",
+            activityId: activityObj?.id ?? baseContext?.activityId ?? ""
         };
 
         log.debug("Dnd5eSystemAdapter.extractCallingContext | Resolved DnD5e context:", {
@@ -66,7 +71,7 @@ export class Dnd5eSystemAdapter extends BaseSystemAdapter {
             itemId: result.itemId,
             activityName: result.activityName,
             activityId: result.activityId,
-            dnd5eFlags: document?.flags?.dnd5e
+            dnd5eFlags: doc?.flags?.dnd5e
         });
 
         return result;
@@ -135,14 +140,13 @@ export class Dnd5eSystemAdapter extends BaseSystemAdapter {
     }
 
     /**
-     * Register D&D 5e-specific ApplicationV2 item sheet header hooks (`ItemSheet5e` / `ItemSheet5e2`).
-     * @returns {void} No return value
+     * Return list of DnD5e-specific Hook names for ApplicationV2 item sheet header controls.
+     * Protected hook override (Template Method Pattern).
+     * @protected
+     * @override
+     * @returns {string[]} Array of hook names
      */
-    registerItemSheetHooks() {
-        if (typeof Hooks?.on === "function") {
-            const handler = (app, controls) => this.addItemSheetHeaderControl(app, controls);
-            Hooks.on("getHeaderControlsItemSheet5e", handler);
-            Hooks.on("getHeaderControlsItemSheet5e2", handler);
-        }
+    _getItemSheetHookNames() {
+        return ["getHeaderControlsItemSheet5e", "getHeaderControlsItemSheet5e2"];
     }
 }

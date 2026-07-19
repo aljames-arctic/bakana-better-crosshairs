@@ -11,6 +11,8 @@ import { AutorecMenuApplication } from './autorec/autorecMenu.js';
 export function registerModuleSettings() {
     log.info(`Initializing ${MODULE_NAME} settings`);
 
+    if (!game?.settings) return;
+
     game.settings.registerMenu(MODULE_ID, 'autorecMenu', {
         name: 'BBC.settings.autorecMenu.name',
         label: 'BBC.settings.autorecMenu.label',
@@ -33,7 +35,7 @@ export function registerModuleSettings() {
          * @returns {void}
          */
         onChange: (savedRegistrations) => {
-            autorecManager.loadSavedRegistrations(savedRegistrations);
+            autorecManager.loadSavedRegistrations(savedRegistrations ?? {});
         }
     });
 
@@ -56,6 +58,7 @@ export function registerModuleSettings() {
          * @param {string} value - The newly selected verbosity level ('error', 'warn', 'info', or 'debug').
          * @returns {void}
          */
-        onChange: (value) => log.setVerbosity(value)
+        onChange: (value) => log.setVerbosity(value ?? 'warn')
     });
 }
+

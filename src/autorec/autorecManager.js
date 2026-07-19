@@ -164,7 +164,7 @@ export class AutorecManager {
         const isDefault = Boolean(handler?.isDefault ?? (registeredKey === "DEFAULT"));
         const activityId = isDefault ? "" : (handler?.activityId ?? "").trim();
         const activityName = isDefault ? "" : (handler?.activityName ?? "").trim();
-        const hasActivity = Boolean(Boolean(activityId) || Boolean(activityName));
+        const hasActivity = Boolean(activityId || activityName);
         const enabled = handler?.enabled !== false;
         const baseConfig = typeof handler === "function" ? { handler } : (handler ?? {});
         const entry = {
@@ -411,7 +411,7 @@ export class AutorecManager {
         if (this._onRegisterCallback) {
             this._onRegisterCallback();
         }
-        const isLocal = Boolean(Boolean(local) || Boolean(handlerOrConfig?.local));
+        const isLocal = Boolean(local || handlerOrConfig?.local);
 
         if (itemName === "DEFAULT" && typeof handlerOrConfig !== "function") {
             handlerOrConfig = {
@@ -621,7 +621,7 @@ export class AutorecManager {
                 file = config.file ?? "";
             }
 
-            const isLocal = Boolean(Boolean(handlerOrConfig?.local) || !this.persistedItemNames.has(itemName));
+            const isLocal = Boolean(handlerOrConfig?.local || !this.persistedItemNames.has(itemName));
 
             const isDefault = Boolean(config.isDefault);
             const circleFile = config.circleFile ?? "eskie.crosshair.circle.fantasy_01.white.full";
@@ -630,7 +630,7 @@ export class AutorecManager {
             const squareFile = config.squareFile ?? "eskie.crosshair.square.fantasy_01.white";
 
             const unitFt = localize("BBC.Units.Feet", "ft");
-            const distVal = config.distance !== undefined ? config.distance : (config.radius !== undefined ? config.radius : null);
+            const distVal = config.distance ?? null;
             const distanceDisplay = distVal !== null ? `${distVal} ${unitFt}` : null;
             const widthVal = config.width;
             const widthDisplay = widthVal !== undefined ? `${widthVal} ${unitFt}` : null;
@@ -648,9 +648,9 @@ export class AutorecManager {
             const fillColor = config.fillColor ?? "#000000";
             const fillAlpha = config.fillAlpha ?? 0;
             const hasCustomStyling = Boolean(
-                Boolean(config.borderColor) ||
+                config.borderColor ||
                 (config.borderAlpha !== undefined && config.borderAlpha !== 0) ||
-                Boolean(config.fillColor) ||
+                config.fillColor ||
                 (config.fillAlpha !== undefined && config.fillAlpha !== 0)
             );
             const icon = config.icon ?? null;
@@ -660,9 +660,9 @@ export class AutorecManager {
             const placedBorderColor = config.placedBorderColor ?? "#000000";
             const placedBorderAlpha = config.placedBorderAlpha ?? 1;
             const hasPlacedStyling = Boolean(
-                Boolean(config.placedFillColor) ||
+                config.placedFillColor ||
                 (config.placedFillAlpha !== undefined && config.placedFillAlpha !== 0.25) ||
-                Boolean(config.placedBorderColor) ||
+                config.placedBorderColor ||
                 (config.placedBorderAlpha !== undefined && config.placedBorderAlpha !== 1)
             );
 
@@ -671,8 +671,8 @@ export class AutorecManager {
             const cleanItemName = config.itemName ?? itemName;
             const activityId = isDefault ? "" : (config.activityId ?? "");
             const activityName = isDefault ? "" : (config.activityName ?? "");
-            const hasActivity = Boolean(Boolean(activityId) || Boolean(activityName));
-            const activityDisplay = activityName !== "" ? activityName : activityId;
+            const hasActivity = Boolean(activityId || activityName);
+            const activityDisplay = activityName || activityId;
             const enabled = config.enabled !== false;
 
             results.push({

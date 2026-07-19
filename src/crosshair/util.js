@@ -11,7 +11,7 @@ let activePointerHandler = null;
  * @returns {number} Normalized angle in degrees between 0 and 360
  */
 function _normalizeAngleDegrees(angleDeg) {
-    if (typeof angleDeg !== "number" || isNaN(angleDeg)) return 0;
+    if (typeof angleDeg !== "number" || !Number.isFinite(angleDeg)) return 0;
     let norm = angleDeg % 360;
     if (norm < 0) norm += 360;
     return norm;
@@ -50,7 +50,7 @@ function _refreshPreviewHighlights(currentDirection, rad, crosshair, event = nul
     for (const list of previewLists) {
         if (Array.isArray(list)) {
             for (const p of list) {
-                if (p && (p.isPreview || list === canvas?.templates?.preview?.children || list === canvas?.regions?.preview?.children || p === crosshair?.template || p === globalThis._activeBBCPlaceable)) {
+                if (p && (crosshairAdapter.isPreview(p) || p === crosshair?.template || p === globalThis._activeBBCPlaceable)) {
                     refreshTemplateHighlights(p, currentDirection, rad, event);
                 }
             }

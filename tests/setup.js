@@ -131,15 +131,17 @@ globalThis.game = {
         registerMenu(moduleId, key, data) {}
     },
     modules: {
+        _store: new Map([
+            ["bakana-better-crosshairs", { id: "bakana-better-crosshairs", active: true, version: "2.0.0", api: {} }],
+            ["sequencer", { id: "sequencer", active: true, version: "3.2.0" }],
+            ["socketlib", { id: "socketlib", active: true, version: "3.2.0" }]
+        ]),
         get(id) {
-            if (id === "bakana-better-crosshairs") {
-                return { id, active: true, version: "2.0.0", api: {} };
-            }
-            if (id === "sequencer" || id === "socketlib") {
-                return { id, active: true, version: "3.2.0" };
-            }
-            if (id === "jb2a_patreon" || id === "eskie" || id === "psfx" || id === "boss-loot-assets-premium") {
-                return { id, active: true, version: "1.0.0" };
+            if (this._store.has(id)) return this._store.get(id);
+            if (id && id !== "nonexistent-module") {
+                const mod = { id, active: true, version: "1.0.0" };
+                this._store.set(id, mod);
+                return mod;
             }
             return undefined;
         }

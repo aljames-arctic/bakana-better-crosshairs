@@ -63,18 +63,30 @@ function _flushQueues() {
 }
 
 /**
+ * Common internal helper to enqueue a message for debounced notification dispatch.
+ * @param {'info'|'warn'|'error'} level - Notification severity level
+ * @param {string} message - Notification message text
+ * @private
+ * @returns {void}
+ */
+function _enqueue(level, message) {
+    const trimmed = String(message ?? "").trim();
+    if (!trimmed) return;
+    const queue = queues[level];
+    if (queue && !queue.includes(trimmed)) {
+        queue.push(trimmed);
+        _scheduleFlush();
+    }
+}
+
+/**
  * Queue an informational UI notification.
  * Multiple info calls within 50ms are grouped into a single notification display.
  * @param {string} message - Notification message text
  * @returns {void}
  */
 export function notifyInfo(message) {
-    const trimmed = String(message ?? "").trim();
-    if (!trimmed) return;
-    if (!queues.info.includes(trimmed)) {
-        queues.info.push(trimmed);
-    }
-    _scheduleFlush();
+    _enqueue("info", message);
 }
 
 /**
@@ -84,12 +96,7 @@ export function notifyInfo(message) {
  * @returns {void}
  */
 export function notifyWarn(message) {
-    const trimmed = String(message ?? "").trim();
-    if (!trimmed) return;
-    if (!queues.warn.includes(trimmed)) {
-        queues.warn.push(trimmed);
-    }
-    _scheduleFlush();
+    _enqueue("warn", message);
 }
 
 /**
@@ -99,12 +106,7 @@ export function notifyWarn(message) {
  * @returns {void}
  */
 export function notifyError(message) {
-    const trimmed = String(message ?? "").trim();
-    if (!trimmed) return;
-    if (!queues.error.includes(trimmed)) {
-        queues.error.push(trimmed);
-    }
-    _scheduleFlush();
+    _enqueue("error", message);
 }
 
 /**

@@ -1,4 +1,5 @@
 import { closest } from "../lib/filemanager.js";
+import { log } from "../lib/logger.js";
 import { crosshairAdapter } from "../adapter/foundry/index.js";
 import { BaseCrosshairShape } from "./base.js";
 
@@ -39,39 +40,71 @@ export class RayCrosshairShape extends BaseCrosshairShape {
     }
 
     /**
-     * Configure ray distance and width on the Sequencer crosshair chain.
+     * Protected hook to configure ray distance and width on the Sequencer crosshair chain.
+     * @protected
      * @param {Sequence} crosshairSeq - The Sequencer crosshair builder instance
      * @returns {void}
      */
-    configureCrosshairShape(crosshairSeq) {
-        const distance = Math.round(this.config.distance);
-        const width = Math.round(this.config.width);
+    _configureCrosshairShape(crosshairSeq) {
+        const distance = Math.round(this.config.distance ?? 30);
+        const width = Math.round(this.config.width ?? 5);
+        log.debug("RayCrosshairShape._configureCrosshairShape | Configuring ray distance and width.", { distance, width });
         crosshairSeq.distance(distance).width(width);
     }
 
     /**
-     * Calculate pixel length, width, and scale factor for the ray graphic.
+     * Configure ray distance and width on the Sequencer crosshair chain (Template Method entry).
+     * @param {Sequence} crosshairSeq - The Sequencer crosshair builder instance
+     * @returns {void}
+     */
+    configureCrosshairShape(crosshairSeq) {
+        this._configureCrosshairShape(crosshairSeq);
+    }
+
+    /**
+     * Protected hook to calculate pixel length, width, and scale factor for the ray graphic.
+     * @protected
      * @returns {{widthPx: number, heightPx: number, factor: number, gridUnits: boolean}} Calculated pixel and scale dimensions
      */
-    getGraphicDimensions() {
-        const distance = Math.round(this.config.distance);
-        const width = Math.round(this.config.width);
+    _getGraphicDimensions() {
+        const distance = Math.round(this.config.distance ?? 30);
+        const width = Math.round(this.config.width ?? 5);
         const gridDist = canvas?.dimensions?.distance ?? 5;
         const gridSize = canvas?.dimensions?.size ?? 100;
         const lengthPixels = (distance / gridDist) * gridSize;
         const widthPixels = Math.max(gridSize, (width / gridDist) * gridSize);
         const { factor, gridUnits } = crosshairAdapter.getTemplatePixelFactor();
+        log.debug("RayCrosshairShape._getGraphicDimensions | Sizing ray graphic.", { distance, width, lengthPixels, widthPixels, factor, gridUnits });
         return { widthPx: lengthPixels, heightPx: widthPixels, factor, gridUnits };
     }
 
     /**
-     * Resolve the ray graphic asset path or Sequencer key.
+     * Calculate pixel length, width, and scale factor for the ray graphic (Template Method entry).
+     * @returns {{widthPx: number, heightPx: number, factor: number, gridUnits: boolean}} Calculated pixel and scale dimensions
+     */
+    getGraphicDimensions() {
+        return this._getGraphicDimensions();
+    }
+
+    /**
+     * Protected hook to resolve the ray graphic asset path or Sequencer key.
+     * @protected
+     * @returns {string} Resolved file path or key
+     */
+    _getGraphicFile() {
+        const rawFile = this.config.rayFile ?? this.config.file;
+        if (rawFile != null && rawFile !== "") {
+            return closest(rawFile);
+        }
+        return closest("eskie.crosshair.ray.straight.thin.white.01");
+    }
+
+    /**
+     * Resolve the ray graphic asset path or Sequencer key (Template Method entry).
      * @returns {string} Resolved file path or key
      */
     getGraphicFile() {
-        if (this.config.rayFile) return closest(this.config.rayFile);
-        if (this.config.file) return closest(this.config.file);
-        return closest("eskie.crosshair.ray.straight.thin.white.01");
+        return this._getGraphicFile();
     }
 }
 
@@ -83,7 +116,9 @@ export class RayCrosshairShape extends BaseCrosshairShape {
  * @returns {Promise<Array>} A promise resolving to `[Sequence, targets]` array
  */
 async function create(placeable, config = {}) {
-    const shape = new RayCrosshairShape(placeable, config);
+    const opts = config ?? {};
+    log.debug("ray.create | Instantiating RayCrosshairShape.", { config: opts });
+    const shape = new RayCrosshairShape(placeable, opts);
     return shape.create();
 }
 
@@ -95,6 +130,7 @@ async function create(placeable, config = {}) {
  * @returns {Promise<any>} A promise resolving to the result of playing the sequence
  */
 async function play(placeable, config = {}) {
+    log.debug("ray.play | Executing ray sequence play.");
     const [seq] = await create(placeable, config);
     return seq.play();
 }
@@ -108,8 +144,11 @@ async function play(placeable, config = {}) {
  * @returns {Promise<void>} A promise resolving when the matching crosshair effects have been terminated
  */
 async function stop(token, options = {}) {
-    const id = options?.id ?? "Ray Crosshair";
-    return BaseCrosshairShape.stop(token, { id, ...options });
+    const targetToken = crosshairAdapter.toToken(token);
+    const opts = options ?? {};
+    const id = opts.id ?? "Ray Crosshair";
+    log.debug("ray.stop | Stopping ray crosshair sequence effect.", { id, token: targetToken?.name });
+    return BaseCrosshairShape.stop(targetToken, { id, ...opts });
 }
 
 export const ray = {
@@ -117,3 +156,4 @@ export const ray = {
     play,
     stop,
 };
+

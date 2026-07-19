@@ -11,7 +11,8 @@ export const socketlib = {
      * @returns {void}
      */
     emit(payload) {
-        if (!game.socket) return;
+        if (!payload || typeof payload !== "object") return;
+        if (!game?.socket) return;
         game.socket.emit(`module.${MODULE_ID}`, payload);
     },
 
@@ -22,7 +23,7 @@ export const socketlib = {
      */
     on(handler) {
         if (typeof handler !== "function") return;
-        if (!game.socket) return;
+        if (!game?.socket) return;
         game.socket.on(`module.${MODULE_ID}`, handler);
     },
 
@@ -33,7 +34,8 @@ export const socketlib = {
      */
     off(handler) {
         if (typeof handler !== "function") return;
-        if (!game.socket) return;
+        if (!game?.socket) return;
         game.socket.off(`module.${MODULE_ID}`, handler);
     }
 };
+

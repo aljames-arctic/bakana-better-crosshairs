@@ -5,7 +5,8 @@
  * @returns {string} The localized string or fallback
  */
 export function localize(key, fallback = key) {
-    return game.i18n?.has(key) ? game.i18n.localize(key) : fallback;
+    if (typeof key !== "string" || !key) return fallback ?? "";
+    return game?.i18n?.has(key) ? game.i18n.localize(key) : fallback;
 }
 
 /**
@@ -21,10 +22,11 @@ export const version = {
      */
     clamp(current, min, max) {
         if (!current || !min) return false;
-        const isNewer = foundry.utils.isNewerVersion;
+        const isNewer = foundry?.utils?.isNewerVersion;
+        if (!isNewer) return false;
 
         if (isNewer(min, current)) return false;
-        if (max === undefined) return true;
+        if (max === undefined || max === null) return true;
         return !isNewer(current, max);
     }
 };

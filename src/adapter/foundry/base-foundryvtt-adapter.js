@@ -59,9 +59,9 @@ export class BaseFoundryVTTAdapter {
      * @param {Document} doc - The template or region document
      * @returns {{item: Item|null, itemName: string, itemId: string, activity: Object|null, activityName: string, activityId: string}} Normalized calling context object containing item and activity details
      */
-    extractCallingContext(target) {
-        if (!target) return { item: null, itemName: "", itemId: "", activity: null, activityName: "", activityId: "" };
-        const doc = target.document ?? target;
+    extractCallingContext(targetDoc) {
+        if (!targetDoc) return { item: null, itemName: "", itemId: "", activity: null, activityName: "", activityId: "" };
+        const doc = targetDoc.document ?? targetDoc;
         const itemObj = doc.item ?? null;
         const activityObj = doc.activity ?? null;
 
@@ -93,9 +93,9 @@ export class BaseFoundryVTTAdapter {
      * @param {Map<string, Object>} entries - Registered autorec entries map
      * @returns {Object|null} The matching crosshair configuration entry or null
      */
-    matchAutorecEntry(target, entries) {
-        if (!target || !entries) return null;
-        const doc = target.document ?? target;
+    matchAutorecEntry(targetDoc, entries) {
+        if (!targetDoc || !entries) return null;
+        const doc = targetDoc.document ?? targetDoc;
         const context = this.extractCallingContext(doc);
         if (!context.itemName && !context.itemId) {
             log.debug("matchAutorecEntry | Could not extract calling item context (missing itemName and itemId) from document:", { doc, context });
@@ -617,6 +617,8 @@ export class BaseFoundryVTTAdapter {
         if (!scene || !deferredData || !coords) return;
         const data = foundry.utils.deepClone(deferredData);
         delete data._id;
+        delete data.id;
+        delete data._source;
 
         const docName = this._getDeferredDocumentName(data, documentName);
         await this._applyDeferredCoordinates(data, coords, docName);
@@ -793,9 +795,9 @@ export class BaseFoundryVTTAdapter {
      * @param {Document} doc - Template or Region document
      * @returns {boolean} True if the current user owns or authored the document
      */
-    isOwner(target) {
-        if (!target) return true;
-        const doc = target.document ?? target;
+    isOwner(targetDoc) {
+        if (!targetDoc) return true;
+        const doc = targetDoc.document ?? targetDoc;
         if (!doc.id) return true; // Preview templates on canvas are always local to the drawing client
         const authorVal = doc.author ?? doc.user;
         const userId = typeof authorVal === "string" ? authorVal : (authorVal?.id ?? game?.user?.id);
@@ -1018,9 +1020,9 @@ export class BaseFoundryVTTAdapter {
      * @param {string} userId - ID of the user creating the document
      * @returns {boolean} True to proceed with normal creation, false to abort or defer
      */
-    handlePreCreate(target, _data, _options, userId) {
-        if (!target) return true;
-        const doc = target.document ?? target;
+    handlePreCreate(targetDoc, _data, _options, userId) {
+        if (!targetDoc) return true;
+        const doc = targetDoc.document ?? targetDoc;
         log.debug(`BaseFoundryVTTAdapter.handlePreCreate | [ENTRY] preCreate hook triggered for docName=${doc.documentName}, id=${doc.id}, userId=${userId}, localUser=${game?.user?.id}`);
 
         if (userId !== game?.user?.id) {
@@ -1089,9 +1091,9 @@ export class BaseFoundryVTTAdapter {
      * @param {string} userId - ID of the user creating the document
      * @returns {Promise<void>} Resolves when post-placement execution completes
      */
-    async handleCreateDocument(target, _options, userId) {
-        if (!target || userId !== game?.user?.id) return;
-        const doc = target.document ?? target;
+    async handleCreateDocument(targetDoc, _options, userId) {
+        if (!targetDoc || userId !== game?.user?.id) return;
+        const doc = targetDoc.document ?? targetDoc;
 
         const flagsConfig = doc.flags?.bbc;
         const entry = autorecManager.getEntryForDocument(doc);

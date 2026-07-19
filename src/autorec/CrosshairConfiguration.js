@@ -16,7 +16,7 @@ export class CrosshairConfiguration {
         this.id = String(source.id ?? defaults.id);
         this.isDefault = Boolean(source.isDefault);
         this.isCustom = Boolean(source.isCustom);
-        this.enabled = source.enabled !== undefined ? Boolean(source.enabled) : defaults.enabled;
+        this.enabled = Boolean(source.enabled ?? defaults.enabled);
 
         // Animation shape filepaths
         this.circleFile = String(source.circleFile ?? defaults.circleFile).trim();
@@ -29,18 +29,18 @@ export class CrosshairConfiguration {
         this.stickToToken = String(source.stickToToken ?? defaults.stickToToken);
 
         // Core animation rendering options
-        this.showLine = source.showLine !== undefined ? Boolean(source.showLine) : defaults.showLine;
+        this.showLine = Boolean(source.showLine ?? defaults.showLine);
         this.borderColor = String(source.borderColor ?? defaults.borderColor).trim();
-        this.borderAlpha = Number.isFinite(Number(source.borderAlpha)) ? Number(source.borderAlpha) : defaults.borderAlpha;
+        this.borderAlpha = Number.isFinite(Number(source.borderAlpha ?? defaults.borderAlpha)) ? Number(source.borderAlpha ?? defaults.borderAlpha) : defaults.borderAlpha;
         this.fillColor = String(source.fillColor ?? defaults.fillColor).trim();
-        this.fillAlpha = Number.isFinite(Number(source.fillAlpha)) ? Number(source.fillAlpha) : defaults.fillAlpha;
+        this.fillAlpha = Number.isFinite(Number(source.fillAlpha ?? defaults.fillAlpha)) ? Number(source.fillAlpha ?? defaults.fillAlpha) : defaults.fillAlpha;
         this.icon = String(source.icon ?? defaults.icon).trim();
 
         // Placed document styling options
         this.placedFillColor = String(source.placedFillColor ?? defaults.placedFillColor).trim();
-        this.placedFillAlpha = Number.isFinite(Number(source.placedFillAlpha)) ? Number(source.placedFillAlpha) : defaults.placedFillAlpha;
+        this.placedFillAlpha = Number.isFinite(Number(source.placedFillAlpha ?? defaults.placedFillAlpha)) ? Number(source.placedFillAlpha ?? defaults.placedFillAlpha) : defaults.placedFillAlpha;
         this.placedBorderColor = String(source.placedBorderColor ?? defaults.placedBorderColor).trim();
-        this.placedBorderAlpha = Number.isFinite(Number(source.placedBorderAlpha)) ? Number(source.placedBorderAlpha) : defaults.placedBorderAlpha;
+        this.placedBorderAlpha = Number.isFinite(Number(source.placedBorderAlpha ?? defaults.placedBorderAlpha)) ? Number(source.placedBorderAlpha ?? defaults.placedBorderAlpha) : defaults.placedBorderAlpha;
 
         // Custom script hooks
         this.concurrentCode = String(source.concurrentCode ?? "").trim();
@@ -102,21 +102,21 @@ export class CrosshairConfiguration {
         if (isAnimOverride) {
             merged.enabled = true;
             merged.enableAnimation = true;
-            merged.circleFile = Boolean(customSource.circleFile) ? customSource.circleFile : DEFAULT_AUTOREC_ENTRY.circleFile;
-            merged.coneFile = Boolean(customSource.coneFile) ? customSource.coneFile : DEFAULT_AUTOREC_ENTRY.coneFile;
-            merged.rayFile = Boolean(customSource.rayFile) ? customSource.rayFile : DEFAULT_AUTOREC_ENTRY.rayFile;
-            merged.squareFile = Boolean(customSource.squareFile) ? customSource.squareFile : DEFAULT_AUTOREC_ENTRY.squareFile;
+            merged.circleFile = customSource.circleFile ?? DEFAULT_AUTOREC_ENTRY.circleFile;
+            merged.coneFile = customSource.coneFile ?? DEFAULT_AUTOREC_ENTRY.coneFile;
+            merged.rayFile = customSource.rayFile ?? DEFAULT_AUTOREC_ENTRY.rayFile;
+            merged.squareFile = customSource.squareFile ?? DEFAULT_AUTOREC_ENTRY.squareFile;
 
             merged.stickToToken = (customSource.stickToToken && customSource.stickToToken !== "default")
                 ? customSource.stickToToken
                 : this.stickToToken;
 
             merged.showLine = Boolean(customSource.showLine);
-            merged.lineFile = Boolean(customSource.lineFile) ? customSource.lineFile : DEFAULT_AUTOREC_ENTRY.lineFile;
+            merged.lineFile = customSource.lineFile ?? DEFAULT_AUTOREC_ENTRY.lineFile;
             merged.borderColor = customSource.borderColor ?? DEFAULT_AUTOREC_ENTRY.borderColor;
             merged.borderAlpha = customSource.borderAlpha ?? DEFAULT_AUTOREC_ENTRY.borderAlpha;
             merged.fillColor = customSource.fillColor ?? DEFAULT_AUTOREC_ENTRY.fillColor;
-            merged.icon = Boolean(customSource.icon) ? customSource.icon : DEFAULT_AUTOREC_ENTRY.icon;
+            merged.icon = customSource.icon ?? DEFAULT_AUTOREC_ENTRY.icon;
         }
 
         if (isPlacedOverride) {

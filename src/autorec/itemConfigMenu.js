@@ -2,27 +2,15 @@ import { MODULE_ID } from "../lib/constants.js";
 import { DEFAULT_AUTOREC_ENTRY, autorecManager } from "./autorecManager.js";
 import { log } from "../lib/logger.js";
 import { localize, notify } from "../lib/utils.js";
-import { crosshairAdapter } from "../adapter/foundry/index.js";
 import { systemAdapter } from "../adapter/system/index.js";
-
-const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
-
-/**
- * Normalize a hex color string, returning a valid 6-digit hex string or the provided fallback.
- * @param {unknown} val - Input color value to validate
- * @param {string} [fallback="#000000"] - Fallback hex color if validation fails
- * @returns {string} Normalized 6-digit hex color string
- */
-function normalizeHexColor(val, fallback = "#000000") {
-    if (typeof val === "string" && /^#[0-9A-Fa-f]{6}$/.test(val)) return val;
-    return fallback;
-}
+import { BaseCrosshairMenuApplication, normalizeHexColor } from "./BaseCrosshairMenuApplication.js";
 
 /**
  * Form application for configuring item-specific Better Crosshairs (BBC) settings stored on item flags.
  * Allows any item owner to view badge status (CUSTOM vs AUTOREC vs DEFAULT) and modify or delete custom item overrides.
+ * Extends BaseCrosshairMenuApplication for ApplicationV2 and template method compliance.
  */
-export class ItemCrosshairConfigApplication extends HandlebarsApplicationMixin(ApplicationV2) {
+export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication {
     /**
      * Default application configuration options.
      * @type {object}
@@ -70,15 +58,17 @@ export class ItemCrosshairConfigApplication extends HandlebarsApplicationMixin(A
 
     /**
      * Construct an ItemCrosshairConfigApplication for a specific item document.
+     * Enforces entry-boundary normalization for item input (Rule 5).
      * @param {object} [options={}] - Application instantiation options containing target item
      * @returns {ItemCrosshairConfigApplication} Form application instance
      */
     constructor(options = {}) {
+        const itemDoc = options.item?.document ?? options.item ?? null;
         super({
             ...options,
-            id: `bbc-item-crosshair-config-${options.item?.id ?? "unknown"}`
+            id: `bbc-item-crosshair-config-${itemDoc?.id ?? "unknown"}`
         });
-        this.item = options.item ?? null;
+        this.item = itemDoc;
         this.selectedScope = options.selectedScope ?? "item";
         this.isEditMode = Boolean(options.isEditMode ?? false);
     }
@@ -93,14 +83,14 @@ export class ItemCrosshairConfigApplication extends HandlebarsApplicationMixin(A
         const item = this.item;
         const itemName = item?.name ?? "Unknown Item";
         const itemImg = item?.img ?? null;
-        const isEditMode = Boolean(this.isEditMode);
+        const isEditMode = this.isEditMode;
 
         const selectedScope = this.selectedScope ?? "item";
         const itemCustomConfig = item?.getFlag(MODULE_ID, "customConfig") ?? null;
         const activityConfigs = item?.getFlag(MODULE_ID, "activityConfigs") ?? {};
 
         const activities = [];
-        if (Boolean(systemAdapter.supportsActivities) && item?.system?.activities) {
+        if (systemAdapter.supportsActivities && item?.system?.activities) {
             for (const act of item.system.activities.values()) {
                 if (!act?.id) continue;
                 activities.push({
@@ -110,7 +100,7 @@ export class ItemCrosshairConfigApplication extends HandlebarsApplicationMixin(A
                 });
             }
         }
-        const showActivityDropdown = Boolean(systemAdapter.supportsActivities) && activities.length > 0;
+        const showActivityDropdown = systemAdapter.supportsActivities && activities.length > 0;
 
         const hasItemCustom = Boolean(itemCustomConfig);
         const overrideScopes = [
@@ -132,11 +122,11 @@ export class ItemCrosshairConfigApplication extends HandlebarsApplicationMixin(A
             ? itemCustomConfig
             : (activityConfigs[selectedScope] ?? null);
         const hasCustom = Boolean(customConfig);
-        this.hasCustom = Boolean(hasCustom);
-        const isCustom = Boolean(customConfig && customConfig.enabled !== false);
+        this.hasCustom = hasCustom;
+        const isCustom = Boolean(customConfig?.enabled ?? true);
 
         const autorecMatch = autorecManager.getEntryByName(itemName);
-        const isAutorec = Boolean(!hasCustom && autorecMatch && !autorecMatch.isDefault && autorecMatch.enabled);
+        const isAutorec = !hasCustom && Boolean(autorecMatch) && !autorecMatch.isDefault && autorecMatch.enabled;
 
         const baseFallback = selectedScope === "item"
             ? (autorecMatch ?? DEFAULT_AUTOREC_ENTRY)
@@ -154,8 +144,8 @@ export class ItemCrosshairConfigApplication extends HandlebarsApplicationMixin(A
                 "enablePostPlacement" in customConfig)
         );
         const enablePrePlacement = hasGranularFlags ? Boolean(customConfig.enablePrePlacement) : Boolean(customConfig?.concurrentCode);
-        const enableAnimation = hasGranularFlags ? Boolean(customConfig.enableAnimation) : Boolean(customConfig && customConfig.enabled !== false);
-        const enablePlacedStyling = hasGranularFlags ? Boolean(customConfig.enablePlacedStyling) : Boolean(customConfig?.placedFillColor || customConfig?.placedBorderColor);
+        const enableAnimation = hasGranularFlags ? Boolean(customConfig.enableAnimation) : Boolean(customConfig?.enabled ?? true);
+        const enablePlacedStyling = hasGranularFlags ? Boolean(customConfig.enablePlacedStyling) : (Boolean(customConfig?.placedFillColor) || Boolean(customConfig?.placedBorderColor));
         const enablePostPlacement = hasGranularFlags ? Boolean(customConfig.enablePostPlacement) : Boolean(customConfig?.postPlacementCode);
 
         const source = {
@@ -163,6 +153,8 @@ export class ItemCrosshairConfigApplication extends HandlebarsApplicationMixin(A
             ...baseFallback,
             ...(customConfig ?? {})
         };
+
+        const stickToTokenValue = source.stickToToken ?? "default";
 
         const mergedConfig = {
             ...source,
@@ -173,13 +165,13 @@ export class ItemCrosshairConfigApplication extends HandlebarsApplicationMixin(A
 
             concurrentCode: (source.concurrentCode ?? "").trim(),
 
-            enabled: Boolean(source.enabled !== false),
-            circleFile: Boolean(source.circleFile) ? source.circleFile : DEFAULT_AUTOREC_ENTRY.circleFile,
-            coneFile: Boolean(source.coneFile) ? source.coneFile : DEFAULT_AUTOREC_ENTRY.coneFile,
-            rayFile: Boolean(source.rayFile) ? source.rayFile : DEFAULT_AUTOREC_ENTRY.rayFile,
-            squareFile: Boolean(source.squareFile) ? source.squareFile : DEFAULT_AUTOREC_ENTRY.squareFile,
-            lineFile: Boolean(source.lineFile) ? source.lineFile : DEFAULT_AUTOREC_ENTRY.lineFile,
-            stickToToken: source.stickToToken ?? "default",
+            enabled: Boolean(source.enabled ?? true),
+            circleFile: source.circleFile ? source.circleFile : DEFAULT_AUTOREC_ENTRY.circleFile,
+            coneFile: source.coneFile ? source.coneFile : DEFAULT_AUTOREC_ENTRY.coneFile,
+            rayFile: source.rayFile ? source.rayFile : DEFAULT_AUTOREC_ENTRY.rayFile,
+            squareFile: source.squareFile ? source.squareFile : DEFAULT_AUTOREC_ENTRY.squareFile,
+            lineFile: source.lineFile ? source.lineFile : DEFAULT_AUTOREC_ENTRY.lineFile,
+            stickToToken: stickToTokenValue,
             showLine: Boolean(source.showLine),
             borderColor: source.borderColor ?? "#ffffff",
             borderAlpha: source.borderAlpha ?? 0,
@@ -199,9 +191,9 @@ export class ItemCrosshairConfigApplication extends HandlebarsApplicationMixin(A
             placedFillColorPicker: normalizeHexColor(source.placedFillColor, "#000000"),
             placedBorderColorPicker: normalizeHexColor(source.placedBorderColor, "#000000"),
 
-            isStickDefault: Boolean((source.stickToToken ?? "default") === "default" || !source.stickToToken),
-            isStickOn: Boolean((source.stickToToken ?? "default") === "true"),
-            isStickOff: Boolean((source.stickToToken ?? "default") === "false"),
+            isStickDefault: stickToTokenValue === "default" || !stickToTokenValue,
+            isStickOn: stickToTokenValue === "true",
+            isStickOff: stickToTokenValue === "false",
             hasCustomStyling: Boolean(
                 (source.borderColor && source.borderColor !== "#ffffff") ||
                 (source.borderAlpha !== undefined && source.borderAlpha !== 0) ||
@@ -216,10 +208,7 @@ export class ItemCrosshairConfigApplication extends HandlebarsApplicationMixin(A
             )
         };
 
-        const docTerm = crosshairAdapter.documentTerm;
-        const prePlacementTitle = crosshairAdapter.prePlacementTitle;
-        const placementSectionTitle = crosshairAdapter.placementSectionTitle;
-        const postPlacementTitle = crosshairAdapter.postPlacementTitle;
+        const { docTerm, prePlacementTitle, placementSectionTitle, postPlacementTitle } = this._getAdapterTitles();
 
         const labels = {
             badgeCustom: localize("BBC.itemConfigMenu.badges.custom", "CUSTOM"),
@@ -295,28 +284,21 @@ export class ItemCrosshairConfigApplication extends HandlebarsApplicationMixin(A
     }
 
     /**
-     * Attach interactive DOM event listeners after rendering completes.
-     * Binds Delete CUSTOM Configuration button and color inputs.
-     * @param {object} context - Prepared rendering context data
-     * @param {object} options - Render options provided during rendering
-     * @returns {void}
-     */
-    _onRender(context, options) {
-        super._onRender(context, options);
-        this._attachEventListeners(this.element);
-    }
-
-    /**
      * Attach form controls and delete custom override handlers to application DOM root.
+     * Extends template method workflow from BaseCrosshairMenuApplication.
+     * @protected
      * @param {HTMLElement} root - Rendered form root element
+     * @param {object} context - Prepared rendering context data
+     * @param {object} options - Render options
      * @returns {void}
      */
-    _attachEventListeners(root) {
-        if (!root) return;
+    _attachCustomEventListeners(root, context, options) {
+        const rootEl = this._normalizeElement(root);
+        if (!rootEl) return;
 
         // Restore and handle Edit Mode state across re-renders and toggles
-        const editToggle = root.querySelector("#bbc-item-edit-mode-toggle");
-        const container = root.querySelector(".bbc-autorec-container");
+        const editToggle = rootEl.querySelector("#bbc-item-edit-mode-toggle");
+        const container = rootEl.querySelector(".bbc-autorec-container");
         if (editToggle && container) {
             if (this.isEditMode) {
                 editToggle.checked = true;
@@ -329,7 +311,7 @@ export class ItemCrosshairConfigApplication extends HandlebarsApplicationMixin(A
             const syncEditModeControls = (turningOn) => {
                 this.isEditMode = turningOn;
                 container.classList.toggle("edit-mode", turningOn);
-                root.querySelectorAll("input:not(#bbc-item-edit-mode-toggle), select:not([name='overrideScope']), textarea, button[type='submit']").forEach(el => {
+                rootEl.querySelectorAll("input:not(#bbc-item-edit-mode-toggle), select:not([name='overrideScope']), textarea, button[type='submit']").forEach(el => {
                     el.disabled = !turningOn;
                 });
             };
@@ -339,7 +321,7 @@ export class ItemCrosshairConfigApplication extends HandlebarsApplicationMixin(A
             editToggle.addEventListener("change", (ev) => {
                 const turningOn = Boolean(ev.currentTarget.checked);
                 this.isEditMode = turningOn;
-                const hasEmptyCard = Boolean(root.querySelector(".bbc-inspector-empty"));
+                const hasEmptyCard = Boolean(rootEl.querySelector(".bbc-inspector-empty"));
                 if (!turningOn || hasEmptyCard || !this.hasCustom) {
                     this.render(false);
                 } else {
@@ -348,14 +330,14 @@ export class ItemCrosshairConfigApplication extends HandlebarsApplicationMixin(A
             });
 
             // Live-toggle child configuration options and badge text when an override checkbox changes in edit mode
-            root.querySelectorAll("input[type='checkbox'][name^='enable']").forEach(chk => {
+            rootEl.querySelectorAll("input[type='checkbox'][name^='enable']").forEach(chk => {
                 chk.addEventListener("change", (ev) => {
                     const fieldName = ev.currentTarget.name;
                     const isChecked = Boolean(ev.currentTarget.checked);
-                    root.querySelectorAll(`[data-override-child='${fieldName}']`).forEach(el => {
+                    rootEl.querySelectorAll(`[data-override-child='${fieldName}']`).forEach(el => {
                         el.style.display = isChecked ? "" : "none";
                     });
-                    root.querySelectorAll(`[data-override-badge='${fieldName}']`).forEach(el => {
+                    rootEl.querySelectorAll(`[data-override-badge='${fieldName}']`).forEach(el => {
                         el.textContent = isChecked
                             ? localize("BBC.itemConfigMenu.badgeCustomOverride", "CUSTOM OVERRIDE")
                             : localize("BBC.itemConfigMenu.badgeInherited", "INHERITED");
@@ -364,39 +346,8 @@ export class ItemCrosshairConfigApplication extends HandlebarsApplicationMixin(A
             });
         }
 
-        // Synchronize HTML color pickers with adjacent text inputs across both input and change events
-        root.querySelectorAll("input[type='color'].bbc-edit-color, input[type='color'][data-color-target]").forEach(picker => {
-            const syncToText = (ev) => {
-                const row = ev.currentTarget.closest(".bbc-edit-color-row");
-                const targetInput = row?.querySelector("input[type='text']")
-                    ?? root.querySelector(`#${CSS.escape(ev.currentTarget.getAttribute("data-color-target") || "")}`);
-                if (targetInput && targetInput.value !== ev.currentTarget.value) {
-                    targetInput.value = ev.currentTarget.value;
-                    targetInput.dispatchEvent(new Event("input", { bubbles: true }));
-                    targetInput.dispatchEvent(new Event("change", { bubbles: true }));
-                }
-            };
-            picker.addEventListener("input", syncToText);
-            picker.addEventListener("change", syncToText);
-        });
-
-        // Synchronize text inputs back to adjacent HTML color pickers when valid hex entered
-        root.querySelectorAll(".bbc-edit-color-row input[type='text'], input[type='text'][id^='bbc-item-']").forEach(textInput => {
-            const syncToPicker = (ev) => {
-                const val = ev.currentTarget.value?.trim();
-                const row = ev.currentTarget.closest(".bbc-edit-color-row");
-                const targetPicker = row?.querySelector("input[type='color']")
-                    ?? root.querySelector(`input[type='color'][data-color-target='${CSS.escape(ev.currentTarget.id || "")}']`);
-                if (targetPicker && /^#[0-9A-Fa-f]{6}$/.test(val) && targetPicker.value !== val) {
-                    targetPicker.value = val;
-                }
-            };
-            textInput.addEventListener("input", syncToPicker);
-            textInput.addEventListener("change", syncToPicker);
-        });
-
         // Handle Target Scope Dropdown Change
-        const scopeSelect = root.querySelector("select[name='overrideScope']");
+        const scopeSelect = rootEl.querySelector("select[name='overrideScope']");
         if (scopeSelect) {
             const onScopeChange = (ev) => {
                 ev.preventDefault();
@@ -412,28 +363,35 @@ export class ItemCrosshairConfigApplication extends HandlebarsApplicationMixin(A
         }
 
         // Handle Delete CUSTOM Configuration action button
-        const deleteBtn = root.querySelector("button[data-action='delete-custom']");
+        const deleteBtn = rootEl.querySelector("button[data-action='delete-custom']");
         if (deleteBtn) {
             deleteBtn.addEventListener("click", async (ev) => {
                 ev.preventDefault();
                 ev.stopPropagation();
-                if (!this.item) return;
+                if (!this.item) {
+                    log.warn("ItemCrosshairConfigApplication | Cannot delete custom config: target item is missing.");
+                    return;
+                }
 
                 const scope = this.selectedScope ?? "item";
-                if (scope === "item") {
-                    log.debug(`ItemCrosshairConfigApplication | Deleting custom item-level configuration from "${this.item.name}"`);
-                    await this.item.unsetFlag(MODULE_ID, "customConfig");
-                    notify.info(localize("BBC.itemConfigMenu.removedItemCustom", `Removed custom Item-level crosshair configuration from "${this.item.name}".`));
-                } else {
-                    log.debug(`ItemCrosshairConfigApplication | Deleting custom activity-level configuration (${scope}) from "${this.item.name}"`);
-                    const existingMap = foundry.utils.deepClone(this.item.getFlag(MODULE_ID, "activityConfigs") ?? {});
-                    delete existingMap[scope];
-                    if (Object.keys(existingMap).length === 0) {
-                        await this.item.unsetFlag(MODULE_ID, "activityConfigs");
+                try {
+                    if (scope === "item") {
+                        log.debug(`ItemCrosshairConfigApplication | Deleting custom item-level configuration from "${this.item.name}"`);
+                        await this.item.unsetFlag(MODULE_ID, "customConfig");
+                        notify.info(localize("BBC.itemConfigMenu.removedItemCustom", `Removed custom Item-level crosshair configuration from "${this.item.name}".`));
                     } else {
-                        await this.item.setFlag(MODULE_ID, "activityConfigs", existingMap);
+                        log.debug(`ItemCrosshairConfigApplication | Deleting custom activity-level configuration (${scope}) from "${this.item.name}"`);
+                        const existingMap = foundry.utils.deepClone(this.item.getFlag(MODULE_ID, "activityConfigs") ?? {});
+                        delete existingMap[scope];
+                        if (Object.keys(existingMap).length === 0) {
+                            await this.item.unsetFlag(MODULE_ID, "activityConfigs");
+                        } else {
+                            await this.item.setFlag(MODULE_ID, "activityConfigs", existingMap);
+                        }
+                        notify.info(localize("BBC.itemConfigMenu.removedActivityCustom", `Removed custom Activity-level crosshair configuration on "${this.item.name}".`));
                     }
-                    notify.info(localize("BBC.itemConfigMenu.removedActivityCustom", `Removed custom Activity-level crosshair configuration on "${this.item.name}".`));
+                } catch (e) {
+                    log.error(`ItemCrosshairConfigApplication | Failed to delete custom configuration from "${this.item.name}":`, e);
                 }
 
                 this.render(false);
@@ -443,11 +401,21 @@ export class ItemCrosshairConfigApplication extends HandlebarsApplicationMixin(A
 
     /**
      * Extract form inputs and save the custom crosshair override configuration onto item flags.
-     * @param {HTMLFormElement} form - Rendered form element
+     * Entry boundary normalized for form input.
+     * @param {HTMLFormElement|object} target - Rendered form element or object containing form
      * @returns {Promise<void>} Resolves when custom item flags are saved
      */
-    async _saveConfiguration(form) {
-        if (!this.item) return;
+    async _saveConfiguration(target) {
+        if (!this.item) {
+            log.warn("ItemCrosshairConfigApplication | Cannot save configuration: target item is missing.");
+            return;
+        }
+
+        const form = target instanceof HTMLFormElement ? target : (target?.querySelector?.("form") ?? target);
+        if (!(form instanceof HTMLFormElement)) {
+            log.warn("ItemCrosshairConfigApplication | Invalid form element passed to _saveConfiguration.");
+            return;
+        }
 
         const formData = new FormData(form);
         const config = {
@@ -464,29 +432,33 @@ export class ItemCrosshairConfigApplication extends HandlebarsApplicationMixin(A
             stickToToken: String(formData.get("stickToToken") ?? "default"),
             showLine: formData.get("showLine") === "on",
             borderColor: String(formData.get("borderColor") ?? "#ffffff").trim(),
-            borderAlpha: parseFloat(formData.get("borderAlpha") ?? "0"),
+            borderAlpha: parseFloat(String(formData.get("borderAlpha") ?? "0")),
             fillColor: String(formData.get("fillColor") ?? "#000000").trim(),
-            fillAlpha: parseFloat(formData.get("fillAlpha") ?? "0"),
+            fillAlpha: parseFloat(String(formData.get("fillAlpha") ?? "0")),
             placedFillColor: String(formData.get("placedFillColor") ?? "").trim(),
-            placedFillAlpha: parseFloat(formData.get("placedFillAlpha") ?? "0"),
+            placedFillAlpha: parseFloat(String(formData.get("placedFillAlpha") ?? "0")),
             placedBorderColor: String(formData.get("placedBorderColor") ?? "").trim(),
-            placedBorderAlpha: parseFloat(formData.get("placedBorderAlpha") ?? "0"),
+            placedBorderAlpha: parseFloat(String(formData.get("placedBorderAlpha") ?? "0")),
             concurrentCode: String(formData.get("concurrentCode") ?? "").trim(),
             postPlacementCode: String(formData.get("postPlacementCode") ?? "").trim(),
             icon: String(formData.get("icon") ?? "").trim()
         };
 
         const scope = this.selectedScope ?? "item";
-        if (scope === "item") {
-            log.debug(`ItemCrosshairConfigApplication | Saving custom item-level configuration for "${this.item.name}":`, config);
-            await this.item.setFlag(MODULE_ID, "customConfig", config);
-            notify.info(localize("BBC.itemConfigMenu.savedItemCustom", `Saved custom Item-level crosshair configuration for "${this.item.name}".`));
-        } else {
-            log.debug(`ItemCrosshairConfigApplication | Saving custom activity-level configuration (${scope}) for "${this.item.name}":`, config);
-            const existingMap = foundry.utils.deepClone(this.item.getFlag(MODULE_ID, "activityConfigs") ?? {});
-            existingMap[scope] = config;
-            await this.item.setFlag(MODULE_ID, "activityConfigs", existingMap);
-            notify.info(localize("BBC.itemConfigMenu.savedActivityCustom", `Saved custom Activity-level crosshair configuration for "${this.item.name}".`));
+        try {
+            if (scope === "item") {
+                log.debug(`ItemCrosshairConfigApplication | Saving custom item-level configuration for "${this.item.name}":`, config);
+                await this.item.setFlag(MODULE_ID, "customConfig", config);
+                notify.info(localize("BBC.itemConfigMenu.savedItemCustom", `Saved custom Item-level crosshair configuration for "${this.item.name}".`));
+            } else {
+                log.debug(`ItemCrosshairConfigApplication | Saving custom activity-level configuration (${scope}) for "${this.item.name}":`, config);
+                const existingMap = foundry.utils.deepClone(this.item.getFlag(MODULE_ID, "activityConfigs") ?? {});
+                existingMap[scope] = config;
+                await this.item.setFlag(MODULE_ID, "activityConfigs", existingMap);
+                notify.info(localize("BBC.itemConfigMenu.savedActivityCustom", `Saved custom Activity-level crosshair configuration for "${this.item.name}".`));
+            }
+        } catch (e) {
+            log.error(`ItemCrosshairConfigApplication | Failed to save custom configuration for "${this.item.name}":`, e);
         }
 
         this.render(false);

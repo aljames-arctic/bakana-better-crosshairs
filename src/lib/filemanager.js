@@ -11,6 +11,9 @@ import { localize } from './utils.js';
  * @returns {string} The best-fit path in the Sequencer database.
  */
 function bestFit(modulePrefix, ...categories) {
+    if (typeof Sequencer === 'undefined' || !Sequencer?.Database) {
+        return `${modulePrefix}.${categories.join('.')}`;
+    }
     let diverged = false;
     let currentPath = modulePrefix;
     const originalPath = `${modulePrefix}.${categories.join('.')}`;
@@ -23,7 +26,7 @@ function bestFit(modulePrefix, ...categories) {
      * @returns {boolean} True if the component is enclosed in mustache braces, false otherwise.
      */
     function isMustache(component) {
-        return component.startsWith('{{') && component.endsWith('}}');
+        return Boolean(component.startsWith('{{') && component.endsWith('}}'));
     }
 
     // Traverse the categories that the user has provided
@@ -83,7 +86,7 @@ function bestFit(modulePrefix, ...categories) {
  * @returns {string|undefined} The resolved file path, or undefined if no path categories exist.
  */
 export function closest(path) {
-    if (!path) return undefined;
+    if (typeof path !== 'string' || !path.trim()) return undefined;
 
     // Support http:// and https:// addresses
     // Support direct filepaths
@@ -147,8 +150,9 @@ export function closest(path) {
  * @returns {string|undefined} The absolute file path, or undefined if empty.
  */
 export function absolutePath(configPath) {
-    if (!configPath) return undefined;
+    if (typeof configPath !== 'string' || !configPath.trim()) return undefined;
     const resolvedConfig = closest(configPath);
+    if (!resolvedConfig || typeof Sequencer === 'undefined' || !Sequencer?.Database) return resolvedConfig;
     try {
         const entry = Sequencer.Database.getEntry(resolvedConfig, { softFail: true });
         return typeof entry === 'string' ? entry : (entry?.file ?? entry?.files?.[0] ?? resolvedConfig);
