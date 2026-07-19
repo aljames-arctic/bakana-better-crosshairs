@@ -524,7 +524,7 @@ export class BaseCrosshairShape {
                 t: shapeType === "square" ? "rect" : shapeType
             });
 
-            if (this.placeable?.document && this.placeable.position) {
+            if (this.placeable?.document) {
                 try {
                     this.placeable.x = doc.x;
                     this.placeable.y = doc.y;
@@ -532,7 +532,11 @@ export class BaseCrosshairShape {
             }
         }
         if (crosshairAdapter?.refreshTemplateHighlights && this.placeable) {
-            crosshairAdapter.refreshTemplateHighlights(this.placeable, this.direction);
+            try {
+                crosshairAdapter.refreshTemplateHighlights(this.placeable, this.direction);
+            } catch (e) {
+                log.debug("BaseCrosshairShape.refreshTemplateHighlights | Adapter refresh call failed gracefully:", e);
+            }
         }
     }
 

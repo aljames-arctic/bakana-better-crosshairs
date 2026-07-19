@@ -226,17 +226,17 @@ test('CircleCrosshairShape default anchors, Template Method hooks, and resolveCi
     assert.equal(resolveCircleAsset('custom/path.png'), 'custom/path.png');
 });
 
-test('REGRESSION: refreshTemplateHighlights does not throw TypeError when placeable position property is null', async () => {
+test('REGRESSION: refreshTemplateHighlights does not throw TypeError when placeable position getter throws', async () => {
     const { SquareCrosshairShape } = await import('../../src/crosshair/square.js');
     const mockDocument = { x: 100, y: 100, documentName: 'MeasuredTemplate', t: 'rect' };
     const mockPlaceable = {
         document: mockDocument,
         direction: 0,
-        position: null,
-        get x() { return this.position ? this.position.x : null; },
-        set x(val) { if (!this.position) throw new TypeError("Cannot read properties of null (reading 'position')"); this.position.x = val; },
-        get y() { return this.position ? this.position.y : null; },
-        set y(val) { if (!this.position) throw new TypeError("Cannot read properties of null (reading 'position')"); this.position.y = val; }
+        get position() { throw new TypeError("Cannot read properties of null (reading 'position')"); },
+        get x() { throw new TypeError("Cannot read properties of null (reading 'position')"); },
+        set x(val) { throw new TypeError("Cannot read properties of null (reading 'position')"); },
+        get y() { throw new TypeError("Cannot read properties of null (reading 'position')"); },
+        set y(val) { throw new TypeError("Cannot read properties of null (reading 'position')"); }
     };
 
     const shape = new SquareCrosshairShape(mockPlaceable, { distance: 20 });

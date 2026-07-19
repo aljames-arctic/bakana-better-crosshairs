@@ -187,7 +187,7 @@ function refreshTemplateHighlights(tmpl, newDirDeg, rad, wheelEvent = null) {
             t: shapeType === "square" ? "rect" : shapeType
         });
 
-        if (tmpl.document && tmpl.position) {
+        if (tmpl.document) {
             try {
                 tmpl.x = doc.x;
                 tmpl.y = doc.y;
@@ -196,10 +196,18 @@ function refreshTemplateHighlights(tmpl, newDirDeg, rad, wheelEvent = null) {
     }
 
     if (crosshairAdapter?.refreshTemplateHighlights) {
-        crosshairAdapter.refreshTemplateHighlights(tmpl, newDirDeg);
+        try {
+            crosshairAdapter.refreshTemplateHighlights(tmpl, newDirDeg);
+        } catch (e) {
+            log.debug("refreshTemplateHighlights | crosshairAdapter call failed gracefully:", e);
+        }
     }
     if (systemAdapter?.refreshTemplateHighlights) {
-        systemAdapter.refreshTemplateHighlights(tmpl, newDirDeg);
+        try {
+            systemAdapter.refreshTemplateHighlights(tmpl, newDirDeg);
+        } catch (e) {
+            log.debug("refreshTemplateHighlights | systemAdapter call failed gracefully:", e);
+        }
     }
 }
 
