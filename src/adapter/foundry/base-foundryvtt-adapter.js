@@ -304,12 +304,12 @@ export class BaseFoundryVTTAdapter {
         try {
             tmpl.renderFlags.set(flags);
         } catch (err) {
-            log.debug("BaseFoundryVTTAdapter._safeSetRenderFlags | Bulk renderFlags.set failed, attempting key-by-key safe assignment:", err);
+            // log.debug("BaseFoundryVTTAdapter._safeSetRenderFlags | Bulk renderFlags.set failed, attempting key-by-key safe assignment:", err);
             for (const [flagName, val] of Object.entries(flags)) {
                 try {
                     tmpl.renderFlags.set({ [flagName]: val });
                 } catch (e) {
-                    log.debug(`BaseFoundryVTTAdapter._safeSetRenderFlags | Flag "${flagName}" is unsupported on placeable:`, e);
+                    // log.debug(`BaseFoundryVTTAdapter._safeSetRenderFlags | Flag "${flagName}" is unsupported on placeable:`, e);
                 }
             }
         }
