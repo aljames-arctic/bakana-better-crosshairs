@@ -99,7 +99,7 @@ export class Pf2eSystemAdapter extends BaseSystemAdapter {
         setTimeout(async () => {
             const stillPending = pendingPlacements?.get(placementKey);
             if (stillPending && stillPending.resolved && !stillPending.cancelled && stillPending.coords) {
-                log.debug(`Pf2eSystemAdapter.handleProgrammaticPlacement | Native placement hook did not fire after 50ms on PF2e. Programmatically creating ${docName} from preview document.`);
+                // log.debug(`Pf2eSystemAdapter.handleProgrammaticPlacement | Native placement hook did not fire after 50ms on PF2e. Programmatically creating ${docName} from preview document.`);
                 const createData = foundry.utils.deepClone(doc.toObject());
                 delete createData._id;
 

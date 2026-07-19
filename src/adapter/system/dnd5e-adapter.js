@@ -135,7 +135,7 @@ export class Dnd5eSystemAdapter extends BaseSystemAdapter {
      * @returns {void} No return value
      */
     handleProgrammaticPlacement(scene, doc, placeable, coords = {}, options = {}) {
-        log.debug("Dnd5eSystemAdapter.handleProgrammaticPlacement | DnD5e uses native single-click placement (NOP isolation).");
+        // log.debug("Dnd5eSystemAdapter.handleProgrammaticPlacement | DnD5e uses native single-click placement (NOP isolation).");
     }
 
     /**
