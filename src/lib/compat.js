@@ -21,9 +21,9 @@ export const Ray = globalThis.foundry?.canvas?.geometry?.Ray ?? globalThis.Ray;
  */
 export function clearHighlightLayer(id) {
     if (typeof id !== "string" || !id) return;
-    if (canvas?.interface?.grid?.clearHighlightLayer) {
-        return canvas.interface.grid.clearHighlightLayer(id);
+    if (globalThis.canvas?.interface?.grid?.clearHighlightLayer) {
+        return globalThis.canvas.interface.grid.clearHighlightLayer(id);
     }
-    return canvas?.grid?.clearHighlightLayer?.(id);
+    return globalThis.canvas?.grid?.clearHighlightLayer?.(id);
 }
 

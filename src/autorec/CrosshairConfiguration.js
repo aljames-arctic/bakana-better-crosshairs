@@ -106,28 +106,29 @@ export class CrosshairConfiguration {
         if (isAnimOverride) {
             merged.enabled = true;
             merged.enableAnimation = true;
-            merged.circleFile = customSource.circleFile ?? DEFAULT_AUTOREC_ENTRY.circleFile;
-            merged.coneFile = customSource.coneFile ?? DEFAULT_AUTOREC_ENTRY.coneFile;
-            merged.rayFile = customSource.rayFile ?? DEFAULT_AUTOREC_ENTRY.rayFile;
-            merged.squareFile = customSource.squareFile ?? DEFAULT_AUTOREC_ENTRY.squareFile;
+            merged.circleFile = customSource.circleFile ?? this.circleFile;
+            merged.coneFile = customSource.coneFile ?? this.coneFile;
+            merged.rayFile = customSource.rayFile ?? this.rayFile;
+            merged.squareFile = customSource.squareFile ?? this.squareFile;
 
             const stickToTokenVal = String(customSource.stickToToken ?? "default");
             merged.stickToToken = stickToTokenVal !== "default" ? stickToTokenVal : this.stickToToken;
 
-            merged.showLine = Boolean(customSource.showLine ?? DEFAULT_AUTOREC_ENTRY.showLine);
-            merged.lineFile = customSource.lineFile ?? DEFAULT_AUTOREC_ENTRY.lineFile;
-            merged.borderColor = customSource.borderColor ?? DEFAULT_AUTOREC_ENTRY.borderColor;
-            merged.borderAlpha = customSource.borderAlpha ?? DEFAULT_AUTOREC_ENTRY.borderAlpha;
-            merged.fillColor = customSource.fillColor ?? DEFAULT_AUTOREC_ENTRY.fillColor;
-            merged.icon = customSource.icon ?? DEFAULT_AUTOREC_ENTRY.icon;
+            merged.showLine = Boolean(customSource.showLine ?? this.showLine);
+            merged.lineFile = customSource.lineFile ?? this.lineFile;
+            merged.borderColor = customSource.borderColor ?? this.borderColor;
+            merged.borderAlpha = customSource.borderAlpha ?? this.borderAlpha;
+            merged.fillColor = customSource.fillColor ?? this.fillColor;
+            merged.fillAlpha = customSource.fillAlpha ?? this.fillAlpha;
+            merged.icon = customSource.icon ?? this.icon;
         }
 
         if (isPlacedOverride) {
             merged.enablePlacedStyling = true;
-            merged.placedFillColor = customSource.placedFillColor ?? DEFAULT_AUTOREC_ENTRY.placedFillColor;
-            merged.placedFillAlpha = customSource.placedFillAlpha ?? DEFAULT_AUTOREC_ENTRY.placedFillAlpha;
-            merged.placedBorderColor = customSource.placedBorderColor ?? DEFAULT_AUTOREC_ENTRY.placedBorderColor;
-            merged.placedBorderAlpha = customSource.placedBorderAlpha ?? DEFAULT_AUTOREC_ENTRY.placedBorderAlpha;
+            merged.placedFillColor = customSource.placedFillColor ?? this.placedFillColor;
+            merged.placedFillAlpha = customSource.placedFillAlpha ?? this.placedFillAlpha;
+            merged.placedBorderColor = customSource.placedBorderColor ?? this.placedBorderColor;
+            merged.placedBorderAlpha = customSource.placedBorderAlpha ?? this.placedBorderAlpha;
         }
 
         if (isPostOverride) {

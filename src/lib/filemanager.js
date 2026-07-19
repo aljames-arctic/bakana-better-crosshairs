@@ -11,13 +11,13 @@ import { localize } from './utils.js';
  * @returns {string} The best-fit path in the Sequencer database.
  */
 function bestFit(modulePrefix, ...categories) {
-    if (typeof Sequencer === 'undefined' || !Sequencer?.Database) {
+    if (typeof globalThis.Sequencer === 'undefined' || !globalThis.Sequencer?.Database) {
         return `${modulePrefix}.${categories.join('.')}`;
     }
     let diverged = false;
     let currentPath = modulePrefix;
     const originalPath = `${modulePrefix}.${categories.join('.')}`;
-    let remainingOptions = Sequencer.Database.getPathsUnder(currentPath);
+    let remainingOptions = globalThis.Sequencer.Database.getPathsUnder(currentPath);
     let divergenceOptions = '';
 
     /**
@@ -59,13 +59,13 @@ function bestFit(modulePrefix, ...categories) {
                 }
             }
             currentPath += `.${bestOption}`;
-            remainingOptions = Sequencer.Database.getPathsUnder(currentPath);
+            remainingOptions = globalThis.Sequencer.Database.getPathsUnder(currentPath);
             categories.shift(); // Remove the used category and continue (try to match as best we can)
             continue;
         }
 
         currentPath += `.${categories.shift()}`;
-        remainingOptions = Sequencer.Database.getPathsUnder(currentPath);
+        remainingOptions = globalThis.Sequencer.Database.getPathsUnder(currentPath);
     }
 
     if (diverged) {
@@ -152,9 +152,9 @@ export function closest(path) {
 export function absolutePath(configPath) {
     if (typeof configPath !== 'string' || !configPath.trim()) return undefined;
     const resolvedConfig = closest(configPath);
-    if (!resolvedConfig || typeof Sequencer === 'undefined' || !Sequencer?.Database) return resolvedConfig;
+    if (!resolvedConfig || typeof globalThis.Sequencer === 'undefined' || !globalThis.Sequencer?.Database) return resolvedConfig;
     try {
-        const entry = Sequencer.Database.getEntry(resolvedConfig, { softFail: true });
+        const entry = globalThis.Sequencer.Database.getEntry(resolvedConfig, { softFail: true });
         return typeof entry === 'string' ? entry : (entry?.file ?? entry?.files?.[0] ?? resolvedConfig);
     } catch (e) {
         log.debug(`filemanager | Failed to resolve Sequencer entry for: ${resolvedConfig}`, e);

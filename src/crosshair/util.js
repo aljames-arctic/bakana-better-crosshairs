@@ -142,7 +142,7 @@ export function resolveCrosshairIcon(iconPath) {
 function refreshTemplateHighlights(tmpl, newDirDeg, rad, wheelEvent = null) {
     if (!tmpl) return;
 
-    const doc = tmpl.document ?? tmpl;
+    const doc = tmpl.document ?? (tmpl.documentName ? tmpl : null);
     if (doc) {
         const dims = tmpl._bbcDimensions ?? doc._bbcDimensions ?? globalThis._activeBBCDimensions;
         const docProps = crosshairAdapter.detectProperties(doc);
@@ -152,7 +152,7 @@ function refreshTemplateHighlights(tmpl, newDirDeg, rad, wheelEvent = null) {
 
         const cfg = tmpl._bbcConfig ?? doc._bbcConfig ?? {};
         const shapeType = cfg.type ?? cfg.originalType ?? docProps.type ?? "circle";
-        const isSticky = Boolean(doc.flags?.bbc?.token ?? doc.flags?.bakana?.token ?? tmpl._bbcSticky ?? cfg.token);
+        const isSticky = shouldStickToToken(cfg, shapeType) && Boolean(cfg.token ?? doc.flags?.bbc?.token ?? doc.flags?.bakana?.token ?? tmpl._bbcSticky);
         let targetX = 0, targetY = 0;
 
         const visual = tmpl._bbcCrosshair ?? globalThis._activeBBCCrosshair;
@@ -534,6 +534,7 @@ export function snapCoordinates(x, y, mode = "all") {
 export function getTokenEdgePoint(tok, targetX, targetY, sticky = false) {
     if (!tok) return { x: targetX, y: targetY, direction: 0 };
     const token = crosshairAdapter.toToken(tok) ?? (tok.object ?? tok);
+    if (!token) return { x: targetX, y: targetY, direction: 0 };
     const size = canvas?.grid?.size ?? 100;
     const cx = token.center?.x ?? (token.x + (token.w ?? size) / 2);
     const cy = token.center?.y ?? (token.y + (token.h ?? size) / 2);

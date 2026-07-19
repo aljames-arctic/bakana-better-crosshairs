@@ -164,7 +164,7 @@ export class AutorecManager {
         const isDefault = Boolean(handler?.isDefault ?? (registeredKey === "DEFAULT"));
         const activityId = isDefault ? "" : (handler?.activityId ?? "").trim();
         const activityName = isDefault ? "" : (handler?.activityName ?? "").trim();
-        const hasActivity = Boolean(activityId || activityName);
+        const hasActivity = Boolean(activityId) || Boolean(activityName);
         const enabled = handler?.enabled !== false;
         const baseConfig = typeof handler === "function" ? { handler } : (handler ?? {});
         const entry = {
@@ -624,10 +624,10 @@ export class AutorecManager {
             const isLocal = Boolean(handlerOrConfig?.local) || !this.persistedItemNames.has(itemName);
 
             const isDefault = Boolean(config.isDefault);
-            const circleFile = config.circleFile ?? "eskie.crosshair.circle.fantasy_01.white.full";
-            const coneFile = config.coneFile ?? "eskie.crosshair.cone.thin.fantasy_01.white.full";
-            const rayFile = config.rayFile ?? "eskie.crosshair.ray.fantasy_01.white";
-            const squareFile = config.squareFile ?? "eskie.crosshair.square.fantasy_01.white";
+            const circleFile = config.circleFile ?? DEFAULT_AUTOREC_ENTRY.circleFile;
+            const coneFile = config.coneFile ?? DEFAULT_AUTOREC_ENTRY.coneFile;
+            const rayFile = config.rayFile ?? DEFAULT_AUTOREC_ENTRY.rayFile;
+            const squareFile = config.squareFile ?? DEFAULT_AUTOREC_ENTRY.squareFile;
 
             const unitFt = localize("BBC.Units.Feet", "ft");
             const distVal = config.distance ?? null;
@@ -643,11 +643,11 @@ export class AutorecManager {
             const stickToTokenMode = isStickOn ? "true" : (isStickOff ? "false" : "default");
             const stickToToken = isStickOn;
             const showLine = config.showLine !== false;
-            const lineFile = config.lineFile ?? "eskie.crosshair.line.generic_01.white";
-            const borderColor = config.borderColor ?? "#ffffff";
-            const borderAlpha = config.borderAlpha ?? 0;
-            const fillColor = config.fillColor ?? "#000000";
-            const fillAlpha = config.fillAlpha ?? 0;
+            const lineFile = config.lineFile ?? DEFAULT_AUTOREC_ENTRY.lineFile;
+            const borderColor = config.borderColor ?? DEFAULT_AUTOREC_ENTRY.borderColor;
+            const borderAlpha = config.borderAlpha ?? DEFAULT_AUTOREC_ENTRY.borderAlpha;
+            const fillColor = config.fillColor ?? DEFAULT_AUTOREC_ENTRY.fillColor;
+            const fillAlpha = config.fillAlpha ?? DEFAULT_AUTOREC_ENTRY.fillAlpha;
             const hasCustomStyling = Boolean(config.borderColor)
                 || (config.borderAlpha !== undefined && config.borderAlpha !== 0)
                 || Boolean(config.fillColor)

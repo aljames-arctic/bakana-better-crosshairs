@@ -33,7 +33,7 @@ function _scheduleFlush() {
  * @returns {void}
  */
 function _flushQueues() {
-    if (typeof ui === "undefined" || !ui.notifications) {
+    if (!globalThis.ui?.notifications) {
         queues.info.length = 0;
         queues.warn.length = 0;
         queues.error.length = 0;
@@ -48,7 +48,7 @@ function _flushQueues() {
         queue.length = 0;
 
         if (messages.length === 1) {
-            ui.notifications[level](messages[0]);
+            globalThis.ui.notifications[level](messages[0]);
         } else {
             const header = level === "error"
                 ? `Bakana's Better Crosshairs — Errors (${messages.length}):`
@@ -57,7 +57,7 @@ function _flushQueues() {
                 : `Bakana's Better Crosshairs (${messages.length}):`;
 
             const groupedMessage = `${header}\n` + messages.map(m => `• ${m}`).join("\n");
-            ui.notifications[level](groupedMessage);
+            globalThis.ui.notifications[level](groupedMessage);
         }
     }
 }

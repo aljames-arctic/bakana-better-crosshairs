@@ -18,8 +18,8 @@ function getVerbosityLevel() {
     if (cachedVerbosity !== null) return cachedVerbosity;
 
     try {
-        if (game?.settings) {
-            const setting = game.settings.get(MODULE_ID, 'logVerbosity');
+        if (globalThis.game?.settings) {
+            const setting = globalThis.game.settings.get(MODULE_ID, 'logVerbosity');
             cachedVerbosity = VERBOSITY_LEVELS[setting] ?? VERBOSITY_LEVELS['warn'];
             return cachedVerbosity;
         }
@@ -80,7 +80,7 @@ export const log = {
      */
     debug(message, ...args) {
         if (getVerbosityLevel() >= VERBOSITY_LEVELS['debug']) {
-            const timestamp = game?.time?.serverTime ?? 'Unknown';
+            const timestamp = globalThis.game?.time?.serverTime ?? 'Unknown';
             console.log(`%c[${MODULE_TLA} Debug (${timestamp})]`, "color: #38bdf8; font-weight: bold;", message, ...args);
         }
     },

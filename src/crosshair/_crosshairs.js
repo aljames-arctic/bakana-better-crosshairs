@@ -21,8 +21,10 @@ function normalizePlayArguments(typeOrToken, tokenOrConfig, config) {
             options: tokenOrConfig ?? {},
         };
     }
+    const selectedBuilder = crosshair[typeOrToken];
+    const builder = (selectedBuilder && typeof selectedBuilder.play === "function") ? selectedBuilder : crosshair.circle;
     return {
-        builder: crosshair[typeOrToken] ?? crosshair.circle,
+        builder,
         target: tokenOrConfig,
         options: config ?? {},
     };
