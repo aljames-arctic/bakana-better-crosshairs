@@ -1,4 +1,4 @@
-import { crosshair } from './crosshair/_crosshairs.js';
+import { crosshair } from './crosshair/index.js';
 import { file, closest, absolutePath } from './lib/filemanager.js';
 import { log } from './lib/logger.js';
 import { autorecManager } from './autorec/autorecManager.js';

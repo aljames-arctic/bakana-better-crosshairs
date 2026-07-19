@@ -93,7 +93,7 @@ Fires when the user activates an item/spell in Foundry, initiating a canvas plac
      - [`this.extractCallingContext(doc)`](file:///usr/local/google/home/aljames/github/bakana-better-crosshairs/src/adapter/foundry/base-foundryvtt-adapter.js#L59): Resolves item/activity context from document flags.
      - [`this.toToken(rawToken)`](file:///usr/local/google/home/aljames/github/bakana-better-crosshairs/src/adapter/foundry/base-foundryvtt-adapter.js#L686): Normalizes `rawToken` to a concrete `Token` instance.
      - [`this.detectProperties(doc)`](file:///usr/local/google/home/aljames/github/bakana-better-crosshairs/src/adapter/foundry/foundryvtt-v14-adapter.js#L130): Extracts `{ type, distance, radius, width, angle, x, y }` from the document.
-     - [`builder.play(token, finalConfig)`](file:///usr/local/google/home/aljames/github/bakana-better-crosshairs/src/crosshair/_crosshairs.js#L18): Delegates to `CircleCrosshair`, `ConeCrosshair`, `RayCrosshair`, or `SquareCrosshair`.
+     - [`builder.play(token, finalConfig)`](file:///usr/local/google/home/aljames/github/bakana-better-crosshairs/src/crosshair/index.js#L18): Delegates to `CircleCrosshair`, `ConeCrosshair`, `RayCrosshair`, or `SquareCrosshair`.
 
 ---
 

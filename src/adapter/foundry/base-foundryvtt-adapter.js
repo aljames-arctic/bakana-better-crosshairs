@@ -974,7 +974,7 @@ export class BaseFoundryVTTAdapter {
                 const crosshairType = isKnownType
                     ? (String(explicitType).toLowerCase() === "rect" ? "square" : String(explicitType).toLowerCase())
                     : (detected.type ?? "circle");
-                const { crosshair } = await import("../../crosshair/_crosshairs.js");
+                const { crosshair } = await import("../../crosshair/index.js");
                 const builder = crosshair[crosshairType] ?? crosshair.circle;
 
                 const shapeFileKey = `${crosshairType}File`;
