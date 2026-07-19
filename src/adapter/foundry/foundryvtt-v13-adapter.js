@@ -145,6 +145,13 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             const isSquareDiagonal = distance <= width * 1.6;
             distance = isSquareDiagonal ? width : Math.round(Math.sqrt(Math.max(0, distance * distance - width * width)));
         }
+        let rawDir = targetDoc.direction ?? 0;
+        if (targetDoc.t === "rect") {
+            const w = width > 0 ? width : distance;
+            const h = distance > 0 ? distance : w;
+            const diagAngle = Math.atan2(h, w) * (180 / Math.PI);
+            rawDir = (rawDir - diagAngle + 360) % 360;
+        }
         return {
             type: shapeMap[targetDoc.t] ?? "circle",
             t: targetDoc.t ?? "circle",
@@ -152,6 +159,7 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             radius: distance,
             width,
             angle: targetDoc.angle ?? 0,
+            direction: rawDir,
             x: targetDoc.x ?? 0,
             y: targetDoc.y ?? 0
         };
@@ -178,10 +186,26 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         const isSquareOrRect = resolvedT === "rect";
         const stickVal = config.stickToToken ?? config.sticky;
         const isSticky = Boolean(stickVal && stickVal !== "none" && stickVal !== "false" && config.token);
+
+        let finalDirection = direction ?? 0;
+        if (isSquareOrRect) {
+            const rawDist = config.distance ?? config.radius;
+            let distFoot = rawDist;
+            const widthFoot = config.width ?? distFoot;
+            if (widthFoot > 0 && distFoot > widthFoot) {
+                const isSquareDiagonal = distFoot <= widthFoot * 1.6;
+                distFoot = isSquareDiagonal ? widthFoot : Math.round(Math.sqrt(Math.max(0, distFoot * distFoot - widthFoot * widthFoot)));
+            }
+            const w = widthFoot ?? 20;
+            const h = distFoot ?? w;
+            const diagAngle = Math.atan2(h, w) * (180 / Math.PI);
+            finalDirection = (finalDirection + diagAngle) % 360;
+        }
+
         return {
             x,
             y,
-            direction,
+            direction: finalDirection,
             distance: config.distance,
             width: config.width,
             angle: config.angle,

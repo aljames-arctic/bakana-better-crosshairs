@@ -1254,6 +1254,11 @@ test('REGRESSION: FoundryVTTV13Adapter normalizes rect diagonal distance and cal
     assert.ok(attachedPayload);
     assert.equal(attachedPayload.x, 1200);
     assert.equal(attachedPayload.y, 1000);
+
+    // 3. Verify formatPlacementCoordinates converts raw crosshair 0 deg rotation into 45 deg diagonal direction for MeasuredTemplate rect
+    const squareFormatted = adapterV13.formatPlacementCoordinates(3000, 1600, 0, { type: 'square', distance: 15, width: 15 });
+    assert.equal(squareFormatted.direction, 45, 'Unrotated square MeasuredTemplate must have direction = 45 (diagonal angle)');
+    assert.equal(squareFormatted.t, 'rect');
 });
 
 
