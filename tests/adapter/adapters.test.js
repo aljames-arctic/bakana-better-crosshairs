@@ -1220,4 +1220,41 @@ test('REGRESSION: FoundryVTTV13Adapter preserves cone template type (t) and angl
     assert.equal(updatedPayload.direction, 45);
 });
 
+test('REGRESSION: FoundryVTTV13Adapter normalizes rect diagonal distance and calculates token attachment offsets', () => {
+    const adapterV13 = new FoundryVTTV13Adapter();
+
+    // 1. Verify diagonal distance (28.284) is normalized and does not compound exponentially
+    let updatedPayload = null;
+    const targetDoc = {
+        t: 'rect',
+        distance: 28.284271247461902,
+        width: 20,
+        updateSource: (data) => { updatedPayload = data; }
+    };
+
+    const coords = { x: 1000, y: 1000, direction: 90, distance: 28.284271247461902, width: 20, type: 'square' };
+    adapterV13.applyDocumentPlacement(targetDoc, coords, { originalType: 'square' });
+
+    assert.ok(updatedPayload);
+    assert.equal(updatedPayload.t, 'rect');
+    assert.equal(updatedPayload.width, 20);
+    assert.equal(updatedPayload.distance, 28.28, 'Distance must remain 28.28 (sqrt(20^2+20^2)) and not compound to 34.64+');
+
+    // 2. Verify attached rect template calculates edge offset correctly based on direction angle
+    let attachedPayload = null;
+    const attachedDoc = {
+        t: 'rect',
+        updateSource: (data) => { attachedPayload = data; }
+    };
+
+    // At 90 deg rotation, sin(90)=1, cos(90)=0 -> x offset = 20ft * 20px/ft / 2 = 200px
+    const attachedCoords = { x: 1000, y: 1000, direction: 90, distance: 20, width: 20, sticky: true, token: { name: 'Token' } };
+    adapterV13.applyDocumentPlacement(attachedDoc, attachedCoords, { originalType: 'square', token: { name: 'Token' } });
+
+    assert.ok(attachedPayload);
+    assert.equal(attachedPayload.x, 1200);
+    assert.equal(attachedPayload.y, 1000);
+});
+
+
 

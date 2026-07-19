@@ -209,17 +209,41 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
     updatePreviewShape(previewDoc, coords) {
         if (!previewDoc || !coords) return;
         const targetDoc = previewDoc.document ?? previewDoc;
-        if (coords.x !== undefined) targetDoc.x = coords.x;
-        if (coords.y !== undefined) targetDoc.y = coords.y;
-        if (coords.direction !== undefined) targetDoc.direction = coords.direction;
         const isRect = targetDoc.t === "rect" || coords.type === "square" || coords.type === "rect" || coords.originalType === "square" || coords.t === "rect";
+        const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
+        let distFoot = coords.distance ?? coords.radius;
+        const widthFoot = coords.width ?? distFoot;
+
         if (isRect) {
+            if (widthFoot > 0 && distFoot > widthFoot) {
+                const isSquareDiagonal = distFoot <= widthFoot * 1.6;
+                distFoot = isSquareDiagonal ? widthFoot : Math.round(Math.sqrt(Math.max(0, distFoot * distFoot - widthFoot * widthFoot)));
+            }
+
+            let targetX = coords.x;
+            let targetY = coords.y;
+            const rad = ((coords.direction ?? coords.rotation ?? targetDoc.direction ?? 0) * Math.PI) / 180;
+            const isSticky = Boolean(coords.sticky ?? coords.token);
+
+            if (isSticky && targetX !== undefined && targetY !== undefined) {
+                const wPx = (widthFoot ?? 20) * pxPerFoot;
+                targetX = Math.round(targetX + (wPx / 2) * Math.sin(rad));
+                targetY = Math.round(targetY - (wPx / 2) * Math.cos(rad));
+            }
+
+            if (targetX !== undefined) targetDoc.x = targetX;
+            if (targetY !== undefined) targetDoc.y = targetY;
+            if (coords.direction !== undefined) targetDoc.direction = coords.direction;
+
             targetDoc.t = "rect";
-            const w = coords.width ?? coords.distance ?? 20;
-            const h = coords.distance ?? coords.width ?? w;
+            const w = widthFoot ?? 20;
+            const h = distFoot ?? w;
             targetDoc.distance = Math.round(Math.sqrt(w * w + h * h) * 100) / 100;
             targetDoc.width = w;
         } else {
+            if (coords.x !== undefined) targetDoc.x = coords.x;
+            if (coords.y !== undefined) targetDoc.y = coords.y;
+            if (coords.direction !== undefined) targetDoc.direction = coords.direction;
             if (coords.t !== undefined) targetDoc.t = coords.t;
             if (coords.distance !== undefined) targetDoc.distance = coords.distance;
             if (coords.angle !== undefined) targetDoc.angle = coords.angle;
@@ -237,21 +261,52 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         if (!doc) return;
         const targetDoc = doc.document ?? doc;
         const styling = this.extractPlacedStylingFlags(config);
+        const isRect = targetDoc.t === "rect" || coords.type === "square" || coords.type === "rect" || coords.originalType === "square" || config.originalType === "square" || coords.t === "rect" || config.t === "rect" || config.type === "square" || config.type === "rect";
         const updateData = {
-            ...coords,
             flags: styling.flags
         };
 
-        const isRect = targetDoc.t === "rect" || coords.type === "square" || coords.type === "rect" || coords.originalType === "square" || config.originalType === "square" || coords.t === "rect" || config.t === "rect" || config.type === "square" || config.type === "rect";
+        const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
+        const rawDist = coords.distance ?? coords.radius;
+        let distFoot = rawDist ?? config.distance ?? config.radius;
+        const widthFoot = coords.width ?? config.width ?? distFoot;
+
         if (isRect) {
+            if (widthFoot > 0 && distFoot > widthFoot) {
+                const isSquareDiagonal = distFoot <= widthFoot * 1.6;
+                distFoot = isSquareDiagonal ? widthFoot : Math.round(Math.sqrt(Math.max(0, distFoot * distFoot - widthFoot * widthFoot)));
+            }
+
+            let targetX = coords.x;
+            let targetY = coords.y;
+            const rad = ((coords.direction ?? coords.rotation ?? targetDoc.direction ?? 0) * Math.PI) / 180;
+            const isSticky = Boolean(config.token ?? coords.token ?? coords.sticky);
+
+            if (isSticky && targetX !== undefined && targetY !== undefined) {
+                const wPx = (widthFoot ?? 20) * pxPerFoot;
+                targetX = Math.round(targetX + (wPx / 2) * Math.sin(rad));
+                targetY = Math.round(targetY - (wPx / 2) * Math.cos(rad));
+            }
+
+            if (targetX !== undefined) updateData.x = targetX;
+            if (targetY !== undefined) updateData.y = targetY;
+            if (coords.direction !== undefined) updateData.direction = coords.direction;
+            else if (coords.rotation !== undefined) updateData.direction = coords.rotation;
+
             updateData.t = "rect";
-            const w = coords.width ?? coords.distance ?? config.width ?? config.distance ?? 20;
-            const h = coords.distance ?? coords.width ?? config.distance ?? config.width ?? w;
+            const w = widthFoot ?? 20;
+            const h = distFoot ?? w;
             updateData.distance = Math.round(Math.sqrt(w * w + h * h) * 100) / 100;
             updateData.width = w;
         } else {
+            if (coords.x !== undefined) updateData.x = coords.x;
+            if (coords.y !== undefined) updateData.y = coords.y;
+            if (coords.direction !== undefined) updateData.direction = coords.direction;
+            else if (coords.rotation !== undefined) updateData.direction = coords.rotation;
             if (coords.t !== undefined) updateData.t = coords.t;
             else if (config.t !== undefined) updateData.t = config.t;
+            if (coords.distance !== undefined) updateData.distance = coords.distance;
+            else if (coords.radius !== undefined) updateData.distance = coords.radius;
             if (coords.angle !== undefined) updateData.angle = coords.angle;
             else if (config.angle !== undefined) updateData.angle = config.angle;
         }
@@ -292,11 +347,27 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         if (coords.y !== undefined) data.y = coords.y;
         if (coords.direction !== undefined) data.direction = coords.direction;
         else if (coords.rotation !== undefined) data.direction = coords.rotation;
-        if (coords.distance !== undefined) data.distance = coords.distance;
-        else if (coords.radius !== undefined) data.distance = coords.radius;
-        if (coords.t !== undefined) data.t = coords.t;
-        if (coords.angle !== undefined) data.angle = coords.angle;
-        if (coords.width !== undefined) data.width = coords.width;
+        const isRect = data.t === "rect" || coords.type === "square" || coords.type === "rect" || coords.originalType === "square" || coords.t === "rect";
+        if (isRect) {
+            data.t = "rect";
+            const rawDist = coords.distance ?? coords.radius;
+            let distFoot = rawDist;
+            const widthFoot = coords.width ?? distFoot;
+            if (widthFoot > 0 && distFoot > widthFoot) {
+                const isSquareDiagonal = distFoot <= widthFoot * 1.6;
+                distFoot = isSquareDiagonal ? widthFoot : Math.round(Math.sqrt(Math.max(0, distFoot * distFoot - widthFoot * widthFoot)));
+            }
+            const w = widthFoot ?? 20;
+            const h = distFoot ?? w;
+            data.distance = Math.round(Math.sqrt(w * w + h * h) * 100) / 100;
+            data.width = w;
+        } else {
+            if (coords.distance !== undefined) data.distance = coords.distance;
+            else if (coords.radius !== undefined) data.distance = coords.radius;
+            if (coords.t !== undefined) data.t = coords.t;
+            if (coords.angle !== undefined) data.angle = coords.angle;
+            if (coords.width !== undefined) data.width = coords.width;
+        }
     }
 
     /**
