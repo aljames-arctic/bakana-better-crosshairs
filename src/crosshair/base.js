@@ -47,8 +47,9 @@ export class BaseCrosshairShape {
         this.sequencerCrosshair = null;
 
         // Position and direction state tracking
-        this.x = placeable?.x ?? doc?.x ?? 0;
-        this.y = placeable?.y ?? doc?.y ?? 0;
+        const safeGet = (obj, prop) => { if (!obj) return undefined; try { return obj[prop]; } catch (e) { return undefined; } };
+        this.x = safeGet(placeable, "x") ?? doc?.x ?? 0;
+        this.y = safeGet(placeable, "y") ?? doc?.y ?? 0;
         this.direction = config.direction ?? 0;
 
         // Normalize boolean flags on config for clean direct boolean evaluation
@@ -523,9 +524,11 @@ export class BaseCrosshairShape {
                 t: shapeType === "square" ? "rect" : shapeType
             });
 
-            if (this.placeable?.document) {
-                this.placeable.x = doc.x;
-                this.placeable.y = doc.y;
+            if (this.placeable?.document && this.placeable.position) {
+                try {
+                    this.placeable.x = doc.x;
+                    this.placeable.y = doc.y;
+                } catch (e) {}
             }
         }
         if (crosshairAdapter?.refreshTemplateHighlights && this.placeable) {

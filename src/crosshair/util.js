@@ -164,7 +164,8 @@ function refreshTemplateHighlights(tmpl, newDirDeg, rad, wheelEvent = null) {
             targetX = anchored.x;
             targetY = anchored.y;
         } else {
-            const mousePos = canvas?.mousePosition ?? { x: tmpl.x ?? doc.x ?? 0, y: tmpl.y ?? doc.y ?? 0 };
+            const safeGet = (obj, prop) => { if (!obj) return undefined; try { return obj[prop]; } catch (e) { return undefined; } };
+            const mousePos = canvas?.mousePosition ?? { x: safeGet(tmpl, "x") ?? doc.x ?? 0, y: safeGet(tmpl, "y") ?? doc.y ?? 0 };
             const snapMode = getGridSnapMode(cfg);
             const snapped = snapMode !== 0 ? snapCoordinates(mousePos.x, mousePos.y, snapMode) : mousePos;
             targetX = snapped.x;
@@ -186,9 +187,11 @@ function refreshTemplateHighlights(tmpl, newDirDeg, rad, wheelEvent = null) {
             t: shapeType === "square" ? "rect" : shapeType
         });
 
-        if (tmpl.document) {
-            tmpl.x = doc.x;
-            tmpl.y = doc.y;
+        if (tmpl.document && tmpl.position) {
+            try {
+                tmpl.x = doc.x;
+                tmpl.y = doc.y;
+            } catch (e) {}
         }
     }
 
