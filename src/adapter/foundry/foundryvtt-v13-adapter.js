@@ -198,8 +198,7 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             }
             const w = widthFoot ?? 20;
             const h = distFoot ?? w;
-            const diagAngle = Math.atan2(h, w) * (180 / Math.PI);
-            finalDirection = (finalDirection + diagAngle) % 360;
+            finalDirection = Math.atan2(h, w) * (180 / Math.PI);
         }
 
         return {
