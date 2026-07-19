@@ -316,15 +316,12 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             tmpl.ray = Ray.fromAngle(ox, oy, rad, tmpl.ray.distance ?? 1000);
         }
 
-        if (tmpl.renderFlags) {
-            tmpl.renderFlags.set({
-                refreshShape: true,
-                refreshTemplate: true,
-                refreshGrid: true,
-                refreshState: true,
-                refresh: true
-            });
-        }
+        this._safeSetRenderFlags(tmpl, {
+            refreshTemplate: true,
+            refreshGrid: true,
+            refreshState: true,
+            refresh: true
+        });
         if (typeof tmpl.applyRenderFlags === "function") tmpl.applyRenderFlags();
         if (typeof tmpl._refreshShape === "function") tmpl._refreshShape();
         if (typeof tmpl.highlightGrid === "function") tmpl.highlightGrid();

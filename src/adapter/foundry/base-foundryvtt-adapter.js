@@ -292,6 +292,30 @@ export class BaseFoundryVTTAdapter {
     }
 
     /**
+     * Safely apply render flags onto a PlaceableObject's renderFlags manager.
+     * Prevents system or placeable errors if specific flags (such as refreshShape) are not defined as supported RenderFlag options on that placeable.
+     * @param {PlaceableObject} tmpl - Placeable graphic object containing renderFlags
+     * @param {Object} flags - Key-value pair object of desired render flags (`{ [flagName]: boolean }`)
+     * @returns {void}
+     */
+    _safeSetRenderFlags(tmpl, flags) {
+        if (!tmpl?.renderFlags || typeof tmpl.renderFlags.set !== "function" || !flags || typeof flags !== "object") return;
+
+        try {
+            tmpl.renderFlags.set(flags);
+        } catch (err) {
+            log.debug("BaseFoundryVTTAdapter._safeSetRenderFlags | Bulk renderFlags.set failed, attempting key-by-key safe assignment:", err);
+            for (const [flagName, val] of Object.entries(flags)) {
+                try {
+                    tmpl.renderFlags.set({ [flagName]: val });
+                } catch (e) {
+                    log.debug(`BaseFoundryVTTAdapter._safeSetRenderFlags | Flag "${flagName}" is unsupported on placeable:`, e);
+                }
+            }
+        }
+    }
+
+    /**
      * Safely dismiss a canvas preview placeable by detaching stage interaction listeners, clearing ticker queues, and destroying.
      * Common across Foundry v12..v14+ placement previews and system-overridden canvas previews (e.g. Pathfinder 2e).
      * @param {PlaceableObject} placeable - The placeable graphic object to dismiss and destroy

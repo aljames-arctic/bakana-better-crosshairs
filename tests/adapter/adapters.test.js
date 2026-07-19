@@ -1150,3 +1150,40 @@ test('REGRESSION: BaseCrosshairShape.rotate preserves cone document interior ang
     assert.equal(mockDocument.direction, 180, 'direction must update to 180');
     assert.equal(mockDocument.angle, 53.13, 'interior cone angle must remain 53.13 and not be overwritten with rotation direction');
 });
+
+test('REGRESSION: _safeSetRenderFlags gracefully handles unsupported RenderFlag options (e.g. refreshShape on MeasuredTemplatePF2e)', () => {
+    const adapter = new FoundryVTTV14Adapter();
+    const setCalls = [];
+    const mockTmpl = {
+        document: { documentName: "MeasuredTemplate", direction: 0 },
+        direction: 0,
+        renderFlags: {
+            set(flags) {
+                if (flags.refreshShape) {
+                    throw new Error("refreshShape is not defined as a supported RenderFlag option");
+                }
+                setCalls.push(flags);
+            }
+        }
+    };
+
+    assert.doesNotThrow(() => {
+        adapter.refreshTemplateHighlights(mockTmpl, 90);
+    });
+
+    assert.ok(setCalls.length > 0, "Supported render flags were set successfully");
+});
+
+test('REGRESSION: Pf2eSystemAdapter and Dnd5eSystemAdapter expose refreshTemplateHighlights stubs without breaking system adapters', () => {
+    const pf2eAdapter = new Pf2eSystemAdapter();
+    const dnd5eAdapter = new Dnd5eSystemAdapter();
+
+    assert.strictEqual(typeof pf2eAdapter.refreshTemplateHighlights, 'function');
+    assert.strictEqual(typeof dnd5eAdapter.refreshTemplateHighlights, 'function');
+
+    assert.doesNotThrow(() => {
+        pf2eAdapter.refreshTemplateHighlights({}, 90);
+        dnd5eAdapter.refreshTemplateHighlights({}, 90);
+    });
+});
+

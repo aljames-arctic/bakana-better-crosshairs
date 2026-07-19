@@ -128,6 +128,17 @@ export class BaseSystemAdapter {
     }
 
     /**
+     * Refresh system-specific template highlights or preview overlays.
+     * Base implementation defaults to NOP stub to allow system adapter overrides.
+     * @param {PlaceableObject} tmpl - Canvas preview placeable
+     * @param {number} direction - Current rotation direction in degrees
+     * @returns {void}
+     */
+    refreshTemplateHighlights(tmpl, direction) {
+        return;
+    }
+
+    /**
      * Open the Item Crosshair Configuration application for a target item.
      * Accessible to any user who owns the item.
      * @param {Document} item - Target Item document

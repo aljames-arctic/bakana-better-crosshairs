@@ -195,6 +195,9 @@ function refreshTemplateHighlights(tmpl, newDirDeg, rad, wheelEvent = null) {
     if (crosshairAdapter?.refreshTemplateHighlights) {
         crosshairAdapter.refreshTemplateHighlights(tmpl, newDirDeg);
     }
+    if (systemAdapter?.refreshTemplateHighlights) {
+        systemAdapter.refreshTemplateHighlights(tmpl, newDirDeg);
+    }
 }
 
 /**

@@ -573,15 +573,13 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         const isRegion = doc.documentName === "Region";
 
         if (isRegion) {
-            if (tmpl.renderFlags) {
-                tmpl.renderFlags.set({
-                    refreshShape: true,
-                    refreshGrid: true,
-                    refreshHighlight: true,
-                    refreshState: true,
-                    refresh: true
-                });
-            }
+            this._safeSetRenderFlags(tmpl, {
+                refreshShape: true,
+                refreshGrid: true,
+                refreshHighlight: true,
+                refreshState: true,
+                refresh: true
+            });
             if (typeof tmpl.applyRenderFlags === "function") tmpl.applyRenderFlags();
             if (typeof tmpl.highlightGrid === "function") tmpl.highlightGrid();
             if (typeof tmpl._refreshShape === "function") tmpl._refreshShape();
@@ -610,15 +608,12 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         tmpl._shape = null;
         if (tmpl.shape?.clear) tmpl.shape.clear();
 
-        if (tmpl.renderFlags) {
-            tmpl.renderFlags.set({
-                refreshShape: true,
-                refreshTemplate: true,
-                refreshGrid: true,
-                refreshState: true,
-                refresh: true
-            });
-        }
+        this._safeSetRenderFlags(tmpl, {
+            refreshTemplate: true,
+            refreshGrid: true,
+            refreshState: true,
+            refresh: true
+        });
         if (typeof tmpl.applyRenderFlags === "function") tmpl.applyRenderFlags();
         if (typeof tmpl._refreshShape === "function") tmpl._refreshShape();
         if (typeof tmpl.highlightGrid === "function") tmpl.highlightGrid();
