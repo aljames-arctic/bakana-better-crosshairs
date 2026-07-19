@@ -20,18 +20,6 @@ export const Ray = globalThis.foundry?.canvas?.geometry?.Ray ?? globalThis.Ray;
  * @returns {void}
  */
 export function clearHighlightLayer(id) {
-    if (typeof id !== "string" || !id) return;
-    if (globalThis.canvas?.interface?.grid?.clearHighlightLayer) {
-        globalThis.canvas.interface.grid.clearHighlightLayer(id);
-    }
-    if (globalThis.canvas?.grid?.clearHighlightLayer) {
-        globalThis.canvas.grid.clearHighlightLayer(id);
-    }
-    if (globalThis.canvas?.regions?.clearHighlightLayer) {
-        globalThis.canvas.regions.clearHighlightLayer(id);
-    }
-    if (globalThis.canvas?.regions?.highlight?.clear) {
-        globalThis.canvas.regions.highlight.clear();
-    }
+    return canvas.interface.grid.clearHighlightLayer(id);
 }
 
