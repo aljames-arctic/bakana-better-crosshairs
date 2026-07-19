@@ -250,7 +250,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             const orig = typeof shapesList[0]?.toObject === "function" ? shapesList[0].toObject() : shapesList[0];
             const updatedShape = this._formatRegionShapeUpdate(orig, coords);
             delete updatedShape._id;
-            log.error("BBC ROTATION DIAG 3 | V14 updatePreviewShape:", {
+            log.debug("BBC ROTATION DIAG 3 | V14 updatePreviewShape:", {
                 coordsDirection: coords.direction,
                 coordsRotation: coords.rotation,
                 updatedShapeRotation: updatedShape.rotation,
@@ -570,7 +570,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         const isRegion = doc.documentName === "Region";
 
         if (isRegion) {
-            log.error("BBC ROTATION DIAG 4 | V14 refreshTemplateHighlights (Region):", {
+            log.debug("BBC ROTATION DIAG 4 | V14 refreshTemplateHighlights (Region):", {
                 direction,
                 docShapes: doc.shapes,
                 renderFlags: tmpl.renderFlags ? Object.keys(tmpl.renderFlags) : null,

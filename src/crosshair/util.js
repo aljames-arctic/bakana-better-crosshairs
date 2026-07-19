@@ -219,7 +219,7 @@ export function attachWheelRotation(shape, config = {}) {
     const isAttached = shouldStickToToken(config, shapeType) && Boolean(config.token);
     config.currentDirection = config.currentDirection ?? config.direction ?? 0;
 
-    console.log("BBC ROTATION DIAGNOSTIC | Initializing attachWheelRotation:", {
+    log.debug("BBC ROTATION DIAGNOSTIC | Initializing attachWheelRotation:", {
         shapeType,
         isAttached,
         token: config.token?.name ?? !!config.token,
@@ -228,7 +228,7 @@ export function attachWheelRotation(shape, config = {}) {
 
     if (!isAttached) {
         activeWheelHandler = (event) => {
-            console.log("BBC ROTATION DIAGNOSTIC | Wheel event captured:", {
+            log.debug("BBC ROTATION DIAGNOSTIC | Wheel event captured:", {
                 deltaY: event.deltaY,
                 ctrlKey: event.ctrlKey,
                 shiftKey: event.shiftKey,
@@ -244,7 +244,7 @@ export function attachWheelRotation(shape, config = {}) {
             const delta = event.deltaY < 0 ? -step : step;
             config.currentDirection = (config.currentDirection + delta + 360) % 360;
 
-            log.error("BBC ROTATION DIAG 1 | Wheel step:", {
+            log.debug("BBC ROTATION DIAG 1 | Wheel step:", {
                 currentDirection: config.currentDirection,
                 shapeType,
                 isShapeInstance
@@ -327,7 +327,7 @@ export function attachWheelRotation(shape, config = {}) {
     };
 
     window.addEventListener("pointermove", activePointerHandler, { capture: true, passive: true });
-    console.log("BBC ROTATION DIAGNOSTIC | Listeners attached for crosshair pointer tracking and rotation (capture phase).");
+    log.debug("BBC ROTATION DIAGNOSTIC | Listeners attached for crosshair pointer tracking and rotation (capture phase).");
 }
 
 /**

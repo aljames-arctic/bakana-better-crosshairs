@@ -478,7 +478,7 @@ export class BaseCrosshairShape {
     }
 
     refreshTemplateHighlights() {
-        log.error("BBC ROTATION DIAG 2 | BaseCrosshairShape.refreshTemplateHighlights:", {
+        log.debug("BBC ROTATION DIAG 2 | BaseCrosshairShape.refreshTemplateHighlights:", {
             direction: this.direction,
             docName: this.placeable?.document?.documentName,
             shapes: this.placeable?.document?.shapes
