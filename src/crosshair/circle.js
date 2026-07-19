@@ -70,15 +70,6 @@ export class CircleCrosshairShape extends BaseCrosshairShape {
     }
 
     /**
-     * Configure circle distance on the Sequencer crosshair chain (Template Method entry).
-     * @param {Sequence} crosshairSeq - The Sequencer crosshair builder instance
-     * @returns {void}
-     */
-    configureCrosshairShape(crosshairSeq) {
-        this._configureCrosshairShape(crosshairSeq);
-    }
-
-    /**
      * Protected hook to calculate pixel diameter and scale factor for the circle graphic.
      * @protected
      * @returns {{widthPx: number, heightPx: number, factor: number, gridUnits: boolean}} Calculated pixel and scale dimensions
@@ -94,14 +85,6 @@ export class CircleCrosshairShape extends BaseCrosshairShape {
     }
 
     /**
-     * Calculate pixel diameter and scale factor for the circle graphic (Template Method entry).
-     * @returns {{widthPx: number, heightPx: number, factor: number, gridUnits: boolean}} Calculated pixel and scale dimensions
-     */
-    getGraphicDimensions() {
-        return this._getGraphicDimensions();
-    }
-
-    /**
      * Protected hook to resolve the circle graphic asset path or Sequencer key.
      * @protected
      * @returns {string} Resolved file path or key
@@ -113,14 +96,6 @@ export class CircleCrosshairShape extends BaseCrosshairShape {
         }
         const radius = Math.round(this.config.radius ?? 20);
         return resolveCircleAsset(null, radius * 2);
-    }
-
-    /**
-     * Resolve the circle graphic asset path or Sequencer key (Template Method entry).
-     * @returns {string} Resolved file path or key
-     */
-    getGraphicFile() {
-        return this._getGraphicFile();
     }
 }
 

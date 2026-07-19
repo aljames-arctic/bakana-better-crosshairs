@@ -55,12 +55,11 @@ export class BaseSystemAdapter {
     /**
      * Extract or refine calling context for the specific game system.
      * Base implementation normalizes calling context to explicit domain schema contract.
-     * @param {Document|PlaceableObject|null} target - Template or Region document or placeable placed on canvas
+     * @param {Document|null} doc - Template or Region document placed on canvas
      * @param {Object} [baseContext={}] - Initial calling context (`{ item, itemName, itemId, activity, activityName, activityId }`)
      * @returns {{item: Item|null, itemName: string, itemId: string, activity: Object|null, activityName: string, activityId: string}} Refined calling context object
      */
-    extractCallingContext(target, baseContext = {}) {
-        const doc = target?.document ?? target;
+    extractCallingContext(doc, baseContext = {}) {
         const itemObj = baseContext?.item ?? null;
         const activityObj = baseContext?.activity ?? null;
 

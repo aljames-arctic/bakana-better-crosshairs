@@ -166,13 +166,15 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
      */
     formatPlacementCoordinates(x, y, direction, config = {}) {
         const isSquareOrRect = config.originalType === "square" || config.type === "square" || config.type === "rect" || config.t === "rect" || config.t === "square";
+        const stickVal = config.stickToToken ?? config.sticky;
+        const isSticky = Boolean(stickVal && stickVal !== "none" && stickVal !== "false" && config.token);
         return {
             x,
             y,
             direction,
             distance: config.distance,
             width: config.width,
-            sticky: Boolean((config.stickToToken ?? config.sticky) && config.token),
+            sticky: isSticky,
             type: isSquareOrRect ? "square" : (config.originalType ?? config.type),
             originalType: config.originalType,
             t: isSquareOrRect ? "rect" : config.t
@@ -236,8 +238,8 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             updateData.width = w;
         }
 
-        if (styling.placedFillColor) updateData.fillColor = styling.placedFillColor;
-        if (styling.placedBorderColor) updateData.borderColor = styling.placedBorderColor;
+        if (styling.placedFillColor !== undefined && styling.placedFillColor !== null) updateData.fillColor = styling.placedFillColor;
+        if (styling.placedBorderColor !== undefined && styling.placedBorderColor !== null) updateData.borderColor = styling.placedBorderColor;
         if (styling.placedFillAlpha !== undefined) updateData.fillAlpha = styling.placedFillAlpha;
         if (styling.placedBorderAlpha !== undefined) updateData.borderAlpha = styling.placedBorderAlpha;
         if (config.hidden || config.hideTemplate) updateData.hidden = true;

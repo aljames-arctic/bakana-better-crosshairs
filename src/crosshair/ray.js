@@ -53,15 +53,6 @@ export class RayCrosshairShape extends BaseCrosshairShape {
     }
 
     /**
-     * Configure ray distance and width on the Sequencer crosshair chain (Template Method entry).
-     * @param {Sequence} crosshairSeq - The Sequencer crosshair builder instance
-     * @returns {void}
-     */
-    configureCrosshairShape(crosshairSeq) {
-        this._configureCrosshairShape(crosshairSeq);
-    }
-
-    /**
      * Protected hook to calculate pixel length, width, and scale factor for the ray graphic.
      * @protected
      * @returns {{widthPx: number, heightPx: number, factor: number, gridUnits: boolean}} Calculated pixel and scale dimensions
@@ -79,14 +70,6 @@ export class RayCrosshairShape extends BaseCrosshairShape {
     }
 
     /**
-     * Calculate pixel length, width, and scale factor for the ray graphic (Template Method entry).
-     * @returns {{widthPx: number, heightPx: number, factor: number, gridUnits: boolean}} Calculated pixel and scale dimensions
-     */
-    getGraphicDimensions() {
-        return this._getGraphicDimensions();
-    }
-
-    /**
      * Protected hook to resolve the ray graphic asset path or Sequencer key.
      * @protected
      * @returns {string} Resolved file path or key
@@ -97,14 +80,6 @@ export class RayCrosshairShape extends BaseCrosshairShape {
             return closest(rawFile);
         }
         return closest("eskie.crosshair.ray.straight.thin.white.01");
-    }
-
-    /**
-     * Resolve the ray graphic asset path or Sequencer key (Template Method entry).
-     * @returns {string} Resolved file path or key
-     */
-    getGraphicFile() {
-        return this._getGraphicFile();
     }
 }
 

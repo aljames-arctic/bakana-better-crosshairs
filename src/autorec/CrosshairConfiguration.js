@@ -31,16 +31,20 @@ export class CrosshairConfiguration {
         // Core animation rendering options
         this.showLine = Boolean(source.showLine ?? defaults.showLine);
         this.borderColor = String(source.borderColor ?? defaults.borderColor).trim();
-        this.borderAlpha = Number.isFinite(Number(source.borderAlpha ?? defaults.borderAlpha)) ? Number(source.borderAlpha ?? defaults.borderAlpha) : defaults.borderAlpha;
+        const borderAlphaVal = Number(source.borderAlpha ?? defaults.borderAlpha);
+        this.borderAlpha = Number.isFinite(borderAlphaVal) ? borderAlphaVal : defaults.borderAlpha;
         this.fillColor = String(source.fillColor ?? defaults.fillColor).trim();
-        this.fillAlpha = Number.isFinite(Number(source.fillAlpha ?? defaults.fillAlpha)) ? Number(source.fillAlpha ?? defaults.fillAlpha) : defaults.fillAlpha;
+        const fillAlphaVal = Number(source.fillAlpha ?? defaults.fillAlpha);
+        this.fillAlpha = Number.isFinite(fillAlphaVal) ? fillAlphaVal : defaults.fillAlpha;
         this.icon = String(source.icon ?? defaults.icon).trim();
 
         // Placed document styling options
         this.placedFillColor = String(source.placedFillColor ?? defaults.placedFillColor).trim();
-        this.placedFillAlpha = Number.isFinite(Number(source.placedFillAlpha ?? defaults.placedFillAlpha)) ? Number(source.placedFillAlpha ?? defaults.placedFillAlpha) : defaults.placedFillAlpha;
+        const placedFillAlphaVal = Number(source.placedFillAlpha ?? defaults.placedFillAlpha);
+        this.placedFillAlpha = Number.isFinite(placedFillAlphaVal) ? placedFillAlphaVal : defaults.placedFillAlpha;
         this.placedBorderColor = String(source.placedBorderColor ?? defaults.placedBorderColor).trim();
-        this.placedBorderAlpha = Number.isFinite(Number(source.placedBorderAlpha ?? defaults.placedBorderAlpha)) ? Number(source.placedBorderAlpha ?? defaults.placedBorderAlpha) : defaults.placedBorderAlpha;
+        const placedBorderAlphaVal = Number(source.placedBorderAlpha ?? defaults.placedBorderAlpha);
+        this.placedBorderAlpha = Number.isFinite(placedBorderAlphaVal) ? placedBorderAlphaVal : defaults.placedBorderAlpha;
 
         // Custom script hooks
         this.concurrentCode = String(source.concurrentCode ?? "").trim();
@@ -95,7 +99,7 @@ export class CrosshairConfiguration {
         const merged = { ...this, isCustom: true };
 
         if (isPreOverride) {
-            merged.concurrentCode = customSource.concurrentCode ?? "";
+            merged.concurrentCode = customSource.concurrentCode ?? this.concurrentCode;
             merged.enablePrePlacement = true;
         }
 
@@ -107,9 +111,8 @@ export class CrosshairConfiguration {
             merged.rayFile = customSource.rayFile ?? DEFAULT_AUTOREC_ENTRY.rayFile;
             merged.squareFile = customSource.squareFile ?? DEFAULT_AUTOREC_ENTRY.squareFile;
 
-            merged.stickToToken = (customSource.stickToToken && customSource.stickToToken !== "default")
-                ? customSource.stickToToken
-                : this.stickToToken;
+            const stickToTokenVal = String(customSource.stickToToken ?? "default");
+            merged.stickToToken = stickToTokenVal !== "default" ? stickToTokenVal : this.stickToToken;
 
             merged.showLine = Boolean(customSource.showLine);
             merged.lineFile = customSource.lineFile ?? DEFAULT_AUTOREC_ENTRY.lineFile;
@@ -129,7 +132,7 @@ export class CrosshairConfiguration {
 
         if (isPostOverride) {
             merged.enablePostPlacement = true;
-            merged.postPlacementCode = customSource.postPlacementCode ?? "";
+            merged.postPlacementCode = customSource.postPlacementCode ?? this.postPlacementCode;
         }
 
         return new CrosshairConfiguration(merged);

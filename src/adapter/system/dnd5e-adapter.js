@@ -25,12 +25,12 @@ export class Dnd5eSystemAdapter extends BaseSystemAdapter {
 
     /**
      * Extract normalized calling item and activity context from a DnD5e Document and flags.
-     * @param {Document|PlaceableObject|null} target - Template or Region document or placeable placed on canvas
+     * @param {Document|null} doc - Template or Region document placed on canvas
      * @param {Object} [baseContext={}] - Initial calling context (`{ item, itemName, itemId, activity, activityName, activityId }`)
      * @returns {{item: Item|null, itemName: string, itemId: string, activity: Object|null, activityName: string, activityId: string}} Normalized calling context containing item and activity references and identifiers
      */
-    extractCallingContext(target, baseContext = {}) {
-        const doc = target?.document ?? target;
+    extractCallingContext(doc, baseContext = {}) {
+        const targetDoc = doc?.document ?? doc;
         let itemObj = baseContext?.item ?? null;
         let activityObj = baseContext?.activity ?? null;
 
@@ -38,8 +38,8 @@ export class Dnd5eSystemAdapter extends BaseSystemAdapter {
             ? fromUuidSync
             : (typeof foundry?.utils?.fromUuidSync === "function" ? foundry.utils.fromUuidSync : null);
 
-        if (!itemObj && doc?.flags?.dnd5e?.origin && uuidResolver) {
-            try { itemObj = uuidResolver(doc.flags.dnd5e.origin); } catch (e) {}
+        if (!itemObj && targetDoc?.flags?.dnd5e?.origin && uuidResolver) {
+            try { itemObj = uuidResolver(targetDoc.flags.dnd5e.origin); } catch (e) {}
         }
 
         if (itemObj && (itemObj.item || (itemObj.parent && itemObj.parent.documentName === "Item"))) {
@@ -47,7 +47,7 @@ export class Dnd5eSystemAdapter extends BaseSystemAdapter {
             itemObj = itemObj.item ?? itemObj.parent;
         }
 
-        const actIdentifier = doc?.flags?.dnd5e?.activity;
+        const actIdentifier = targetDoc?.flags?.dnd5e?.activity;
         if (!activityObj && actIdentifier) {
             if (uuidResolver && typeof actIdentifier === "string" && actIdentifier.includes(".")) {
                 try { activityObj = uuidResolver(actIdentifier); } catch (e) {}
@@ -71,7 +71,7 @@ export class Dnd5eSystemAdapter extends BaseSystemAdapter {
             itemId: result.itemId,
             activityName: result.activityName,
             activityId: result.activityId,
-            dnd5eFlags: doc?.flags?.dnd5e
+            dnd5eFlags: targetDoc?.flags?.dnd5e
         });
 
         return result;

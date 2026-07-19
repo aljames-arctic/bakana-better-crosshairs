@@ -33,22 +33,22 @@ export class Pf2eSystemAdapter extends BaseSystemAdapter {
 
     /**
      * Extract calling item context from Pathfinder 2e template document flags or base context.
-     * @param {Document|PlaceableObject|null} target - Template or Region document or placeable placed on canvas
+     * @param {Document|null} doc - Template or Region document placed on canvas
      * @param {Object} [baseContext={}] - Initial calling context (`{ item, itemName, itemId }`)
      * @returns {{item: Item|null, itemName: string, itemId: string, activity: Object|null, activityName: string, activityId: string}} Refined calling context object
      */
-    extractCallingContext(target, baseContext = {}) {
-        const doc = target?.document ?? target;
+    extractCallingContext(doc, baseContext = {}) {
+        const targetDoc = doc?.document ?? doc;
         let itemObj = baseContext?.item ?? null;
 
         // In PF2e, template origins are stored inside document.flags.pf2e.origin (or flags.pf2e.item)
-        const pf2eFlags = doc?.flags?.pf2e ?? {};
+        const pf2eFlags = targetDoc?.flags?.pf2e ?? {};
         let originRef = pf2eFlags.origin ?? pf2eFlags.item;
 
-        if (!originRef && doc?.behaviors) {
-            const behaviors = typeof doc.behaviors.contents !== "undefined"
-                ? doc.behaviors.contents
-                : (Array.isArray(doc.behaviors) ? doc.behaviors : []);
+        if (!originRef && targetDoc?.behaviors) {
+            const behaviors = typeof targetDoc.behaviors.contents !== "undefined"
+                ? targetDoc.behaviors.contents
+                : (Array.isArray(targetDoc.behaviors) ? targetDoc.behaviors : []);
             for (const behavior of behaviors) {
                 const bFlags = behavior?.flags?.pf2e ?? {};
                 originRef = bFlags.origin ?? bFlags.item ?? behavior?.system?.origin;

@@ -332,7 +332,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 updateData.shapes = [newShape];
 
                 const targetColor = styling.placedFillColor ?? styling.placedBorderColor;
-                if (targetColor) updateData.color = targetColor;
+                if (targetColor !== undefined && targetColor !== null) updateData.color = targetColor;
 
                 if (config.hidden || config.hideTemplate) updateData.hidden = true;
 
@@ -355,7 +355,8 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             }
         } else {
             const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
-            let distFoot = coords.distance ?? coords.radius ?? config.distance ?? config.radius;
+            const rawDist = coords.distance ?? coords.radius;
+            let distFoot = rawDist ?? config.distance ?? config.radius;
             const widthFoot = coords.width ?? config.width ?? distFoot;
             const isRect = (targetDoc.t === "rect" || coords.type === "square" || coords.type === "rect" || coords.originalType === "square" || config.originalType === "square" || coords.t === "rect" || config.t === "rect" || config.type === "square" || config.type === "rect");
             if (isRect && widthFoot > 0 && distFoot > widthFoot) {
@@ -392,8 +393,8 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 if (coords.width !== undefined) updateData.width = coords.width;
             }
 
-            if (styling.placedFillColor) updateData.fillColor = styling.placedFillColor;
-            if (styling.placedBorderColor) updateData.borderColor = styling.placedBorderColor;
+            if (styling.placedFillColor !== undefined && styling.placedFillColor !== null) updateData.fillColor = styling.placedFillColor;
+            if (styling.placedBorderColor !== undefined && styling.placedBorderColor !== null) updateData.borderColor = styling.placedBorderColor;
             if (styling.placedFillAlpha !== undefined) updateData.fillAlpha = styling.placedFillAlpha;
             if (styling.placedBorderAlpha !== undefined) updateData.borderAlpha = styling.placedBorderAlpha;
             if (config.hidden || config.hideTemplate) updateData.hidden = true;
@@ -419,14 +420,16 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
      */
     formatPlacementCoordinates(x, y, direction, config = {}) {
         const isSquareOrRect = config.originalType === "square" || config.type === "square" || config.type === "rect" || config.t === "rect" || config.t === "square";
-        const isSticky = Boolean((config.stickToToken ?? config.sticky) && config.token);
+        const stickVal = config.stickToToken ?? config.sticky;
+        const isSticky = Boolean(stickVal && stickVal !== "none" && stickVal !== "false" && config.token);
+        const primaryDim = config.distance ?? config.radius;
         return {
             x,
             y,
             direction,
             rotation: direction,
-            distance: config.distance ?? config.radius,
-            radius: config.radius ?? config.distance,
+            distance: config.distance ?? primaryDim,
+            radius: config.radius ?? primaryDim,
             width: config.width,
             gridUnits: Boolean(config.gridUnits ?? true),
             sticky: isSticky,
@@ -500,7 +503,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 }
             }
         } else if (shape.type === "circle") {
-            const radFoot = coords.radius ?? coords.distance ?? coords.width;
+            const radFoot = coords.radius ?? coords.distance;
             if (radFoot !== undefined) {
                 shape.radius = isGridUnits ? Math.round(radFoot * pxPerFoot) : radFoot;
             }

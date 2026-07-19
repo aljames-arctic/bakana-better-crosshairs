@@ -179,11 +179,11 @@ function hasSomeRecommended(dependencyList) {
  * @returns {void} Throws an error if any required dependency is missing.
  */
 function required(dependencyList) {
-    if (!Array.isArray(dependencyList)) return required([dependencyList]);
+    const list = Array.isArray(dependencyList) ? dependencyList : [dependencyList];
     let errorMsg = localize("BBC.Dependency.RequiresAll", "Requires all of the following to be installed and activated:\n");
     let dependencyMet = true;
 
-    for (const dependency of dependencyList) {
+    for (const dependency of list) {
         if (!dependency?.id) continue;
         if (_isActivated(dependency)) continue;
         dependencyMet = false;

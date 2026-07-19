@@ -56,12 +56,12 @@ export class BaseFoundryVTTAdapter {
 
     /**
      * Extract normalized calling item and activity context from a Foundry document.
+     * Enforces single concrete Document input contract.
      * @param {Document} doc - The template or region document
      * @returns {{item: Item|null, itemName: string, itemId: string, activity: Object|null, activityName: string, activityId: string}} Normalized calling context object containing item and activity details
      */
-    extractCallingContext(targetDoc) {
-        if (!targetDoc) return { item: null, itemName: "", itemId: "", activity: null, activityName: "", activityId: "" };
-        const doc = targetDoc.document ?? targetDoc;
+    extractCallingContext(doc) {
+        if (!doc) return { item: null, itemName: "", itemId: "", activity: null, activityName: "", activityId: "" };
         const itemObj = doc.item ?? null;
         const activityObj = doc.activity ?? null;
 
@@ -89,13 +89,14 @@ export class BaseFoundryVTTAdapter {
     /**
      * Filter and match autorec candidates for a Foundry document (MeasuredTemplate / Region)
      * following strict preference hierarchy: CUSTOM CONFIG > AUTOREC MATCH > AUTOREC DEFAULT > FOUNDRY DEFAULT.
-     * @param {Document} doc - The template or region document
+     * Normalizes polymorphic entry input once at public entry boundary.
+     * @param {Document|PlaceableObject} target - The template or region document or placeable
      * @param {Map<string, Object>} entries - Registered autorec entries map
      * @returns {Object|null} The matching crosshair configuration entry or null
      */
-    matchAutorecEntry(targetDoc, entries) {
-        if (!targetDoc || !entries) return null;
-        const doc = targetDoc.document ?? targetDoc;
+    matchAutorecEntry(target, entries) {
+        if (!target || !entries) return null;
+        const doc = target.document ?? target;
         const context = this.extractCallingContext(doc);
         if (!context.itemName && !context.itemId) {
             log.debug("matchAutorecEntry | Could not extract calling item context (missing itemName and itemId) from document:", { doc, context });
@@ -122,10 +123,12 @@ export class BaseFoundryVTTAdapter {
             if (systemAdapter.isMatch(context, entry)) {
                 log.debug(`matchAutorecEntry | [MATCH FOUND] Specific global entry "${entry.itemName}" matched calling item "${context.itemName}"`);
                 const defaultEntry = entries.get("DEFAULT") ?? {};
+                const hasSpecificStick = entry.stickToToken !== undefined && entry.stickToToken !== null && entry.stickToToken !== "default";
+                const stickToToken = hasSpecificStick ? entry.stickToToken : (defaultEntry.stickToToken ?? "default");
                 baseEntry = {
                     ...defaultEntry,
                     ...entry,
-                    stickToToken: (entry.stickToToken && entry.stickToToken !== "default") ? entry.stickToToken : (defaultEntry.stickToToken ?? "default"),
+                    stickToToken,
                     item: context.item,
                     activity: context.activity
                 };
@@ -141,7 +144,7 @@ export class BaseFoundryVTTAdapter {
         }
 
         const itemConfig = typeof context.item?.getFlag === "function" ? context.item.getFlag(MODULE_ID, "customConfig") : null;
-        const activityConfig = context.activityId && typeof context.item?.getFlag === "function"
+        const activityConfig = Boolean(context.activityId) && typeof context.item?.getFlag === "function"
             ? (context.item.getFlag(MODULE_ID, "activityConfigs")?.[context.activityId] ?? null)
             : null;
 
@@ -476,19 +479,19 @@ export class BaseFoundryVTTAdapter {
         const placedFillColor = bbcFlags.placedFillColor ?? docFillColor;
         const placedFillAlpha = bbcFlags.placedFillAlpha ?? docFillAlpha;
 
-        if (bbcFlags.placedBorderColor && doc.borderColor !== bbcFlags.placedBorderColor) {
+        if (bbcFlags.placedBorderColor !== undefined && bbcFlags.placedBorderColor !== null && doc.borderColor !== bbcFlags.placedBorderColor) {
             try { doc.borderColor = bbcFlags.placedBorderColor; } catch (e) {}
         }
         if (bbcFlags.placedBorderAlpha !== undefined && doc.borderAlpha !== bbcFlags.placedBorderAlpha) {
             try { doc.borderAlpha = bbcFlags.placedBorderAlpha; } catch (e) {}
         }
-        if (bbcFlags.placedFillColor && doc.fillColor !== bbcFlags.placedFillColor) {
+        if (bbcFlags.placedFillColor !== undefined && bbcFlags.placedFillColor !== null && doc.fillColor !== bbcFlags.placedFillColor) {
             try { doc.fillColor = bbcFlags.placedFillColor; } catch (e) {}
         }
         if (bbcFlags.placedFillAlpha !== undefined && doc.fillAlpha !== bbcFlags.placedFillAlpha) {
             try { doc.fillAlpha = bbcFlags.placedFillAlpha; } catch (e) {}
         }
-        if (bbcFlags.placedFillColor && doc.color !== bbcFlags.placedFillColor) {
+        if (bbcFlags.placedFillColor !== undefined && bbcFlags.placedFillColor !== null && doc.color !== bbcFlags.placedFillColor) {
             try { doc.color = bbcFlags.placedFillColor; } catch (e) {}
         }
         if (bbcFlags.placedFillAlpha !== undefined && doc.alpha !== bbcFlags.placedFillAlpha) {
@@ -792,12 +795,13 @@ export class BaseFoundryVTTAdapter {
 
     /**
      * Check if the current user is the author or owner of the document or preview.
-     * @param {Document} doc - Template or Region document
+     * Normalizes polymorphic entry input once at public entry boundary.
+     * @param {Document|PlaceableObject} target - Template or Region document or placeable
      * @returns {boolean} True if the current user owns or authored the document
      */
-    isOwner(targetDoc) {
-        if (!targetDoc) return true;
-        const doc = targetDoc.document ?? targetDoc;
+    isOwner(target) {
+        if (!target) return true;
+        const doc = target.document ?? target;
         if (!doc.id) return true; // Preview templates on canvas are always local to the drawing client
         const authorVal = doc.author ?? doc.user;
         const userId = typeof authorVal === "string" ? authorVal : (authorVal?.id ?? game?.user?.id);
@@ -1014,15 +1018,16 @@ export class BaseFoundryVTTAdapter {
 
     /**
      * Handle document preCreate (v13 preCreateMeasuredTemplate / v14 preCreateRegion).
-     * @param {Document} doc - Template or Region document being created
+     * Normalizes polymorphic entry input once at public entry boundary.
+     * @param {Document|PlaceableObject} target - Template or Region document or placeable being created
      * @param {Object} _data - Initial document creation data
      * @param {Object} _options - Document creation options
      * @param {string} userId - ID of the user creating the document
      * @returns {boolean} True to proceed with normal creation, false to abort or defer
      */
-    handlePreCreate(targetDoc, _data, _options, userId) {
-        if (!targetDoc) return true;
-        const doc = targetDoc.document ?? targetDoc;
+    handlePreCreate(target, _data, _options, userId) {
+        if (!target) return true;
+        const doc = target.document ?? target;
         log.debug(`BaseFoundryVTTAdapter.handlePreCreate | [ENTRY] preCreate hook triggered for docName=${doc.documentName}, id=${doc.id}, userId=${userId}, localUser=${game?.user?.id}`);
 
         if (userId !== game?.user?.id) {
@@ -1086,14 +1091,15 @@ export class BaseFoundryVTTAdapter {
     /**
      * Handle document post-creation hook (v13 createMeasuredTemplate / v14 createRegion).
      * Executes user-configured post-placement Javascript inside a try/catch block with standard context variables.
-     * @param {Document} doc - Template or Region document that was created
+     * Normalizes polymorphic entry input once at public entry boundary.
+     * @param {Document|PlaceableObject} target - Template or Region document or placeable that was created
      * @param {Object} _options - Document creation options
      * @param {string} userId - ID of the user creating the document
      * @returns {Promise<void>} Resolves when post-placement execution completes
      */
-    async handleCreateDocument(targetDoc, _options, userId) {
-        if (!targetDoc || userId !== game?.user?.id) return;
-        const doc = targetDoc.document ?? targetDoc;
+    async handleCreateDocument(target, _options, userId) {
+        if (!target || userId !== game?.user?.id) return;
+        const doc = target.document ?? target;
 
         const flagsConfig = doc.flags?.bbc;
         const entry = autorecManager.getEntryForDocument(doc);

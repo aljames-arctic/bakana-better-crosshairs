@@ -621,7 +621,7 @@ export class AutorecManager {
                 file = config.file ?? "";
             }
 
-            const isLocal = Boolean(handlerOrConfig?.local || !this.persistedItemNames.has(itemName));
+            const isLocal = Boolean(handlerOrConfig?.local) || !this.persistedItemNames.has(itemName);
 
             const isDefault = Boolean(config.isDefault);
             const circleFile = config.circleFile ?? "eskie.crosshair.circle.fantasy_01.white.full";
@@ -647,32 +647,28 @@ export class AutorecManager {
             const borderAlpha = config.borderAlpha ?? 0;
             const fillColor = config.fillColor ?? "#000000";
             const fillAlpha = config.fillAlpha ?? 0;
-            const hasCustomStyling = Boolean(
-                config.borderColor ||
-                (config.borderAlpha !== undefined && config.borderAlpha !== 0) ||
-                config.fillColor ||
-                (config.fillAlpha !== undefined && config.fillAlpha !== 0)
-            );
+            const hasCustomStyling = Boolean(config.borderColor)
+                || (config.borderAlpha !== undefined && config.borderAlpha !== 0)
+                || Boolean(config.fillColor)
+                || (config.fillAlpha !== undefined && config.fillAlpha !== 0);
             const icon = config.icon ?? null;
 
             const placedFillColor = config.placedFillColor ?? "#0099ff";
             const placedFillAlpha = config.placedFillAlpha ?? 0.25;
             const placedBorderColor = config.placedBorderColor ?? "#000000";
             const placedBorderAlpha = config.placedBorderAlpha ?? 1;
-            const hasPlacedStyling = Boolean(
-                config.placedFillColor ||
-                (config.placedFillAlpha !== undefined && config.placedFillAlpha !== 0.25) ||
-                config.placedBorderColor ||
-                (config.placedBorderAlpha !== undefined && config.placedBorderAlpha !== 1)
-            );
+            const hasPlacedStyling = Boolean(config.placedFillColor)
+                || (config.placedFillAlpha !== undefined && config.placedFillAlpha !== 0.25)
+                || Boolean(config.placedBorderColor)
+                || (config.placedBorderAlpha !== undefined && config.placedBorderAlpha !== 1);
 
             const concurrentCode = (config.concurrentCode ?? "").trim();
             const postPlacementCode = (config.postPlacementCode ?? "").trim();
             const cleanItemName = config.itemName ?? itemName;
             const activityId = isDefault ? "" : (config.activityId ?? "");
             const activityName = isDefault ? "" : (config.activityName ?? "");
-            const hasActivity = Boolean(activityId || activityName);
-            const activityDisplay = activityName || activityId;
+            const hasActivity = Boolean(activityId) || Boolean(activityName);
+            const activityDisplay = activityName !== "" ? activityName : activityId;
             const enabled = config.enabled !== false;
 
             results.push({
