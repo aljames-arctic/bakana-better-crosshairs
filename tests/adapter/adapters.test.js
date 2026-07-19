@@ -5,7 +5,7 @@ import { closest } from '../../src/lib/filemanager.js';
 import { initializeFoundryAdapter, crosshairAdapter, BaseFoundryVTTAdapter } from '../../src/adapter/foundry/index.js';
 import { initializeSystemAdapter, systemAdapter } from '../../src/adapter/system/index.js';
 import { registerPlacementHooks, initializeHooks } from '../../src/adapter/index.js';
-import { snapCoordinates, attachWheelRotation, detachWheelRotation, resolveCrosshairPlacement, alignCrosshairAndEffects } from '../../src/crosshair/util.js';
+import { snapCoordinates, attachWheelRotation, detachWheelRotation, resolveCrosshairPlacement, alignCrosshairAndEffects, shouldStickToToken } from '../../src/crosshair/util.js';
 import { BaseCrosshairShape } from '../../src/crosshair/base.js';
 import { Token } from '../../src/lib/compat.js';
 import { autorecManager } from '../../src/autorec/autorecManager.js';
@@ -1271,6 +1271,14 @@ test('REGRESSION: supportsShapeRotation accurately distinguishes shape rotation 
 
     assert.equal(adapterV14.supportsShapeRotation('rect'), true, 'V14 Region rect can rotate');
     assert.equal(adapterV14.supportsShapeRotation('square'), true, 'V14 Region square can rotate');
+
+    game.version = '13.0.0';
+    initializeFoundryAdapter();
+    assert.equal(shouldStickToToken({ stickToToken: true }, 'square'), false, 'shouldStickToToken must return false for non-rotatable shapes in V13');
+
+    game.version = '14.0.0';
+    initializeFoundryAdapter();
+    assert.equal(shouldStickToToken({ stickToToken: true }, 'square'), true, 'shouldStickToToken returns true for rotatable shapes in V14');
 });
 
 

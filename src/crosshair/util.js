@@ -89,6 +89,10 @@ function _notifyPlacementResult(result, config, crosshair, extraArgs) {
  * @returns {boolean} Whether the crosshair should stick to the token
  */
 export function shouldStickToToken(config, shapeType = "circle", sysAdapter = systemAdapter) {
+    const resolvedType = typeof shapeType === "string" ? shapeType : "circle";
+    if (crosshairAdapter?.supportsShapeRotation && !crosshairAdapter.supportsShapeRotation(resolvedType)) {
+        return false;
+    }
     if (!config || typeof config !== "object") {
         if (typeof shapeType === "boolean") return shapeType;
         return Boolean(sysAdapter?.getDefaultStickToToken?.(shapeType, config));
