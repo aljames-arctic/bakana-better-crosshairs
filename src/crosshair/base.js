@@ -399,6 +399,10 @@ export class BaseCrosshairShape {
             }
         }
 
+        if (this.x === targetX && this.y === targetY) {
+            return;
+        }
+
         this.x = targetX;
         this.y = targetY;
 
@@ -413,8 +417,9 @@ export class BaseCrosshairShape {
     /**
      * Update the rotation/direction of BOTH the Sequencer graphic and the hidden Foundry placeable template.
      * @param {number} newAngleDeg - New direction in degrees
+     * @param {boolean} [refresh=true] - Whether to trigger immediate template rendering refresh
      */
-    rotate(newAngleDeg) {
+    rotate(newAngleDeg, refresh = true) {
         if (typeof newAngleDeg === "number" && Number.isFinite(newAngleDeg)) {
             while (newAngleDeg < 0) newAngleDeg += 360;
             newAngleDeg = newAngleDeg % 360;
@@ -468,30 +473,25 @@ export class BaseCrosshairShape {
         const doc = this.doc;
         if (doc) {
             doc.direction = newAngleDeg;
-            if (typeof doc.updateSource === "function") {
-                try {
-                    doc.updateSource({ direction: newAngleDeg });
-                } catch (e) {
-                    log.debug("BaseCrosshairShape.rotate | Exception updating source direction on document:", e);
-                }
-            }
         }
         if (this.placeable) {
             this.placeable.direction = newAngleDeg;
         }
 
-        this.refreshTemplateHighlights();
+        if (refresh) {
+            this.refreshTemplateHighlights();
 
-        if (this.sequencerCrosshair) {
-            if (typeof this.sequencerCrosshair.refresh === "function") {
-                this.sequencerCrosshair.refresh();
-            }
-            if (typeof this.sequencerCrosshair._onMouseMove === "function" && canvas?.mousePosition) {
-                this.sequencerCrosshair._onMouseMove({
-                    data: { getLocalPosition: () => canvas.mousePosition },
-                    clientX: canvas.mousePosition.x,
-                    clientY: canvas.mousePosition.y
-                });
+            if (this.sequencerCrosshair) {
+                if (typeof this.sequencerCrosshair.refresh === "function") {
+                    this.sequencerCrosshair.refresh();
+                }
+                if (typeof this.sequencerCrosshair._onMouseMove === "function" && canvas?.mousePosition) {
+                    this.sequencerCrosshair._onMouseMove({
+                        data: { getLocalPosition: () => canvas.mousePosition },
+                        clientX: canvas.mousePosition.x,
+                        clientY: canvas.mousePosition.y
+                    });
+                }
             }
         }
     }

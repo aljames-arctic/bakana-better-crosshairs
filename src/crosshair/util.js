@@ -4,6 +4,7 @@ import { crosshairAdapter, systemAdapter } from "../adapter/index.js";
 
 let activeWheelHandler = null;
 let activePointerHandler = null;
+let pendingPointerRaf = null;
 
 /**
  * Helper: Normalize an angle in degrees to the [0, 360) range.
@@ -282,6 +283,10 @@ function rotateCrosshairInstance(crosshair, newDirDeg, config = {}) {
  * @returns {void}
  */
 export function detachWheelRotation() {
+    if (pendingPointerRaf !== null && typeof cancelAnimationFrame === "function") {
+        cancelAnimationFrame(pendingPointerRaf);
+        pendingPointerRaf = null;
+    }
     if (activeWheelHandler && typeof window?.removeEventListener === "function") {
         window.removeEventListener("wheel", activeWheelHandler, { capture: true });
         activeWheelHandler = null;
@@ -335,30 +340,35 @@ export function attachWheelRotation(shape, config = {}) {
     }
 
     activePointerHandler = (event) => {
-        if (isShapeInstance) {
-            if (canvas?.mousePosition) {
-                const pt = canvas.mousePosition;
-                if (isAttached && shape.token) {
-                    const origin = shape.token.center ?? { x: shape.x, y: shape.y };
-                    const { deg } = _calculateAngleFromOrigin(origin, pt);
-                    shape.rotate(deg);
+        if (pendingPointerRaf !== null) return;
+        const scheduleFrame = typeof requestAnimationFrame === "function" ? requestAnimationFrame : (fn) => { fn(); return null; };
+        pendingPointerRaf = scheduleFrame(() => {
+            pendingPointerRaf = null;
+            if (isShapeInstance) {
+                if (canvas?.mousePosition) {
+                    const pt = canvas.mousePosition;
+                    if (isAttached && shape.token) {
+                        const origin = shape.token.center ?? { x: shape.x, y: shape.y };
+                        const { deg } = _calculateAngleFromOrigin(origin, pt);
+                        shape.rotate(deg, false);
+                    }
+                    shape.move(pt.x, pt.y);
                 }
-                shape.move(pt.x, pt.y);
+            } else {
+                if (isAttached && crosshair && canvas?.mousePosition) {
+                    const pt = canvas.mousePosition;
+                    const origin = config.token?.center ?? { x: crosshair.x, y: crosshair.y };
+                    const { rad, deg } = _calculateAngleFromOrigin(origin, pt);
+                    config.currentDirection = deg;
+                    alignCrosshairAndEffects(crosshair, config, rad);
+                }
+                const rad = (config.currentDirection ?? 0) * (Math.PI / 180);
+                _refreshPreviewHighlights(config.currentDirection, rad, crosshair);
+                if (!isAttached) {
+                    alignCrosshairAndEffects(crosshair, config, rad);
+                }
             }
-        } else {
-            if (isAttached && crosshair && canvas?.mousePosition) {
-                const pt = canvas.mousePosition;
-                const origin = config.token?.center ?? { x: crosshair.x, y: crosshair.y };
-                const { rad, deg } = _calculateAngleFromOrigin(origin, pt);
-                config.currentDirection = deg;
-                alignCrosshairAndEffects(crosshair, config, rad);
-            }
-            const rad = (config.currentDirection ?? 0) * (Math.PI / 180);
-            _refreshPreviewHighlights(config.currentDirection, rad, crosshair);
-            if (!isAttached) {
-                alignCrosshairAndEffects(crosshair, config, rad);
-            }
-        }
+        });
     };
 
     window.addEventListener("pointermove", activePointerHandler, { capture: true, passive: true });
