@@ -10,22 +10,22 @@ import { resolveCrosshairPlacement, attachWheelRotation, detachWheelRotation, sh
 export class BaseCrosshairShape {
     /**
      * Create a new crosshair shape instance.
-     * @param {PlaceableObject} placeable - Target template preview placeable
+     * @param {PlaceableObject|Document} placeable - Target template preview placeable or document
      * @param {object} [config={}] - Configuration options for the crosshair shape
      */
     constructor(placeable, config = {}) {
         this.placeable = placeable;
         this.config = config;
 
-        // Resolve token from placeable flags/document/config
-        const doc = placeable.document;
-        const flagsToken = doc?.flags?.bbc?.token ?? doc?.flags?.bakana?.token ?? placeable._bbcSticky;
+        // Entry-boundary normalization for target document and placeable
+        const doc = placeable?.document ?? (placeable?.documentName ? placeable : null);
+        const flagsToken = doc?.flags?.bbc?.token ?? doc?.flags?.bakana?.token ?? placeable?._bbcSticky;
         const rawToken = config.token ?? flagsToken;
         this.token = crosshairAdapter.toToken(rawToken);
 
         // Normalize config properties using adapter properties extraction
         const docProps = doc ? crosshairAdapter.detectProperties(doc) : {};
-        config.radius = config.radius ?? docProps.radius ?? docProps.distance ?? 20;
+        config.radius = config.radius ?? docProps.radius ?? 20;
         config.distance = config.distance ?? docProps.distance ?? 30;
         config.width = config.width ?? docProps.width ?? 5;
         config.angle = config.angle ?? docProps.angle ?? 53.13;
@@ -46,13 +46,14 @@ export class BaseCrosshairShape {
         this.sequencerCrosshair = null;
 
         // Position and direction state tracking
-        this.x = placeable.x ?? 0;
-        this.y = placeable.y ?? 0;
+        this.x = placeable?.x ?? 0;
+        this.y = placeable?.y ?? 0;
         this.direction = config.direction ?? 0;
 
         // Normalize boolean flags on config for clean direct boolean evaluation
         config.token = this.token;
         config.stickToToken = Boolean(this.stickToToken);
+        config.showLine = this.showLine;
         config.shapeInstance = this;
 
         // Anchor points normalized (0.0 to 1.0) across bounding box width/height.
@@ -129,8 +130,8 @@ export class BaseCrosshairShape {
      * @returns {{x: number, y: number}} Corrected placement coordinate for the Foundry placeable shape
      */
     getRotatedShapeCoordinates(cursorX, cursorY, directionDeg, dimensions = {}) {
-        const widthPx = dimensions.widthPx ?? dimensions.width ?? 0;
-        const heightPx = dimensions.heightPx ?? dimensions.height ?? widthPx;
+        const widthPx = dimensions.widthPx ?? 0;
+        const heightPx = dimensions.heightPx ?? widthPx;
 
         const deltaX0 = (this.animationAnchor.x - this.shapeAnchor.x) * widthPx;
         const deltaY0 = (this.animationAnchor.y - this.shapeAnchor.y) * heightPx;
@@ -158,6 +159,15 @@ export class BaseCrosshairShape {
      * @returns {{widthPx: number, heightPx: number, factor: number, gridUnits: boolean}} Calculated pixel and scale dimensions
      */
     getGraphicDimensions() {
+        return this._getGraphicDimensions();
+    }
+
+    /**
+     * Protected hook to calculate canvas pixel dimensions for subclass graphics.
+     * @protected
+     * @returns {{widthPx: number, heightPx: number, factor: number, gridUnits: boolean}}
+     */
+    _getGraphicDimensions() {
         const { factor, gridUnits } = crosshairAdapter.getTemplatePixelFactor();
         return { widthPx: 100, heightPx: 100, factor, gridUnits };
     }
@@ -221,6 +231,15 @@ export class BaseCrosshairShape {
      * @returns {string} Fully resolved file path or asset key
      */
     getGraphicFile() {
+        return this._getGraphicFile();
+    }
+
+    /**
+     * Protected hook to resolve graphic asset path or Sequencer key for subclass graphics.
+     * @protected
+     * @returns {string}
+     */
+    _getGraphicFile() {
         if (this.config.file) return closest(this.config.file);
         return "";
     }
@@ -240,7 +259,7 @@ export class BaseCrosshairShape {
 
         if (this.stickToToken && this.token) {
             crosshairSeq.location(this.token, { lockToEdge: true, lockToEdgeDirection: false });
-        } else if (this.config.snapToGrid !== false && this.config.snapToGrid !== "none") {
+        } else {
             const snapMode = getGridSnapMode(this.config);
             if (snapMode !== 0) crosshairSeq.snapPosition(snapMode);
         }
@@ -269,7 +288,17 @@ export class BaseCrosshairShape {
      * @param {Sequence} crosshairSeq - The Sequencer crosshair builder instance
      * @returns {void}
      */
-    configureCrosshairShape(crosshairSeq) {}
+    configureCrosshairShape(crosshairSeq) {
+        this._configureCrosshairShape(crosshairSeq);
+    }
+
+    /**
+     * Protected hook to configure shape-specific properties on the Sequencer crosshair chain.
+     * @protected
+     * @param {Sequence} crosshairSeq - The Sequencer crosshair builder instance
+     * @returns {void}
+     */
+    _configureCrosshairShape(crosshairSeq) {}
 
     /**
      * Execute callback when the crosshair is first shown on canvas.
@@ -289,7 +318,7 @@ export class BaseCrosshairShape {
             attachWheelRotation(this, this.config);
         }
         await this.playGraphicEffect(crosshair);
-        alignCrosshairAndEffects(crosshair, this.config, (this.config.currentDirection ?? this.config.direction ?? 0) * (Math.PI / 180));
+        alignCrosshairAndEffects(crosshair, this.config, this.direction * (Math.PI / 180));
     }
 
     /**
@@ -336,6 +365,9 @@ export class BaseCrosshairShape {
         return Sequencer.EffectManager.endEffects({ name: id, object: token });
     }
 
+    /**
+     * Hide the template preview placeable on canvas.
+     */
     hide() {
         crosshairAdapter.hidePreview(this.placeable);
     }
@@ -373,10 +405,11 @@ export class BaseCrosshairShape {
             this.sequencerCrosshair.y = targetY;
         }
 
-        if (this.placeable.document) {
+        if (this.placeable?.document) {
             const dims = this.placeable._bbcDimensions ?? this.placeable.document._bbcDimensions ?? globalThis._activeBBCDimensions;
-            const initialDist = dims?.distance ?? this.placeable.document.distance ?? crosshairAdapter.detectProperties(this.placeable.document).distance;
-            const initialWidth = dims?.width ?? this.placeable.document.width ?? crosshairAdapter.detectProperties(this.placeable.document).width;
+            const docProps = crosshairAdapter.detectProperties(this.placeable.document);
+            const initialDist = dims?.distance ?? docProps.distance;
+            const initialWidth = dims?.width ?? docProps.width;
             const isGridUnits = dims?.gridUnits ?? true;
 
             crosshairAdapter.updatePreviewShape(this.placeable.document, {
@@ -453,13 +486,15 @@ export class BaseCrosshairShape {
             alignCrosshairAndEffects(this.sequencerCrosshair, this.config, rad);
         }
 
-        if (this.placeable.document) {
+        if (this.placeable?.document) {
             this.placeable.document.direction = newAngleDeg;
             try {
                 this.placeable.document.updateSource({ direction: newAngleDeg });
             } catch (e) {}
         }
-        this.placeable.direction = newAngleDeg;
+        if (this.placeable) {
+            this.placeable.direction = newAngleDeg;
+        }
 
         this.refreshTemplateHighlights();
 
@@ -477,6 +512,9 @@ export class BaseCrosshairShape {
         }
     }
 
+    /**
+     * Refresh the template rendering highlights and update preview shape coordinates.
+     */
     refreshTemplateHighlights() {
         if (this.placeable?.document) {
             const dims = this.placeable._bbcDimensions ?? this.placeable.document._bbcDimensions ?? globalThis._activeBBCDimensions;
@@ -507,7 +545,8 @@ export class BaseCrosshairShape {
     }
 
     /**
-     * Return updates for placement document.
+     * Return updates for placement document by delegating coordinate formatting to the adapter.
+     * @returns {{x: number, y: number, direction: number}} Formatted placement coordinates object
      */
     getPlacementUpdates() {
         let posX = this.x;

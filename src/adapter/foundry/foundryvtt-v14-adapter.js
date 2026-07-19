@@ -132,7 +132,12 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
      * @returns {{type: string, distance: number, radius: number, width: number, angle: number, x: number, y: number}} Detected geometric properties and shape type
      */
     detectProperties(doc) {
-        const docName = doc.documentName ?? (doc.t ? "MeasuredTemplate" : "Region");
+        const targetDoc = doc?.document ?? doc;
+        if (!targetDoc) {
+            return { type: "circle", distance: 0, radius: 0, width: 5, angle: 360, x: 0, y: 0 };
+        }
+
+        const docName = targetDoc.documentName ?? (targetDoc.t ? "MeasuredTemplate" : "Region");
         if (docName === "MeasuredTemplate") {
             const shapeMap = {
                 circle: "circle",
@@ -140,36 +145,36 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 ray: "ray",
                 rect: "square"
             };
-            let distance = doc.distance ?? 0;
-            const width = doc.width ?? 5;
-            if (doc.t === "rect" && width > 0 && distance > width) {
+            let distance = targetDoc.distance ?? 0;
+            const width = targetDoc.width ?? 5;
+            if (targetDoc.t === "rect" && width > 0 && distance > width) {
                 const isSquareDiagonal = distance <= width * 1.6;
                 distance = isSquareDiagonal ? width : Math.round(Math.sqrt(Math.max(0, distance * distance - width * width)));
             }
             const result = {
-                type: shapeMap[doc.t] ?? "circle",
+                type: shapeMap[targetDoc.t] ?? "circle",
                 distance,
                 radius: distance,
                 width,
-                angle: doc.angle ?? 53.13,
-                x: doc.x ?? 0,
-                y: doc.y ?? 0
+                angle: targetDoc.angle ?? 53.13,
+                x: targetDoc.x ?? 0,
+                y: targetDoc.y ?? 0
             };
             log.debug("FoundryVTTV14Adapter.detectProperties | Detected from doc.t (MeasuredTemplate):", result);
             return result;
         }
 
-        const shapesList = this._getShapesArray(doc);
+        const shapesList = this._getShapesArray(targetDoc);
         if (shapesList.length === 0) {
-            const fallbackDistance = doc.distance ?? doc.radius ?? 0;
+            const fallbackDistance = targetDoc.distance ?? 0;
             return {
                 type: "circle",
                 distance: fallbackDistance,
                 radius: fallbackDistance,
-                width: doc.width ?? 5,
-                angle: doc.angle ?? 360,
-                x: doc.x ?? 0,
-                y: doc.y ?? 0
+                width: targetDoc.width ?? 5,
+                angle: targetDoc.angle ?? 360,
+                x: targetDoc.x ?? 0,
+                y: targetDoc.y ?? 0
             };
         }
 
@@ -181,15 +186,15 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             case "rectangle":
             case "polygon":     shapeType = "square";   break;
             default:
-                throw new Error("FoundryVTTV14Adapter.detectProperties | Unrecognized Region shape type:", shape.type);
+                throw new Error(`FoundryVTTV14Adapter.detectProperties | Unrecognized Region shape type: ${shape.type}`);
         }
 
         const pxPerFoot = (canvas.dimensions?.size ?? 100) / (canvas.dimensions?.distance ?? 5);
         let distance = 0;
         let width = 5;
         if (shape.type === "rectangle") {
-            const rawLengthPx = shape.width ?? shape.radius ?? 0;
-            const rawWidthPx = shape.height ?? shape.width ?? shape.radius ?? 0;
+            const rawLengthPx = shape.width ?? 0;
+            const rawWidthPx = shape.height ?? shape.width ?? 0;
             distance = Math.round(rawLengthPx / pxPerFoot);
             width = Math.round(rawWidthPx / pxPerFoot);
         } else {
@@ -216,8 +221,9 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
      * @returns {Array} Array of shape objects or models
      */
     _getShapesArray(doc) {
-        if (!doc) return [];
-        return doc.shapes?.contents ?? (Array.isArray(doc.shapes) ? doc.shapes : []);
+        const targetDoc = doc?.document ?? doc;
+        if (!targetDoc) return [];
+        return targetDoc.shapes?.contents ?? (Array.isArray(targetDoc.shapes) ? targetDoc.shapes : []);
     }
 
     /**
@@ -237,23 +243,26 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
      */
     updatePreviewShape(previewDoc, coords) {
         if (!previewDoc || !coords) return;
-        const docName = previewDoc.documentName ?? (previewDoc.shapes ? "Region" : "MeasuredTemplate");
+        const targetDoc = previewDoc.document ?? previewDoc;
+        const docName = targetDoc.documentName ?? (targetDoc.shapes ? "Region" : "MeasuredTemplate");
         if (docName === "Region") {
-            const shapesList = this._getShapesArray(previewDoc);
+            const shapesList = this._getShapesArray(targetDoc);
             const orig = typeof shapesList[0]?.toObject === "function" ? shapesList[0].toObject() : shapesList[0];
             const updatedShape = this._formatRegionShapeUpdate(orig, coords);
             delete updatedShape._id;
+            delete updatedShape.id;
+            delete updatedShape._source;
             try {
-                previewDoc.updateSource({ shapes: [updatedShape] }); 
+                targetDoc.updateSource({ shapes: [updatedShape] }); 
             } catch (e) {
-                previewDoc.shapes = [updatedShape];
+                targetDoc.shapes = [updatedShape];
             }
         } else {
-            const isRect = previewDoc.t === "rect" || coords.type === "square" || coords.type === "rect" || coords.originalType === "square" || coords.t === "rect";
+            const isRect = targetDoc.t === "rect" || coords.type === "square" || coords.type === "rect" || coords.originalType === "square" || coords.t === "rect";
             const isSticky = Boolean(coords.sticky ?? coords.token);
             const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
-            let distFoot = coords.distance ?? coords.radius ?? coords.width;
-            const widthFoot = coords.width ?? coords.distance ?? coords.radius;
+            let distFoot = coords.distance ?? coords.radius;
+            const widthFoot = coords.width ?? distFoot;
             if (isRect && widthFoot > 0 && distFoot > widthFoot) {
                 const isSquareDiagonal = distFoot <= widthFoot * 1.6;
                 distFoot = isSquareDiagonal ? widthFoot : Math.round(Math.sqrt(Math.max(0, distFoot * distFoot - widthFoot * widthFoot)));
@@ -263,7 +272,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             let targetY = coords.y;
             if (isRect && isSticky && targetX !== undefined && targetY !== undefined) {
                 const wPx = (widthFoot ?? 20) * pxPerFoot;
-                const rad = ((coords.direction ?? coords.rotation ?? previewDoc.direction ?? 0) * Math.PI) / 180;
+                const rad = ((coords.direction ?? coords.rotation ?? targetDoc.direction ?? 0) * Math.PI) / 180;
                 targetX = Math.round(targetX + (wPx / 2) * Math.sin(rad));
                 targetY = Math.round(targetY - (wPx / 2) * Math.cos(rad));
             }
@@ -275,8 +284,8 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             else if (coords.rotation !== undefined) updateObj.direction = coords.rotation;
             if (isRect) {
                 updateObj.t = "rect";
-                const w = coords.width ?? coords.distance ?? coords.radius ?? 20;
-                const h = coords.distance ?? coords.radius ?? coords.width ?? w;
+                const w = coords.width ?? distFoot ?? 20;
+                const h = distFoot ?? w;
                 updateObj.distance = Math.round(Math.sqrt(w * w + h * h) * 100) / 100;
                 updateObj.width = w;
             } else {
@@ -286,9 +295,9 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             }
 
             try {
-                previewDoc.updateSource(updateObj);
+                targetDoc.updateSource(updateObj);
             } catch (e) {
-                Object.assign(previewDoc, updateObj);
+                Object.assign(targetDoc, updateObj);
             }
         }
     }
@@ -301,10 +310,13 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
      * @returns {void}
      */
     applyDocumentPlacement(doc, coords = {}, config = {}, data = null) {
+        if (!doc) return;
+        const targetDoc = doc.document ?? doc;
         const styling = this.extractPlacedStylingFlags(config);
-        const docName = doc.documentName ?? (doc.shapes ? "Region" : "MeasuredTemplate");
+        const docName = targetDoc.documentName ?? (targetDoc.shapes ? "Region" : "MeasuredTemplate");
         if (docName === "Region") {
-            const originalShape = doc.shapes?.[0] ?? doc.shapes?.contents?.[0] ?? doc._source?.shapes?.[0] ?? data?.shapes?.[0] ?? { type: "rectangle" };
+            const shapesList = this._getShapesArray(targetDoc);
+            const originalShape = shapesList[0] ?? targetDoc._source?.shapes?.[0] ?? data?.shapes?.[0] ?? { type: "rectangle" };
             if (originalShape) {
                 const updateData = {
                     flags: styling.flags
@@ -325,11 +337,11 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 if (config.hidden || config.hideTemplate) updateData.hidden = true;
 
                 log.debug("FoundryVTTV14Adapter.applyDocumentPlacement | Applying Region updateSource:", updateData);
-                if (typeof doc?.updateSource === "function") {
-                    doc.updateSource(updateData);
+                if (typeof targetDoc?.updateSource === "function") {
+                    targetDoc.updateSource(updateData);
                 }
                 try {
-                    doc.shapes = [newShape];
+                    targetDoc.shapes = [newShape];
                 } catch (e) {}
                 if (data && typeof data === "object") {
                     data.shapes = foundry.utils.deepClone(updateData.shapes);
@@ -343,9 +355,9 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             }
         } else {
             const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
-            let distFoot = coords.distance ?? coords.radius ?? coords.width;
-            const widthFoot = coords.width ?? coords.distance ?? coords.radius;
-            const isRect = (doc.t === "rect" || coords.type === "square" || coords.type === "rect" || coords.originalType === "square" || config.originalType === "square" || coords.t === "rect" || config.t === "rect" || config.type === "square" || config.type === "rect");
+            let distFoot = coords.distance ?? coords.radius ?? config.distance ?? config.radius;
+            const widthFoot = coords.width ?? config.width ?? distFoot;
+            const isRect = (targetDoc.t === "rect" || coords.type === "square" || coords.type === "rect" || coords.originalType === "square" || config.originalType === "square" || coords.t === "rect" || config.t === "rect" || config.type === "square" || config.type === "rect");
             if (isRect && widthFoot > 0 && distFoot > widthFoot) {
                 const isSquareDiagonal = distFoot <= widthFoot * 1.6;
                 distFoot = isSquareDiagonal ? widthFoot : Math.round(Math.sqrt(Math.max(0, distFoot * distFoot - widthFoot * widthFoot)));
@@ -353,7 +365,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
 
             let targetX = coords.x;
             let targetY = coords.y;
-            const rad = ((coords.direction ?? coords.rotation ?? doc.direction ?? 0) * Math.PI) / 180;
+            const rad = ((coords.direction ?? coords.rotation ?? targetDoc.direction ?? 0) * Math.PI) / 180;
             const isSticky = Boolean(config.token ?? coords.token ?? coords.sticky);
             if (isRect && isSticky && targetX !== undefined && targetY !== undefined) {
                 const wPx = (widthFoot ?? 20) * pxPerFoot;
@@ -370,8 +382,8 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             else if (coords.rotation !== undefined) updateData.direction = coords.rotation;
             if (isRect) {
                 updateData.t = "rect";
-                const w = coords.width ?? coords.distance ?? coords.radius ?? config.width ?? config.distance ?? config.radius ?? 20;
-                const h = coords.distance ?? coords.radius ?? coords.width ?? config.distance ?? config.radius ?? config.width ?? w;
+                const w = coords.width ?? config.width ?? distFoot ?? 20;
+                const h = distFoot ?? config.distance ?? config.radius ?? w;
                 updateData.distance = Math.round(Math.sqrt(w * w + h * h) * 100) / 100;
                 updateData.width = w;
             } else {
@@ -386,7 +398,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             if (styling.placedBorderAlpha !== undefined) updateData.borderAlpha = styling.placedBorderAlpha;
             if (config.hidden || config.hideTemplate) updateData.hidden = true;
 
-            doc.updateSource(updateData);
+            targetDoc.updateSource(updateData);
             if (data && typeof data === "object") {
                 if (typeof foundry?.utils?.mergeObject === "function") {
                     foundry.utils.mergeObject(data, updateData);
@@ -457,7 +469,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             let targetH = origH;
 
             if (isSquare) {
-                let sideVal = coords.width ?? (coords.distance ? coords.distance / Math.SQRT2 : undefined);
+                let sideVal = coords.width ?? (coords.distance !== undefined ? coords.distance / Math.SQRT2 : undefined);
                 if (sideVal !== undefined && sideVal > 0) {
                     const sidePx = isGridUnits ? Math.round(sideVal * pxPerFoot) : sideVal;
                     targetW = sidePx;
@@ -505,16 +517,23 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
     }
 
     /**
-     * Resume deferred Region or MeasuredTemplate creation in V14 when an interactive Sequencer placement resolves.
-     * @param {Scene} scene - Target Canvas Scene
-     * @param {Object} deferredData - Initial raw document creation data (`doc.toObject()`)
-     * @param {Object} coords - Resolved placement coordinates from Sequencer
-     * @returns {Promise<void>} Resolves when deferred document creation completes
+     * Protected helper to resolve document type name for deferred creation.
+     * @param {Object} data - Initial document data
+     * @param {string} [documentName] - Explicit document type name
+     * @returns {string} Document name ("Region" or "MeasuredTemplate")
+     * @protected
      */
     _getDeferredDocumentName(data, documentName) {
         return documentName ?? (data.shapes ? "Region" : "MeasuredTemplate");
     }
 
+    /**
+     * Protected helper to apply resolved placement coordinates onto deferred creation data.
+     * @param {Object} data - Target document data payload
+     * @param {Object} coords - Placement coordinates
+     * @param {string} docName - Document type name
+     * @protected
+     */
     _applyDeferredCoordinates(data, coords, docName) {
         if (docName === "Region") {
             const shapesList = data.shapes?.contents ?? (Array.isArray(data.shapes) ? data.shapes : []);
@@ -522,6 +541,8 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 const origShape = typeof shapesList[0]?.toObject === "function" ? shapesList[0].toObject() : shapesList[0];
                 const newShape = this._formatRegionShapeUpdate(origShape, coords);
                 delete newShape._id;
+                delete newShape.id;
+                delete newShape._source;
                 data.shapes = [newShape];
             }
         } else {
@@ -544,7 +565,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
     refreshTemplateHighlights(tmpl, direction) {
         if (!tmpl) return;
 
-        const doc = tmpl.document;
+        const doc = tmpl.document ?? tmpl;
         if (!doc) return;
 
         const isRegion = doc.documentName === "Region";
@@ -584,7 +605,6 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
 
         tmpl._shape = null;
         if (tmpl.shape?.clear) tmpl.shape.clear();
-
 
         if (tmpl.renderFlags) {
             tmpl.renderFlags.set({

@@ -59,8 +59,9 @@ export class BaseFoundryVTTAdapter {
      * @param {Document} doc - The template or region document
      * @returns {{item: Item|null, itemName: string, itemId: string, activity: Object|null, activityName: string, activityId: string}} Normalized calling context object containing item and activity details
      */
-    extractCallingContext(doc) {
-        if (!doc) return { item: null, itemName: "", itemId: "", activity: null, activityName: "", activityId: "" };
+    extractCallingContext(target) {
+        if (!target) return { item: null, itemName: "", itemId: "", activity: null, activityName: "", activityId: "" };
+        const doc = target.document ?? target;
         const itemObj = doc.item ?? null;
         const activityObj = doc.activity ?? null;
 
@@ -92,8 +93,9 @@ export class BaseFoundryVTTAdapter {
      * @param {Map<string, Object>} entries - Registered autorec entries map
      * @returns {Object|null} The matching crosshair configuration entry or null
      */
-    matchAutorecEntry(doc, entries) {
-        if (!doc || !entries) return null;
+    matchAutorecEntry(target, entries) {
+        if (!target || !entries) return null;
+        const doc = target.document ?? target;
         const context = this.extractCallingContext(doc);
         if (!context.itemName && !context.itemId) {
             log.debug("matchAutorecEntry | Could not extract calling item context (missing itemName and itemId) from document:", { doc, context });
@@ -133,7 +135,7 @@ export class BaseFoundryVTTAdapter {
 
         if (!baseEntry) {
             const defaultEntry = entries.get("DEFAULT");
-            if (defaultEntry && defaultEntry.enabled) {
+            if (defaultEntry?.enabled) {
                 baseEntry = { ...defaultEntry, item: context.item, activity: context.activity };
             }
         }
@@ -464,33 +466,37 @@ export class BaseFoundryVTTAdapter {
      */
     handleMeasuredTemplateRefresh(template) {
         if (!template?.document) return;
-        const bbcFlags = template.document.flags?.bbc ?? {};
-        const placedBorderColor = bbcFlags.placedBorderColor ?? template.document.borderColor;
-        const placedBorderAlpha = bbcFlags.placedBorderAlpha ?? template.document.borderAlpha;
-        const placedFillColor = bbcFlags.placedFillColor ?? template.document.fillColor ?? template.document.color;
-        const placedFillAlpha = bbcFlags.placedFillAlpha ?? template.document.fillAlpha ?? template.document.alpha;
+        const doc = template.document;
+        const bbcFlags = doc.flags?.bbc ?? {};
+        const docFillColor = "fillColor" in doc ? doc.fillColor : doc.color;
+        const docFillAlpha = "fillAlpha" in doc ? doc.fillAlpha : doc.alpha;
 
-        if (bbcFlags.placedBorderColor && template.document.borderColor !== bbcFlags.placedBorderColor) {
-            try { template.document.borderColor = bbcFlags.placedBorderColor; } catch (e) {}
+        const placedBorderColor = bbcFlags.placedBorderColor ?? doc.borderColor;
+        const placedBorderAlpha = bbcFlags.placedBorderAlpha ?? doc.borderAlpha;
+        const placedFillColor = bbcFlags.placedFillColor ?? docFillColor;
+        const placedFillAlpha = bbcFlags.placedFillAlpha ?? docFillAlpha;
+
+        if (bbcFlags.placedBorderColor && doc.borderColor !== bbcFlags.placedBorderColor) {
+            try { doc.borderColor = bbcFlags.placedBorderColor; } catch (e) {}
         }
-        if (bbcFlags.placedBorderAlpha !== undefined && template.document.borderAlpha !== bbcFlags.placedBorderAlpha) {
-            try { template.document.borderAlpha = bbcFlags.placedBorderAlpha; } catch (e) {}
+        if (bbcFlags.placedBorderAlpha !== undefined && doc.borderAlpha !== bbcFlags.placedBorderAlpha) {
+            try { doc.borderAlpha = bbcFlags.placedBorderAlpha; } catch (e) {}
         }
-        if (bbcFlags.placedFillColor && template.document.fillColor !== bbcFlags.placedFillColor) {
-            try { template.document.fillColor = bbcFlags.placedFillColor; } catch (e) {}
+        if (bbcFlags.placedFillColor && doc.fillColor !== bbcFlags.placedFillColor) {
+            try { doc.fillColor = bbcFlags.placedFillColor; } catch (e) {}
         }
-        if (bbcFlags.placedFillAlpha !== undefined && template.document.fillAlpha !== bbcFlags.placedFillAlpha) {
-            try { template.document.fillAlpha = bbcFlags.placedFillAlpha; } catch (e) {}
+        if (bbcFlags.placedFillAlpha !== undefined && doc.fillAlpha !== bbcFlags.placedFillAlpha) {
+            try { doc.fillAlpha = bbcFlags.placedFillAlpha; } catch (e) {}
         }
-        if (bbcFlags.placedFillColor && template.document.color !== bbcFlags.placedFillColor) {
-            try { template.document.color = bbcFlags.placedFillColor; } catch (e) {}
+        if (bbcFlags.placedFillColor && doc.color !== bbcFlags.placedFillColor) {
+            try { doc.color = bbcFlags.placedFillColor; } catch (e) {}
         }
-        if (bbcFlags.placedFillAlpha !== undefined && template.document.alpha !== bbcFlags.placedFillAlpha) {
-            try { template.document.alpha = bbcFlags.placedFillAlpha; } catch (e) {}
+        if (bbcFlags.placedFillAlpha !== undefined && doc.alpha !== bbcFlags.placedFillAlpha) {
+            try { doc.alpha = bbcFlags.placedFillAlpha; } catch (e) {}
         }
 
         const toColorNum = (col) => {
-            if (typeof col === "number" && !isNaN(col)) return col;
+            if (typeof col === "number" && !Number.isNaN(col)) return col;
             if (typeof col === "string" && col.length) {
                 if (typeof foundry?.utils?.Color?.from === "function") {
                     try { return foundry.utils.Color.from(col).valueOf(); } catch(e){}
@@ -501,9 +507,9 @@ export class BaseFoundryVTTAdapter {
         };
 
         const borderNum = toColorNum(placedBorderColor);
-        const borderAlphaNum = typeof placedBorderAlpha === "number" && !isNaN(placedBorderAlpha) ? placedBorderAlpha : undefined;
+        const borderAlphaNum = typeof placedBorderAlpha === "number" && !Number.isNaN(placedBorderAlpha) ? placedBorderAlpha : undefined;
         const fillNum = toColorNum(placedFillColor);
-        const fillAlphaNum = typeof placedFillAlpha === "number" && !isNaN(placedFillAlpha) ? placedFillAlpha : undefined;
+        const fillAlphaNum = typeof placedFillAlpha === "number" && !Number.isNaN(placedFillAlpha) ? placedFillAlpha : undefined;
 
         const applyGraphicsData = (gfx) => {
             if (!gfx) return false;
@@ -701,9 +707,10 @@ export class BaseFoundryVTTAdapter {
      * @param {{x?: number, y?: number}} [clickCoords={}] - Optional mouse click coordinates
      * @returns {{x: number, y: number, direction: number}} Resolved anchor placement coordinates and facing direction
      */
-    resolveAnchorPlacement(tok, clickCoords = {}) {
+    resolveAnchorPlacement(targetTok, clickCoords = {}) {
         const rawClickX = clickCoords.x ?? 0;
         const rawClickY = clickCoords.y ?? 0;
+        const tok = this.toToken(targetTok);
         if (!tok) return { x: rawClickX, y: rawClickY, direction: 0 };
 
         const size = canvas?.grid?.size ?? 100;
@@ -711,8 +718,10 @@ export class BaseFoundryVTTAdapter {
 
         const tx = tok.x ?? tok.document?.x ?? 0;
         const ty = tok.y ?? tok.document?.y ?? 0;
-        const w = tok.w ?? (tok.document?.width ? tok.document.width * size : (tok.width ? tok.width * size : size));
-        const h = tok.h ?? (tok.document?.height ? tok.document.height * size : (tok.height ? tok.height * size : size));
+        const tokenWidth = tok.document?.width ?? tok.width ?? 1;
+        const tokenHeight = tok.document?.height ?? tok.height ?? 1;
+        const w = tok.w ?? (tokenWidth * size);
+        const h = tok.h ?? (tokenHeight * size);
         const centerPoint = tok.center ?? tok.document?.center ?? { x: tx + w / 2, y: ty + h / 2 };
 
         const points = [tx, ty, tx + w, ty, tx + w, ty + h, tx, ty + h];
@@ -784,9 +793,12 @@ export class BaseFoundryVTTAdapter {
      * @param {Document} doc - Template or Region document
      * @returns {boolean} True if the current user owns or authored the document
      */
-    isOwner(doc) {
-        if (!doc || !doc.id) return true; // Preview templates on canvas are always local to the drawing client
-        const userId = doc.author?.id ?? doc.author ?? game?.user?.id;
+    isOwner(target) {
+        if (!target) return true;
+        const doc = target.document ?? target;
+        if (!doc.id) return true; // Preview templates on canvas are always local to the drawing client
+        const authorVal = doc.author ?? doc.user;
+        const userId = typeof authorVal === "string" ? authorVal : (authorVal?.id ?? game?.user?.id);
         return userId === game?.user?.id;
     }
 
@@ -991,7 +1003,7 @@ export class BaseFoundryVTTAdapter {
             log.debug(`BaseFoundryVTTAdapter.handleDrawPreview | Sequencer crosshair sequence completed for "${entry.itemName}".`);
         } catch (err) {
             const msg = typeof err === "string" ? err : (err?.message ?? "Failed to play Sequencer crosshair effect");
-            log.debug(`BaseFoundryVTTAdapter.handleDrawPreview | Error running sequencer sequence for "${entry.itemName}":`, err);
+            log.error(`BaseFoundryVTTAdapter.handleDrawPreview | Error running sequencer sequence for "${entry.itemName}":`, err);
             notify.error(msg);
             pending.cancelled = true;
             pending.resolved = true;
@@ -1006,7 +1018,9 @@ export class BaseFoundryVTTAdapter {
      * @param {string} userId - ID of the user creating the document
      * @returns {boolean} True to proceed with normal creation, false to abort or defer
      */
-    handlePreCreate(doc, _data, _options, userId) {
+    handlePreCreate(target, _data, _options, userId) {
+        if (!target) return true;
+        const doc = target.document ?? target;
         log.debug(`BaseFoundryVTTAdapter.handlePreCreate | [ENTRY] preCreate hook triggered for docName=${doc.documentName}, id=${doc.id}, userId=${userId}, localUser=${game?.user?.id}`);
 
         if (userId !== game?.user?.id) {
@@ -1075,8 +1089,9 @@ export class BaseFoundryVTTAdapter {
      * @param {string} userId - ID of the user creating the document
      * @returns {Promise<void>} Resolves when post-placement execution completes
      */
-    async handleCreateDocument(doc, _options, userId) {
-        if (userId !== game?.user?.id) return;
+    async handleCreateDocument(target, _options, userId) {
+        if (!target || userId !== game?.user?.id) return;
+        const doc = target.document ?? target;
 
         const flagsConfig = doc.flags?.bbc;
         const entry = autorecManager.getEntryForDocument(doc);

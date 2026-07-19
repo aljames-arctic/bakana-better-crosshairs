@@ -66,6 +66,7 @@ export class AutorecManager {
         this.getEntryForDocument = this.getEntryForDocument.bind(this);
         this.onRegister = this.onRegister.bind(this);
         this.initializeReadySync = this.initializeReadySync.bind(this);
+        this._loadSettings = this._loadSettings.bind(this);
         this.persistRegistration = this.persistRegistration.bind(this);
         this.persistUnregistration = this.persistUnregistration.bind(this);
         this.loadSavedRegistrations = this.loadSavedRegistrations.bind(this);
@@ -82,6 +83,8 @@ export class AutorecManager {
         this.getDefault = this.getDefaultConfig;
         this.customize = this.customize.bind(this);
         this.broadcastSync = this.broadcastSync.bind(this);
+
+        this.indexRegistration("DEFAULT", DEFAULT_AUTOREC_ENTRY);
     }
 
     /**
@@ -106,13 +109,14 @@ export class AutorecManager {
 
     /**
      * Customize item-specific crosshair override configuration stored on item flags.
-     * Invokable by any user with ownership of the passed Item.
+     * Invokable by any user with ownership of the passed Item or Item document.
      * Passing config === undefined (or null) clears any existing custom item override.
-     * @param {Document} item - Target Item document
+     * @param {Document|Object} targetItem - Target Item document or placeable item
      * @param {Object|undefined} [config] - Crosshair override configuration object or undefined to clear
      * @returns {Promise<boolean>} True if the item configuration was successfully set or cleared, false otherwise
      */
-    async customize(item, config) {
+    async customize(targetItem, config) {
+        const item = targetItem?.document ?? targetItem;
         if (!item || typeof item.setFlag !== "function" || typeof item.unsetFlag !== "function") {
             log.warn("AutorecManager.customize | Invalid item document passed to customize.");
             return false;
@@ -138,12 +142,14 @@ export class AutorecManager {
     /**
      * Resolve the normalized calling Item and Activity context from a document and workflow payload.
      * Delegates directly to the active system adapter (`systemAdapter.extractCallingContext`).
-     * @param {Document} document - Template or Region document
+     * Normalizes caller entry boundary before passing to system adapter (Rule 5).
+     * @param {Document|Object} target - Target template/region document or placeable object
      * @param {Object} [baseContext={}] - Upstream workflow calling context
      * @returns {{item: Item|null, itemName: string, itemId: string, activity: Object|null, activityName: string, activityId: string}} Normalized calling context containing item and activity details
      */
-    resolveItemAndActivity(document, baseContext = {}) {
-        return systemAdapter.extractCallingContext(document, baseContext);
+    resolveItemAndActivity(target, baseContext = {}) {
+        const doc = target?.document ?? target;
+        return systemAdapter.extractCallingContext(doc, baseContext);
     }
 
     /**
@@ -155,10 +161,10 @@ export class AutorecManager {
      */
     indexRegistration(registeredKey, handler) {
         const itemName = handler?.itemName ?? registeredKey.split(" | ")[0].trim();
-        const isDefault = Boolean(handler?.isDefault || registeredKey === "DEFAULT");
+        const isDefault = Boolean(handler?.isDefault ?? (registeredKey === "DEFAULT"));
         const activityId = isDefault ? "" : (handler?.activityId ?? "").trim();
         const activityName = isDefault ? "" : (handler?.activityName ?? "").trim();
-        const hasActivity = Boolean(activityId) || Boolean(activityName);
+        const hasActivity = Boolean(Boolean(activityId) || Boolean(activityName));
         const enabled = handler?.enabled !== false;
         const baseConfig = typeof handler === "function" ? { handler } : (handler ?? {});
         const entry = {
@@ -176,11 +182,11 @@ export class AutorecManager {
 
         this.fastLookupMap.set(registeredKey.toLowerCase(), entry);
 
-        if (itemName && !activityId && !activityName) {
+        if (itemName && !hasActivity) {
             this.fastLookupMap.set(itemName.toLowerCase(), entry);
         }
-        if (activityId || activityName) {
-            const act = Boolean(activityId) ? activityId : activityName;
+        if (hasActivity) {
+            const act = activityId !== "" ? activityId : activityName;
             this.fastLookupMap.set(`${itemName.toLowerCase()}|${act.toLowerCase()}`, entry);
         }
     }
@@ -235,12 +241,29 @@ export class AutorecManager {
     /**
      * Match a canvas Template or Region Document to a registered autorec workflow.
      * Delegates document inspection to the Foundry Adapter (`crosshairAdapter.matchAutorecEntry`).
-     * @param {Document} doc - Target candidate Document
+     * Normalizes caller entry boundary before passing to adapter (Rule 5).
+     * @param {Document|Object} target - Target candidate Document or Placeable
      * @returns {Object|null} Registered autorec configuration or null
      */
-    getEntryForDocument(doc) {
-        if (!doc) return null;
+    getEntryForDocument(target) {
+        if (!target) return null;
+        const doc = target?.document ?? target;
         return crosshairAdapter.matchAutorecEntry(doc, this.registeredHandlers);
+    }
+
+    /**
+     * Load saved registrations setting from world settings into runtime registry.
+     * Helper method abstracting settings access error handling (Rule 10).
+     * @private
+     * @returns {void}
+     */
+    _loadSettings() {
+        try {
+            const saved = game.settings?.get(MODULE_ID, "registeredTemplates");
+            if (saved) this.loadSavedRegistrations(saved);
+        } catch (e) {
+            log.error("AutorecManager._loadSettings | Failed to load saved registeredTemplates setting:", e);
+        }
     }
 
     /**
@@ -253,33 +276,31 @@ export class AutorecManager {
 
         socketlib.on((data) => {
             if (!data || typeof data !== "object") return;
+            const isGM = Boolean(game.user?.isGM);
             if (data.type === "REGISTER_TEMPLATE") {
-                if (game.user?.isGM) {
+                if (isGM) {
                     this.register(data.itemName, data.config, { persist: true });
                 }
             } else if (data.type === "UNREGISTER_TEMPLATE") {
-                if (game.user?.isGM) {
+                if (isGM) {
                     this.unregister(data.itemName, { persist: true });
                 }
             } else if (data.type === "SYNC_AUTORECS") {
-                try {
-                    const saved = game.settings?.get(MODULE_ID, "registeredTemplates");
-                    if (saved) this.loadSavedRegistrations(saved);
-                } catch (e) {
-                    log.error("Failed to load saved registeredTemplates setting", e);
+                this._loadSettings();
+
+                // Render ApplicationV2 window or legacy window (Rule 11)
+                const appV2Instance = foundry.applications?.instances?.get?.("bbc-autorec-menu");
+                if (appV2Instance) {
+                    appV2Instance.render(false);
+                } else {
+                    Object.values(ui.windows ?? {}).forEach(w => {
+                        if (w && w.id === "bbc-autorec-menu") w.render(false);
+                    });
                 }
-                Object.values(ui.windows ?? {}).forEach(w => {
-                    if (w && w.id === "bbc-autorec-menu") w.render(false);
-                });
             }
         });
 
-        try {
-            const saved = game.settings?.get(MODULE_ID, "registeredTemplates");
-            if (saved) this.loadSavedRegistrations(saved);
-        } catch (e) {
-            log.error("Failed to load saved registeredTemplates setting", e);
-        }
+        this._loadSettings();
     }
 
     /**
@@ -294,7 +315,8 @@ export class AutorecManager {
             return;
         }
 
-        if (game.user?.isGM) {
+        const isGM = Boolean(game.user?.isGM);
+        if (isGM) {
             try {
                 const saved = foundry.utils.deepClone(game.settings.get(MODULE_ID, "registeredTemplates") ?? {});
                 saved[itemName] = config;
@@ -302,7 +324,7 @@ export class AutorecManager {
                 this.persistedItemNames.add(itemName);
                 this.broadcastSync();
             } catch (e) {
-                log.error(`Failed to persist registered template setting for: ${itemName}`, e);
+                log.error(`AutorecManager.persistRegistration | Failed to persist registered template setting for: ${itemName}`, e);
             }
         } else {
             socketlib.emit({ type: "REGISTER_TEMPLATE", itemName, config });
@@ -320,7 +342,8 @@ export class AutorecManager {
             return;
         }
 
-        if (game.user?.isGM) {
+        const isGM = Boolean(game.user?.isGM);
+        if (isGM) {
             try {
                 const saved = foundry.utils.deepClone(game.settings.get(MODULE_ID, "registeredTemplates") ?? {});
                 if (itemName in saved) {
@@ -330,7 +353,7 @@ export class AutorecManager {
                     this.broadcastSync();
                 }
             } catch (e) {
-                log.error(`Failed to unpersist template setting for: ${itemName}`, e);
+                log.error(`AutorecManager.persistUnregistration | Failed to unpersist template setting for: ${itemName}`, e);
             }
         } else {
             socketlib.emit({ type: "UNREGISTER_TEMPLATE", itemName });
@@ -388,7 +411,7 @@ export class AutorecManager {
         if (this._onRegisterCallback) {
             this._onRegisterCallback();
         }
-        const isLocal = Boolean(local) || Boolean(handlerOrConfig?.local);
+        const isLocal = Boolean(Boolean(local) || Boolean(handlerOrConfig?.local));
 
         if (itemName === "DEFAULT" && typeof handlerOrConfig !== "function") {
             handlerOrConfig = {
@@ -404,9 +427,9 @@ export class AutorecManager {
         }
 
         if (this.registeredHandlers.has(itemName)) {
-            log.debug(`Re-registering template sequence for item: ${itemName}${isLocal ? " (local only)" : ""}`);
+            log.debug(`AutorecManager.register | Re-registering template sequence for item: ${itemName}${isLocal ? " (local only)" : ""}`);
         } else {
-            log.debug(`Registering template sequence for item: ${itemName}${isLocal ? " (local only)" : ""}`);
+            log.debug(`AutorecManager.register | Registering template sequence for item: ${itemName}${isLocal ? " (local only)" : ""}`);
         }
         this.registeredHandlers.set(itemName, handlerOrConfig);
         const registered = this.registeredHandlers.get(itemName);
@@ -433,14 +456,14 @@ export class AutorecManager {
     unregister(itemName, { persist = true, local = false } = {}) {
         const existing = this.registeredHandlers.get(itemName);
         if (existing?.isDefault) {
-            log.warn("AutorecManager | Cannot delete canonical default fallback entry (isDefault: true). You may disable it by setting enabled: false.");
+            log.warn("AutorecManager.unregister | Cannot delete canonical default fallback entry (isDefault: true). You may disable it by setting enabled: false.");
             return false;
         }
         const deleted = this.registeredHandlers.delete(itemName);
         const wasPersisted = this.persistedItemNames.has(itemName);
         if (deleted) {
             this.rebuildFastLookupMap();
-            log.debug(`Unregistered template sequence for item: ${itemName}`);
+            log.debug(`AutorecManager.unregister | Unregistered template sequence for item: ${itemName}`);
         }
         if (persist && !local && wasPersisted && typeof itemName === "string") {
             this.persistUnregistration(itemName);
@@ -463,7 +486,7 @@ export class AutorecManager {
             if (existing?.isDefault) continue;
             this.registeredHandlers.delete(itemName);
             this.persistedItemNames.delete(itemName);
-            log.debug(`Unregistered template sequence for item: ${itemName}`);
+            log.debug(`AutorecManager.unregisterMany | Unregistered template sequence for item: ${itemName}`);
         }
         this.rebuildFastLookupMap();
 
@@ -500,14 +523,15 @@ export class AutorecManager {
         }
 
         if (persist && Object.keys(toPersist).length > 0) {
-            if (game.user?.isGM) {
+            const isGM = Boolean(game.user?.isGM);
+            if (isGM) {
                 try {
                     const saved = foundry.utils.deepClone(game.settings.get(MODULE_ID, "registeredTemplates") ?? {});
                     Object.assign(saved, toPersist);
                     await game.settings.set(MODULE_ID, "registeredTemplates", saved);
                     this.broadcastSync();
                 } catch (e) {
-                    log.error("Failed to batch persist template registrations:", e);
+                    log.error("AutorecManager.registerMany | Failed to batch persist template registrations:", e);
                 }
             } else {
                 for (const [itemName, config] of Object.entries(toPersist)) {
@@ -523,7 +547,8 @@ export class AutorecManager {
      * @returns {Promise<void>}
      */
     async overwrite(persistedDict = {}) {
-        if (game.user?.isGM) {
+        const isGM = Boolean(game.user?.isGM);
+        if (isGM) {
             try {
                 await game.settings.set(MODULE_ID, "registeredTemplates", persistedDict);
                 this.persistedItemNames.clear();
@@ -532,7 +557,7 @@ export class AutorecManager {
                 }
                 this.broadcastSync();
             } catch (e) {
-                log.error("Failed to overwrite registeredTemplates setting:", e);
+                log.error("AutorecManager.overwrite | Failed to overwrite registeredTemplates setting:", e);
             }
         } else {
             socketlib.emit({ type: "OVERWRITE_TEMPLATES", persistedDict });
@@ -541,7 +566,8 @@ export class AutorecManager {
 
     /**
      * Check if a registered template animation exists for a target Document or item name.
-     * @param {string|Document} targetOrName - Item name or candidate Document
+     * Normalizes caller entry boundary via get (Rule 5).
+     * @param {string|Document|Object} targetOrName - Item name or candidate Document/Placeable
      * @returns {boolean} True if a registered handler exists for the target or name
      */
     has(targetOrName) {
@@ -551,14 +577,15 @@ export class AutorecManager {
     /**
      * Get the registered handler entry for a target item name or Document.
      * Normalizes caller entry boundary before dispatching to single-responsibility lookup helpers (Rule 5).
-     * @param {string|Document} targetOrName - Item name or candidate Document
+     * @param {string|Document|Object} targetOrName - Item name or candidate Document/Placeable
      * @returns {Object|null} Registered autorec entry configuration or null if not found
      */
     get(targetOrName) {
         if (typeof targetOrName === "string") {
             return this.getEntryByName(targetOrName);
         }
-        return this.getEntryForDocument(targetOrName);
+        const doc = targetOrName?.document ?? targetOrName;
+        return this.getEntryForDocument(doc);
     }
 
     /**
@@ -594,7 +621,7 @@ export class AutorecManager {
                 file = config.file ?? "";
             }
 
-            const isLocal = Boolean(handlerOrConfig?.local || !this.persistedItemNames.has(itemName));
+            const isLocal = Boolean(Boolean(handlerOrConfig?.local) || !this.persistedItemNames.has(itemName));
 
             const isDefault = Boolean(config.isDefault);
             const circleFile = config.circleFile ?? "eskie.crosshair.circle.fantasy_01.white.full";
@@ -603,8 +630,8 @@ export class AutorecManager {
             const squareFile = config.squareFile ?? "eskie.crosshair.square.fantasy_01.white";
 
             const unitFt = localize("BBC.Units.Feet", "ft");
-            const distVal = config.distance ?? config.radius;
-            const distanceDisplay = distVal !== undefined ? `${distVal} ${unitFt}` : null;
+            const distVal = config.distance !== undefined ? config.distance : (config.radius !== undefined ? config.radius : null);
+            const distanceDisplay = distVal !== null ? `${distVal} ${unitFt}` : null;
             const widthVal = config.width;
             const widthDisplay = widthVal !== undefined ? `${widthVal} ${unitFt}` : null;
             const angleVal = config.angle;
@@ -621,9 +648,9 @@ export class AutorecManager {
             const fillColor = config.fillColor ?? "#000000";
             const fillAlpha = config.fillAlpha ?? 0;
             const hasCustomStyling = Boolean(
-                config.borderColor ||
+                Boolean(config.borderColor) ||
                 (config.borderAlpha !== undefined && config.borderAlpha !== 0) ||
-                config.fillColor ||
+                Boolean(config.fillColor) ||
                 (config.fillAlpha !== undefined && config.fillAlpha !== 0)
             );
             const icon = config.icon ?? null;
@@ -633,9 +660,9 @@ export class AutorecManager {
             const placedBorderColor = config.placedBorderColor ?? "#000000";
             const placedBorderAlpha = config.placedBorderAlpha ?? 1;
             const hasPlacedStyling = Boolean(
-                config.placedFillColor ||
+                Boolean(config.placedFillColor) ||
                 (config.placedFillAlpha !== undefined && config.placedFillAlpha !== 0.25) ||
-                config.placedBorderColor ||
+                Boolean(config.placedBorderColor) ||
                 (config.placedBorderAlpha !== undefined && config.placedBorderAlpha !== 1)
             );
 
@@ -644,7 +671,7 @@ export class AutorecManager {
             const cleanItemName = config.itemName ?? itemName;
             const activityId = isDefault ? "" : (config.activityId ?? "");
             const activityName = isDefault ? "" : (config.activityName ?? "");
-            const hasActivity = Boolean(activityId || activityName);
+            const hasActivity = Boolean(Boolean(activityId) || Boolean(activityName));
             const activityDisplay = activityName !== "" ? activityName : activityId;
             const enabled = config.enabled !== false;
 

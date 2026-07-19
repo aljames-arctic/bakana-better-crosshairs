@@ -78,11 +78,9 @@ export class SquareCrosshairShape extends BaseCrosshairShape {
      * @returns {string} Resolved file path or key
      */
     getGraphicFile() {
-        let file = null;
-        if (this.config.squareFile) file = closest(this.config.squareFile);
-        if (!file && this.config.file) file = closest(this.config.file);
-        if (!file) file = closest("eskie.crosshair.square.thin.white.full");
-        return file ?? "eskie.crosshair.square.thin.white.full";
+        if (this.config.squareFile) return closest(this.config.squareFile);
+        if (this.config.file) return closest(this.config.file);
+        return closest("eskie.crosshair.square.thin.white.full") ?? "eskie.crosshair.square.thin.white.full";
     }
 
     /**
@@ -99,7 +97,7 @@ export class SquareCrosshairShape extends BaseCrosshairShape {
                 originalType: "square",
                 distance: this.config.distance,
                 width: this.config.width,
-                rayFile: this.config.squareFile ?? this.config.file ?? closest("eskie.crosshair.ray.fantasy_01.white.full")
+                rayFile: this.config.squareFile ?? this.config.file ?? "eskie.crosshair.ray.fantasy_01.white.full"
             };
             const rayShape = new RayCrosshairShape(this.placeable, rayConfig);
             return rayShape.create();
@@ -141,7 +139,7 @@ async function play(placeable, config = {}) {
  * @returns {Promise<void>} A promise resolving when matching effects have been terminated
  */
 async function stop(token, options = {}) {
-    const id = options?.id ?? "Square Crosshair";
+    const id = options.id ?? "Square Crosshair";
     return BaseCrosshairShape.stop(token, { id, ...options });
 }
 

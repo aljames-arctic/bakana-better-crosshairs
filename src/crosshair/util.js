@@ -1,10 +1,82 @@
 import { log } from "../lib/logger.js";
-import { Ray } from "../lib/compat.js";
 import { closest } from "../lib/filemanager.js";
 import { crosshairAdapter, systemAdapter } from "../adapter/index.js";
 
 let activeWheelHandler = null;
 let activePointerHandler = null;
+
+/**
+ * Helper: Normalize an angle in degrees to the [0, 360) range.
+ * @param {number} angleDeg - Raw angle in degrees
+ * @returns {number} Normalized angle in degrees between 0 and 360
+ */
+function _normalizeAngleDegrees(angleDeg) {
+    if (typeof angleDeg !== "number" || isNaN(angleDeg)) return 0;
+    let norm = angleDeg % 360;
+    if (norm < 0) norm += 360;
+    return norm;
+}
+
+/**
+ * Helper: Calculate angle in radians and degrees from origin to target.
+ * @param {{x: number, y: number}} origin - Origin point
+ * @param {{x: number, y: number}} target - Target point
+ * @returns {{rad: number, deg: number}} Angle in radians and degrees
+ */
+function _calculateAngleFromOrigin(origin, target) {
+    const dx = target.x - origin.x;
+    const dy = target.y - origin.y;
+    const rad = Math.atan2(dy, dx);
+    const deg = _normalizeAngleDegrees(rad * (180 / Math.PI));
+    return { rad, deg };
+}
+
+/**
+ * Helper: Iterate through all active preview lists on canvas and refresh highlights.
+ * @param {number} currentDirection - Current direction in degrees
+ * @param {number} rad - Current direction in radians
+ * @param {object|null} crosshair - Active crosshair instance
+ * @param {Event|null} [event=null] - Triggering event if any
+ */
+function _refreshPreviewHighlights(currentDirection, rad, crosshair, event = null) {
+    const previewLists = [
+        canvas?.templates?.preview?.children,
+        canvas?.templates?.placeables,
+        canvas?.regions?.preview?.children,
+        canvas?.regions?.placeables,
+        crosshair?.template ? [crosshair.template] : null,
+        globalThis._activeBBCPlaceable ? [globalThis._activeBBCPlaceable] : null
+    ];
+    for (const list of previewLists) {
+        if (Array.isArray(list)) {
+            for (const p of list) {
+                if (p && (p.isPreview || list === canvas?.templates?.preview?.children || list === canvas?.regions?.preview?.children || p === crosshair?.template || p === globalThis._activeBBCPlaceable)) {
+                    refreshTemplateHighlights(p, currentDirection, rad, event);
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Helper: Finalize placement by notifying config context and invoking _onPlaced callback.
+ * @param {object} result - Formatted placement result
+ * @param {object} config - Placement configuration
+ * @param {object} crosshair - Placed crosshair instance
+ * @param {Array} extraArgs - Extra callback arguments
+ * @returns {object} The formatted placement result
+ */
+function _notifyPlacementResult(result, config, crosshair, extraArgs) {
+    config.context?.resolve?.(result);
+    if (typeof config._onPlaced === "function") {
+        try {
+            config._onPlaced(result, crosshair, ...extraArgs);
+        } catch (e) {
+            log.debug("resolveCrosshairPlacement | Exception in _onPlaced callback:", e);
+        }
+    }
+    return result;
+}
 
 /**
  * Determine whether a crosshair should remain attached/stuck to its source token.
@@ -64,25 +136,27 @@ export function resolveCrosshairIcon(iconPath) {
  * @param {object} tmpl - Template placeable or overlay object to refresh
  * @param {number} newDirDeg - New direction angle in degrees
  * @param {number} rad - New direction angle in radians
+ * @param {Event|null} [wheelEvent=null] - Optional wheel event
  * @returns {void}
  */
 function refreshTemplateHighlights(tmpl, newDirDeg, rad, wheelEvent = null) {
     if (!tmpl) return;
 
-    if (tmpl.document) {
-        const dims = tmpl._bbcDimensions ?? tmpl.document._bbcDimensions ?? globalThis._activeBBCDimensions;
-        const docProps = crosshairAdapter.detectProperties(tmpl.document);
+    const doc = tmpl.document ?? tmpl;
+    if (doc) {
+        const dims = tmpl._bbcDimensions ?? doc._bbcDimensions ?? globalThis._activeBBCDimensions;
+        const docProps = crosshairAdapter.detectProperties(doc);
         const initialDist = dims?.distance ?? docProps.distance;
         const initialWidth = dims?.width ?? docProps.width;
         const isGridUnits = dims?.gridUnits ?? true;
 
-        const cfg = tmpl._bbcConfig ?? tmpl.document._bbcConfig ?? {};
-        const shapeType = cfg.type ?? cfg.originalType ?? cfg.t ?? tmpl.document?.t ?? docProps.type ?? "circle";
-        const isSticky = Boolean(tmpl.document.flags?.bakana?.token ?? tmpl.document.flags?.bbc?.token ?? tmpl._bbcSticky ?? cfg.token);
+        const cfg = tmpl._bbcConfig ?? doc._bbcConfig ?? {};
+        const shapeType = cfg.type ?? cfg.originalType ?? cfg.t ?? doc?.t ?? docProps.type ?? "circle";
+        const isSticky = Boolean(doc.flags?.bakana?.token ?? doc.flags?.bbc?.token ?? tmpl._bbcSticky ?? cfg.token);
         let targetX = 0, targetY = 0;
 
         const visual = tmpl._bbcCrosshair ?? globalThis._activeBBCCrosshair;
-        if (isSticky && cfg.token && visual && typeof visual.x === "number" && typeof visual.y === "number") {
+        if (isSticky && cfg.token && visual && Number.isFinite(visual.x) && Number.isFinite(visual.y)) {
             targetX = visual.x;
             targetY = visual.y;
         } else if (isSticky && cfg.token && canvas?.mousePosition) {
@@ -90,14 +164,14 @@ function refreshTemplateHighlights(tmpl, newDirDeg, rad, wheelEvent = null) {
             targetX = anchored.x;
             targetY = anchored.y;
         } else {
-            const mousePos = canvas?.mousePosition ?? { x: tmpl.x ?? tmpl.document.x ?? 0, y: tmpl.y ?? tmpl.document.y ?? 0 };
+            const mousePos = canvas?.mousePosition ?? { x: tmpl.x ?? doc.x ?? 0, y: tmpl.y ?? doc.y ?? 0 };
             const snapMode = getGridSnapMode(cfg);
             const snapped = snapMode !== 0 ? snapCoordinates(mousePos.x, mousePos.y, snapMode) : mousePos;
             targetX = snapped.x;
             targetY = snapped.y;
         }
 
-        crosshairAdapter.updatePreviewShape(tmpl.document, {
+        crosshairAdapter.updatePreviewShape(doc, {
             x: targetX,
             y: targetY,
             direction: newDirDeg,
@@ -112,8 +186,10 @@ function refreshTemplateHighlights(tmpl, newDirDeg, rad, wheelEvent = null) {
             t: shapeType === "square" ? "rect" : shapeType
         });
 
-        tmpl.x = tmpl.document.x;
-        tmpl.y = tmpl.document.y;
+        if (tmpl.document) {
+            tmpl.x = doc.x;
+            tmpl.y = doc.y;
+        }
     }
 
     if (crosshairAdapter?.refreshTemplateHighlights) {
@@ -126,6 +202,7 @@ function refreshTemplateHighlights(tmpl, newDirDeg, rad, wheelEvent = null) {
  * Ensures circle crosshairs remain unrotated while directional shapes align with cursor/wheel.
  * @param {object} crosshair - The active crosshair instance to rotate
  * @param {number} newDirDeg - New direction angle in degrees
+ * @param {object} [config={}] - Crosshair placement configuration
  * @returns {void}
  */
 function rotateCrosshairInstance(crosshair, newDirDeg, config = {}) {
@@ -140,9 +217,9 @@ function rotateCrosshairInstance(crosshair, newDirDeg, config = {}) {
     if (!isAttached) {
         crosshair.direction = newDirDeg;
         if (!isRect) {
-            try { crosshair.rotation = rad; } catch (e) {}
+            try { crosshair.rotation = rad; } catch (e) { log.debug("rotateCrosshairInstance | Exception setting crosshair.rotation:", e); }
         } else {
-            try { crosshair.rotation = 0; } catch (e) {}
+            try { crosshair.rotation = 0; } catch (e) { log.debug("rotateCrosshairInstance | Exception resetting crosshair.rotation:", e); }
         }
         if (crosshair.config) {
             crosshair.config.direction = newDirDeg;
@@ -154,7 +231,7 @@ function rotateCrosshairInstance(crosshair, newDirDeg, config = {}) {
         }
     } else {
         crosshair.direction = 0;
-        try { crosshair.rotation = 0; } catch (e) {}
+        try { crosshair.rotation = 0; } catch (e) { log.debug("rotateCrosshairInstance | Exception resetting attached crosshair.rotation:", e); }
         if (crosshair.config) {
             crosshair.config.direction = 0;
             crosshair.config.rotation = 0;
@@ -185,7 +262,6 @@ function rotateCrosshairInstance(crosshair, newDirDeg, config = {}) {
         }
     }
 }
-
 
 /**
  * Remove active window event listeners for crosshair wheel rotation and pointer tracking.
@@ -229,30 +305,14 @@ export function attachWheelRotation(shape, config = {}) {
 
             const step = event.shiftKey ? 1 : 5;
             const delta = event.deltaY < 0 ? -step : step;
-            config.currentDirection = (config.currentDirection + delta + 360) % 360;
+            config.currentDirection = _normalizeAngleDegrees(config.currentDirection + delta);
 
             if (isShapeInstance) {
                 shape.rotate(config.currentDirection);
             } else {
                 const rad = config.currentDirection * (Math.PI / 180);
                 alignCrosshairAndEffects(crosshair, config, rad);
-
-                const previewLists = [
-                    canvas?.templates?.preview?.children,
-                    canvas?.templates?.placeables,
-                    canvas?.regions?.preview?.children,
-                    canvas?.regions?.placeables,
-                    crosshair?.template ? [crosshair.template] : null
-                ];
-                for (const list of previewLists) {
-                    if (Array.isArray(list)) {
-                        for (const p of list) {
-                            if (p.isPreview || list === canvas?.templates?.preview?.children || list === canvas?.regions?.preview?.children || p === crosshair?.template) {
-                                refreshTemplateHighlights(p, config.currentDirection, rad, event);
-                            }
-                        }
-                    }
-                }
+                _refreshPreviewHighlights(config.currentDirection, rad, crosshair, event);
             }
         };
         window.addEventListener("wheel", activeWheelHandler, { capture: true, passive: false });
@@ -266,10 +326,8 @@ export function attachWheelRotation(shape, config = {}) {
                 const pt = canvas.mousePosition;
                 if (isAttached && shape.token) {
                     const origin = shape.token.center ?? { x: shape.x, y: shape.y };
-                    const angleRad = Math.atan2(pt.y - origin.y, pt.x - origin.x);
-                    let dir = angleRad * (180 / Math.PI);
-                    if (dir < 0) dir += 360;
-                    shape.rotate(dir);
+                    const { deg } = _calculateAngleFromOrigin(origin, pt);
+                    shape.rotate(deg);
                 }
                 shape.move(pt.x, pt.y);
             }
@@ -277,30 +335,12 @@ export function attachWheelRotation(shape, config = {}) {
             if (isAttached && crosshair && canvas?.mousePosition) {
                 const pt = canvas.mousePosition;
                 const origin = config.token?.center ?? { x: crosshair.x, y: crosshair.y };
-                const angleRad = Math.atan2(pt.y - origin.y, pt.x - origin.x);
-                let dir = angleRad * (180 / Math.PI);
-                if (dir < 0) dir += 360;
-                config.currentDirection = dir;
-                alignCrosshairAndEffects(crosshair, config, angleRad);
+                const { rad, deg } = _calculateAngleFromOrigin(origin, pt);
+                config.currentDirection = deg;
+                alignCrosshairAndEffects(crosshair, config, rad);
             }
             const rad = (config.currentDirection ?? 0) * (Math.PI / 180);
-            const previewLists = [
-                canvas?.templates?.preview?.children,
-                canvas?.templates?.placeables,
-                canvas?.regions?.preview?.children,
-                canvas?.regions?.placeables,
-                crosshair?.template ? [crosshair.template] : null,
-                globalThis._activeBBCPlaceable ? [globalThis._activeBBCPlaceable] : null
-            ];
-            for (const list of previewLists) {
-                if (Array.isArray(list)) {
-                    for (const p of list) {
-                        if (p && (p.isPreview || list === canvas?.templates?.preview?.children || list === canvas?.regions?.preview?.children || p === crosshair?.template || p === globalThis._activeBBCPlaceable)) {
-                            refreshTemplateHighlights(p, config.currentDirection, rad);
-                        }
-                    }
-                }
-            }
+            _refreshPreviewHighlights(config.currentDirection, rad, crosshair);
             if (!isAttached) {
                 alignCrosshairAndEffects(crosshair, config, rad);
             }
@@ -311,8 +351,8 @@ export function attachWheelRotation(shape, config = {}) {
 }
 
 /**
- * Align crosshair container and all active Sequencer effects so their origin (0, 0.5 for cones/rays, 0, 0 for squares, 0.5, 0.5 for circles)
- * sits precisely at the container's origin (0, 0) and rotates around the cursor point.
+ * Align crosshair container and all active Sequencer effects so their origin sits precisely
+ * at the container's origin (0, 0) and rotates around the cursor point.
  * @param {object} crosshair - Active Sequencer crosshair container
  * @param {object} config - Crosshair placement config
  * @param {number} rad - Current rotation angle in radians
@@ -325,7 +365,6 @@ export function alignCrosshairAndEffects(crosshair, config = {}, rad = 0) {
     const isRect = shapeType === "rect" || shapeType === "square";
     const isAttached = shouldStickToToken(config, shapeType) && Boolean(config.token ?? crosshair?.config?.token ?? crosshair?.token);
 
-    // Synchronize rotation across all active Sequencer visual effect graphics without fighting Sequencer's internal pivot/anchor layout
     if (typeof Sequencer !== "undefined" && Sequencer.EffectManager) {
         try {
             const effects = Sequencer.EffectManager.getEffects({ name: config.id });
@@ -350,11 +389,17 @@ export function alignCrosshairAndEffects(crosshair, config = {}, rad = 0) {
                     }
                     if (typeof eff.rotation !== "undefined") eff.rotation = rad;
                     if (typeof eff.update === "function") {
-                        try { eff.update({ rotation: rad }); } catch (e) {}
+                        try {
+                            eff.update({ rotation: rad });
+                        } catch (e) {
+                            log.debug("alignCrosshairAndEffects | Exception updating Sequencer effect rotation:", e);
+                        }
                     }
                 }
             }
-        } catch (e) {}
+        } catch (e) {
+            log.debug("alignCrosshairAndEffects | Exception querying Sequencer EffectManager:", e);
+        }
     }
 }
 
@@ -388,14 +433,13 @@ export function resolveCrosshairPlacement(crosshair, config = {}, ...extraArgs) 
     detachWheelRotation();
     log.debug("resolveCrosshairPlacement | Inspecting arguments passed to PLACED callback:", crosshair, config, extraArgs);
 
-    const shape = (crosshair && typeof crosshair.getPlacementUpdates === "function") ? crosshair : (crosshair?.shapeInstance ?? config?.shapeInstance ?? globalThis._activeBBCCrosshair?.shapeInstance);
+    const shape = (crosshair && typeof crosshair.getPlacementUpdates === "function")
+        ? crosshair
+        : (crosshair?.shapeInstance ?? config?.shapeInstance ?? globalThis._activeBBCCrosshair?.shapeInstance);
+
     if (shape && typeof shape.getPlacementUpdates === "function") {
         const result = shape.getPlacementUpdates();
-        config.context?.resolve?.(result);
-        if (typeof config._onPlaced === "function") {
-            try { config._onPlaced(result, crosshair, ...extraArgs); } catch (e) {}
-        }
-        return result;
+        return _notifyPlacementResult(result, config, crosshair, extraArgs);
     }
 
     let direction = (typeof config.currentDirection === "number")
@@ -436,7 +480,7 @@ export function resolveCrosshairPlacement(crosshair, config = {}, ...extraArgs) 
     let y = clickY;
 
     if (isAnchored && config.token) {
-        if (crosshair && typeof crosshair.x === "number" && !isNaN(crosshair.x) && typeof crosshair.y === "number" && !isNaN(crosshair.y)) {
+        if (crosshair && Number.isFinite(crosshair.x) && Number.isFinite(crosshair.y)) {
             x = crosshair.x;
             y = crosshair.y;
             log.debug("resolveCrosshairPlacement | Token anchored placement using exact Sequencer attached visual position ->", { x, y, direction });
@@ -462,20 +506,10 @@ export function resolveCrosshairPlacement(crosshair, config = {}, ...extraArgs) 
         }
     }
 
-    if (typeof direction === "number") {
-        while (direction < 0) direction += 360;
-        direction = direction % 360;
-    } else {
-        direction = 0;
-    }
+    const finalDirection = _normalizeAngleDegrees(direction);
+    const result = crosshairAdapter.formatPlacementCoordinates(x, y, finalDirection, config);
 
-    const result = crosshairAdapter.formatPlacementCoordinates(x, y, typeof direction === "number" ? direction : 0, config);
-
-    config.context?.resolve?.(result);
-    if (typeof config._onPlaced === "function") {
-        try { config._onPlaced(result, crosshair, ...extraArgs); } catch (e) {}
-    }
-    return result;
+    return _notifyPlacementResult(result, config, crosshair, extraArgs);
 }
 
 /**
@@ -491,7 +525,7 @@ export function snapCoordinates(x, y, mode = "all") {
 
 /**
  * Calculate point on token boundary edge toward target position along with angle in degrees.
- * @param {Token} tok - Normalized Token object
+ * @param {Token} tok - Raw token input (placeable or document)
  * @param {number} targetX - Target X coordinate
  * @param {number} targetY - Target Y coordinate
  * @param {boolean} [sticky=false] - Whether to snap to 8-way sticky perimeter points
@@ -499,18 +533,14 @@ export function snapCoordinates(x, y, mode = "all") {
  */
 export function getTokenEdgePoint(tok, targetX, targetY, sticky = false) {
     if (!tok) return { x: targetX, y: targetY, direction: 0 };
-    const token = tok.object ?? tok;
+    const token = crosshairAdapter.toToken(tok) ?? (tok.object ?? tok);
     const size = canvas?.grid?.size ?? 100;
     const cx = token.center?.x ?? (token.x + (token.w ?? size) / 2);
     const cy = token.center?.y ?? (token.y + (token.h ?? size) / 2);
     const hw = (token.w ?? size) / 2;
     const hh = (token.h ?? size) / 2;
 
-    const dx = targetX - cx;
-    const dy = targetY - cy;
-    const angleRad = Math.atan2(dy, dx);
-    let angleDeg = angleRad * (180 / Math.PI);
-    if (angleDeg < 0) angleDeg += 360;
+    const { rad: angleRad, deg: angleDeg } = _calculateAngleFromOrigin({ x: cx, y: cy }, { x: targetX, y: targetY });
 
     if (sticky) {
         // 8-way sticky perimeter snap (snaps origin to 4 corners and 4 cardinal edge midpoints)
