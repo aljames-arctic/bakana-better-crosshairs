@@ -132,14 +132,6 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
      * @returns {{type: string, distance: number, radius: number, width: number, angle: number, x: number, y: number}} Detected geometric properties and shape type
      */
     detectProperties(doc) {
-        const shapesList = this._getShapesArray(doc);
-        log.debug("FoundryVTTV14Adapter | [Square Lifecycle 1/5] Original shape from Foundry:", {
-            documentName: doc.documentName ?? (doc.t ? "MeasuredTemplate" : "Region"),
-            t: doc.t,
-            shapes: shapesList,
-            rawDocument: typeof doc.toObject === "function" ? doc.toObject() : doc
-        });
-
         const docName = doc.documentName ?? (doc.t ? "MeasuredTemplate" : "Region");
         if (docName === "MeasuredTemplate") {
             const shapeMap = {
@@ -167,6 +159,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             return result;
         }
 
+        const shapesList = this._getShapesArray(doc);
         if (shapesList.length === 0) {
             const fallbackDistance = doc.distance ?? doc.radius ?? 0;
             return {
@@ -250,12 +243,6 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             const orig = typeof shapesList[0]?.toObject === "function" ? shapesList[0].toObject() : shapesList[0];
             const updatedShape = this._formatRegionShapeUpdate(orig, coords);
             delete updatedShape._id;
-            log.debug("BBC ROTATION DIAG 3 | V14 updatePreviewShape:", {
-                coordsDirection: coords.direction,
-                coordsRotation: coords.rotation,
-                updatedShapeRotation: updatedShape.rotation,
-                updatedShape
-            });
             try {
                 previewDoc.updateSource({ shapes: [updatedShape] }); 
             } catch (e) {
@@ -514,13 +501,6 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             }
         }
         delete shape._source;
-        log.debug("FoundryVTTV14Adapter._formatRegionShapeUpdate | [Square Lifecycle 4/5] Region shape modified for Foundry after left click:", {
-            originalShape,
-            inputCoords: coords,
-            pxPerFoot,
-            isGridUnits,
-            modifiedRegionShape: shape
-        });
         return shape;
     }
 
@@ -570,12 +550,6 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         const isRegion = doc.documentName === "Region";
 
         if (isRegion) {
-            log.debug("BBC ROTATION DIAG 4 | V14 refreshTemplateHighlights (Region):", {
-                direction,
-                docShapes: doc.shapes,
-                renderFlags: tmpl.renderFlags ? Object.keys(tmpl.renderFlags) : null,
-                tmplMethods: Object.getOwnPropertyNames(Object.getPrototypeOf(tmpl)).filter(m => m.includes("refresh") || m.includes("Grid") || m.includes("Shape"))
-            });
             if (tmpl.renderFlags) {
                 tmpl.renderFlags.set({
                     refreshShape: true,
@@ -638,16 +612,6 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
      */
     async handleCreateDocument(doc, _options, userId) {
         await super.handleCreateDocument(doc, _options, userId);
-        if (userId === game?.user?.id && doc) {
-            const docName = doc.documentName ?? (doc.shapes ? "Region" : "MeasuredTemplate");
-            const shapesList = this._getShapesArray(doc);
-            log.debug("FoundryVTTV14Adapter.handleCreateDocument | [Square Lifecycle 5/5] Actual region shape Foundry ended up making:", {
-                docId: doc.id,
-                documentName: docName,
-                shapes: shapesList,
-                rawDocument: typeof doc.toObject === "function" ? doc.toObject() : doc
-            });
-        }
     }
 
     _snapPoint(x, y, numMode) {

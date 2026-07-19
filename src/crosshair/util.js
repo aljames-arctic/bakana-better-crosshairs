@@ -219,21 +219,8 @@ export function attachWheelRotation(shape, config = {}) {
     const isAttached = shouldStickToToken(config, shapeType) && Boolean(config.token);
     config.currentDirection = config.currentDirection ?? config.direction ?? 0;
 
-    log.debug("BBC ROTATION DIAGNOSTIC | Initializing attachWheelRotation:", {
-        shapeType,
-        isAttached,
-        token: config.token?.name ?? !!config.token,
-        currentDirection: config.currentDirection
-    });
-
     if (!isAttached) {
         activeWheelHandler = (event) => {
-            log.debug("BBC ROTATION DIAGNOSTIC | Wheel event captured:", {
-                deltaY: event.deltaY,
-                ctrlKey: event.ctrlKey,
-                shiftKey: event.shiftKey,
-                currentDirection: config.currentDirection
-            });
             const requiresCtrl = systemAdapter.requiresWheelModifier();
             if (requiresCtrl && !event.ctrlKey) return;
             if (typeof event.preventDefault === "function") event.preventDefault();
@@ -243,12 +230,6 @@ export function attachWheelRotation(shape, config = {}) {
             const step = event.shiftKey ? 1 : 5;
             const delta = event.deltaY < 0 ? -step : step;
             config.currentDirection = (config.currentDirection + delta + 360) % 360;
-
-            log.debug("BBC ROTATION DIAG 1 | Wheel step:", {
-                currentDirection: config.currentDirection,
-                shapeType,
-                isShapeInstance
-            });
 
             if (isShapeInstance) {
                 shape.rotate(config.currentDirection);
@@ -327,7 +308,6 @@ export function attachWheelRotation(shape, config = {}) {
     };
 
     window.addEventListener("pointermove", activePointerHandler, { capture: true, passive: true });
-    log.debug("BBC ROTATION DIAGNOSTIC | Listeners attached for crosshair pointer tracking and rotation (capture phase).");
 }
 
 /**
@@ -411,10 +391,6 @@ export function resolveCrosshairPlacement(crosshair, config = {}, ...extraArgs) 
     const shape = (crosshair && typeof crosshair.getPlacementUpdates === "function") ? crosshair : (crosshair?.shapeInstance ?? config?.shapeInstance ?? globalThis._activeBBCCrosshair?.shapeInstance);
     if (shape && typeof shape.getPlacementUpdates === "function") {
         const result = shape.getPlacementUpdates();
-        console.log("%cBBC DIAGNOSTIC | resolveCrosshairPlacement Result (ShapeInstance):", "background: #7b2cbf; color: #fff; padding: 2px 4px; border-radius: 2px;", {
-            formattedResult: result,
-            activeDimensions: globalThis._activeBBCDimensions
-        });
         config.context?.resolve?.(result);
         if (typeof config._onPlaced === "function") {
             try { config._onPlaced(result, crosshair, ...extraArgs); } catch (e) {}
@@ -494,23 +470,6 @@ export function resolveCrosshairPlacement(crosshair, config = {}, ...extraArgs) 
     }
 
     const result = crosshairAdapter.formatPlacementCoordinates(x, y, typeof direction === "number" ? direction : 0, config);
-
-    log.debug("resolveCrosshairPlacement | [Square Lifecycle 3/5] After left click location of Sequencer animation shape:", {
-        rawClick: { clickX, clickY },
-        snapped: { x, y },
-        direction,
-        sequencerPosition: crosshair ? { x: crosshair.x, y: crosshair.y, direction: crosshair.direction } : null,
-        formattedResult: result,
-        activeDimensions: globalThis._activeBBCDimensions
-    });
-
-    console.log("%cBBC DIAGNOSTIC | resolveCrosshairPlacement Result:", "background: #7b2cbf; color: #fff; padding: 2px 4px; border-radius: 2px;", {
-        rawClick: { clickX, clickY },
-        snapped: { x, y },
-        direction,
-        formattedResult: result,
-        activeDimensions: globalThis._activeBBCDimensions
-    });
 
     config.context?.resolve?.(result);
     if (typeof config._onPlaced === "function") {

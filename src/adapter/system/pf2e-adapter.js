@@ -112,18 +112,6 @@ export class Pf2eSystemAdapter extends BaseSystemAdapter {
                     else if (stillPending.coords.radius !== undefined) createData.distance = stillPending.coords.radius;
                 }
 
-                const proto = placeable ? Object.getPrototypeOf(placeable) : null;
-                const parentProto = proto ? Object.getPrototypeOf(proto) : null;
-                log.debug(`Pf2eSystemAdapter.handleProgrammaticPlacement | [PF2E DIAGNOSTIC DUMP] Prototype & Data for ${docName}:`, {
-                    placeableClass: placeable?.constructor?.name,
-                    placeableProtoMethods: proto ? Object.getOwnPropertyNames(proto) : [],
-                    placeableParentMethods: parentProto ? Object.getOwnPropertyNames(parentProto) : [],
-                    docObject: doc.toObject(),
-                    docFlags: doc.flags,
-                    createData,
-                    resolvedCoords: stillPending.coords
-                });
-
                 try {
                     await scene.createEmbeddedDocuments(docName, [createData]);
                 } catch (err) {
