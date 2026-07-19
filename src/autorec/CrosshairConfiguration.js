@@ -114,7 +114,7 @@ export class CrosshairConfiguration {
             const stickToTokenVal = String(customSource.stickToToken ?? "default");
             merged.stickToToken = stickToTokenVal !== "default" ? stickToTokenVal : this.stickToToken;
 
-            merged.showLine = Boolean(customSource.showLine);
+            merged.showLine = Boolean(customSource.showLine ?? DEFAULT_AUTOREC_ENTRY.showLine);
             merged.lineFile = customSource.lineFile ?? DEFAULT_AUTOREC_ENTRY.lineFile;
             merged.borderColor = customSource.borderColor ?? DEFAULT_AUTOREC_ENTRY.borderColor;
             merged.borderAlpha = customSource.borderAlpha ?? DEFAULT_AUTOREC_ENTRY.borderAlpha;

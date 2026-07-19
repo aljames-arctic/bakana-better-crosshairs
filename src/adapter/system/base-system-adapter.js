@@ -65,11 +65,11 @@ export class BaseSystemAdapter {
 
         return {
             item: itemObj,
-            itemName: baseContext?.itemName ?? itemObj?.name ?? "",
-            itemId: baseContext?.itemId ?? itemObj?.id ?? "",
+            itemName: itemObj?.name ?? baseContext?.itemName ?? "",
+            itemId: itemObj?.id ?? baseContext?.itemId ?? "",
             activity: activityObj,
-            activityName: baseContext?.activityName ?? activityObj?.name ?? "",
-            activityId: baseContext?.activityId ?? activityObj?.id ?? ""
+            activityName: activityObj?.name ?? baseContext?.activityName ?? "",
+            activityId: activityObj?.id ?? baseContext?.activityId ?? ""
         };
     }
 

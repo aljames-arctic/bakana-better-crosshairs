@@ -464,7 +464,7 @@ export class BaseCrosshairShape {
             alignCrosshairAndEffects(this.sequencerCrosshair, this.config, rad);
         }
 
-        const doc = this.doc ?? this.placeable?.document ?? (this.placeable?.documentName ? this.placeable : null);
+        const doc = this.doc;
         if (doc) {
             doc.direction = newAngleDeg;
             if (typeof doc.updateSource === "function") {
@@ -499,7 +499,7 @@ export class BaseCrosshairShape {
      * Refresh the template rendering highlights and update preview shape coordinates.
      */
     refreshTemplateHighlights() {
-        const doc = this.doc ?? this.placeable?.document ?? (this.placeable?.documentName ? this.placeable : null);
+        const doc = this.doc;
         if (doc) {
             const dims = this.placeable?._bbcDimensions ?? doc._bbcDimensions ?? globalThis._activeBBCDimensions;
             const docProps = crosshairAdapter.detectProperties(doc);

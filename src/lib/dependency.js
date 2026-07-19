@@ -12,18 +12,13 @@ import { localize } from "./utils.js";
 function _isAscending(min, version, max) {
     if ((Boolean(min) || Boolean(max)) && !version) return false;
     let isValidVersion = true;
-    if (min) isValidVersion = isValidVersion && !foundry.utils.isNewerVersion(min, version);
-    if (max) isValidVersion = isValidVersion && !foundry.utils.isNewerVersion(version, max);
+    const isNewer = foundry?.utils?.isNewerVersion;
+    if (!isNewer) return false;
+    if (min) isValidVersion = isValidVersion && !isNewer(min, version);
+    if (max) isValidVersion = isValidVersion && !isNewer(version, max);
     return Boolean(isValidVersion);
 }
 
-/**
- * Retrieves the dependency entity from game modules or global scope.
- * @param {object} dependency - The dependency object to look up.
- * @param {string} dependency.id - The identifier of the dependency.
- * @returns {object|undefined} The module, global entity, or game object if found.
- * @private
- */
 /**
  * Retrieves the dependency entity from game modules or global scope.
  * @param {object} dependency - The dependency object to look up.

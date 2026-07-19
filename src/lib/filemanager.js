@@ -26,7 +26,7 @@ function bestFit(modulePrefix, ...categories) {
      * @returns {boolean} True if the component is enclosed in mustache braces, false otherwise.
      */
     function isMustache(component) {
-        return Boolean(component.startsWith('{{') && component.endsWith('}}'));
+        return typeof component === 'string' && component.startsWith('{{') && component.endsWith('}}');
     }
 
     // Traverse the categories that the user has provided
