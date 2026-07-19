@@ -1187,3 +1187,37 @@ test('REGRESSION: Pf2eSystemAdapter and Dnd5eSystemAdapter expose refreshTemplat
     });
 });
 
+test('REGRESSION: FoundryVTTV13Adapter preserves cone template type (t) and angle across detection, formatting, and placement updates', () => {
+    const adapterV13 = new FoundryVTTV13Adapter();
+
+    // 1. Detection
+    const coneDoc = { t: 'cone', distance: 15, angle: 53.13, x: 10, y: 20 };
+    const detected = adapterV13.detectProperties(coneDoc);
+    assert.equal(detected.type, 'cone');
+    assert.equal(detected.t, 'cone');
+    assert.equal(detected.angle, 53.13);
+
+    // 2. Formatting
+    const formatted = adapterV13.formatPlacementCoordinates(100, 200, 45, { ...detected, type: 'cone' });
+    assert.equal(formatted.t, 'cone');
+    assert.equal(formatted.type, 'cone');
+    assert.equal(formatted.angle, 53.13);
+
+    // 3. Document Placement Update
+    let updatedPayload = null;
+    const targetDoc = {
+        t: 'cone',
+        angle: 53.13,
+        updateSource: (data) => { updatedPayload = data; }
+    };
+
+    adapterV13.applyDocumentPlacement(targetDoc, formatted, { itemName: 'Burning Hands' });
+    assert.ok(updatedPayload);
+    assert.equal(updatedPayload.t, 'cone', 't must be cone and not fall back to circle');
+    assert.equal(updatedPayload.angle, 53.13, 'angle must be preserved');
+    assert.equal(updatedPayload.x, 100);
+    assert.equal(updatedPayload.y, 200);
+    assert.equal(updatedPayload.direction, 45);
+});
+
+

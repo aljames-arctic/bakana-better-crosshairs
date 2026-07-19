@@ -147,6 +147,7 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         }
         return {
             type: shapeMap[targetDoc.t] ?? "circle",
+            t: targetDoc.t ?? "circle",
             distance,
             radius: distance,
             width,
@@ -165,7 +166,16 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
      * @returns {{x: number, y: number, direction: number, distance: number|undefined, width: number|undefined}} Formatted placement coordinates payload
      */
     formatPlacementCoordinates(x, y, direction, config = {}) {
-        const isSquareOrRect = config.originalType === "square" || config.type === "square" || config.type === "rect" || config.t === "rect" || config.t === "square";
+        const shapeTypeMap = {
+            circle: "circle",
+            cone: "cone",
+            ray: "ray",
+            rect: "rect",
+            square: "rect"
+        };
+        const rawType = config.originalType ?? config.type ?? config.t;
+        const resolvedT = shapeTypeMap[rawType] ?? config.t ?? "circle";
+        const isSquareOrRect = resolvedT === "rect";
         const stickVal = config.stickToToken ?? config.sticky;
         const isSticky = Boolean(stickVal && stickVal !== "none" && stickVal !== "false" && config.token);
         return {
@@ -174,10 +184,11 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             direction,
             distance: config.distance,
             width: config.width,
+            angle: config.angle,
             sticky: isSticky,
-            type: isSquareOrRect ? "square" : (config.originalType ?? config.type),
+            type: isSquareOrRect ? "square" : (config.originalType ?? config.type ?? "circle"),
             originalType: config.originalType,
-            t: isSquareOrRect ? "rect" : config.t
+            t: resolvedT
         };
     }
 
@@ -208,8 +219,10 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             const h = coords.distance ?? coords.width ?? w;
             targetDoc.distance = Math.round(Math.sqrt(w * w + h * h) * 100) / 100;
             targetDoc.width = w;
-        } else if (coords.distance !== undefined) {
-            targetDoc.distance = coords.distance;
+        } else {
+            if (coords.t !== undefined) targetDoc.t = coords.t;
+            if (coords.distance !== undefined) targetDoc.distance = coords.distance;
+            if (coords.angle !== undefined) targetDoc.angle = coords.angle;
         }
     }
 
@@ -236,6 +249,11 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             const h = coords.distance ?? coords.width ?? config.distance ?? config.width ?? w;
             updateData.distance = Math.round(Math.sqrt(w * w + h * h) * 100) / 100;
             updateData.width = w;
+        } else {
+            if (coords.t !== undefined) updateData.t = coords.t;
+            else if (config.t !== undefined) updateData.t = config.t;
+            if (coords.angle !== undefined) updateData.angle = coords.angle;
+            else if (config.angle !== undefined) updateData.angle = config.angle;
         }
 
         if (styling.placedFillColor !== undefined && styling.placedFillColor !== null) updateData.fillColor = styling.placedFillColor;
@@ -276,6 +294,9 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         else if (coords.rotation !== undefined) data.direction = coords.rotation;
         if (coords.distance !== undefined) data.distance = coords.distance;
         else if (coords.radius !== undefined) data.distance = coords.radius;
+        if (coords.t !== undefined) data.t = coords.t;
+        if (coords.angle !== undefined) data.angle = coords.angle;
+        if (coords.width !== undefined) data.width = coords.width;
     }
 
     /**
