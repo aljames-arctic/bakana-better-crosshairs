@@ -311,10 +311,11 @@ export function attachWheelRotation(shape, config = {}) {
     const crosshair = isShapeInstance ? shape.sequencerCrosshair : shape;
 
     const shapeType = config.type ?? config.t ?? shape?.type ?? "circle";
+    const canRotate = crosshairAdapter.supportsShapeRotation(shapeType);
     const isAttached = shouldStickToToken(config, shapeType) && Boolean(config.token);
     config.currentDirection = config.currentDirection ?? config.direction ?? 0;
 
-    if (!isAttached) {
+    if (!isAttached && canRotate) {
         activeWheelHandler = (event) => {
             const requiresCtrl = systemAdapter.requiresWheelModifier();
             if (requiresCtrl && !event.ctrlKey) return;

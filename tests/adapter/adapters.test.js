@@ -1261,5 +1261,17 @@ test('REGRESSION: FoundryVTTV13Adapter normalizes rect diagonal distance and cal
     assert.equal(squareFormatted.t, 'rect');
 });
 
+test('REGRESSION: supportsShapeRotation accurately distinguishes shape rotation capabilities in V13 vs V14', () => {
+    const adapterV13 = new FoundryVTTV13Adapter();
+    const adapterV14 = new FoundryVTTV14Adapter();
+
+    assert.equal(adapterV13.supportsShapeRotation('rect'), false, 'V13 MeasuredTemplate rect cannot rotate');
+    assert.equal(adapterV13.supportsShapeRotation('square'), false, 'V13 MeasuredTemplate square cannot rotate');
+    assert.equal(adapterV13.supportsShapeRotation('cone'), true, 'V13 MeasuredTemplate cone can rotate');
+
+    assert.equal(adapterV14.supportsShapeRotation('rect'), true, 'V14 Region rect can rotate');
+    assert.equal(adapterV14.supportsShapeRotation('square'), true, 'V14 Region square can rotate');
+});
+
 
 

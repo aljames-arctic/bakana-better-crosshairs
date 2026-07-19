@@ -55,6 +55,16 @@ export class BaseFoundryVTTAdapter {
     }
 
     /**
+     * Check whether the active Foundry version supports rotating a specific shape type.
+     * Defaults to true, overridden by version adapters (e.g. V13 MeasuredTemplate rects).
+     * @param {string} shapeType - The shape type identifier ("circle", "cone", "ray", "rect", "square")
+     * @returns {boolean} True if the shape type can be rotated in this Foundry version
+     */
+    supportsShapeRotation(shapeType) {
+        return true;
+    }
+
+    /**
      * Extract normalized calling item and activity context from a Foundry document.
      * Enforces single concrete Document input contract.
      * @param {Document} doc - The template or region document

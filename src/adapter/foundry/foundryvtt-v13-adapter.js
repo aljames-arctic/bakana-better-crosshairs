@@ -216,6 +216,19 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
     }
 
     /**
+     * Check whether Foundry V13 supports rotating a specific shape type.
+     * V13 MeasuredTemplate rects/squares cannot be rotated diagonally on canvas grid.
+     * @param {string} shapeType - The shape type identifier
+     * @returns {boolean} False for rect and square, true for circle, cone, ray
+     */
+    supportsShapeRotation(shapeType) {
+        if (shapeType === "rect" || shapeType === "square") {
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Return template pixel multiplier factor for V13 (legacy pixel sizing).
      * @returns {{factor: number, gridUnits: boolean}} Template pixel multiplier factor and gridUnits mode
      */

@@ -420,6 +420,10 @@ export class BaseCrosshairShape {
      * @param {boolean} [refresh=true] - Whether to trigger immediate template rendering refresh
      */
     rotate(newAngleDeg, refresh = true) {
+        if (!crosshairAdapter.supportsShapeRotation(this.type)) {
+            return;
+        }
+
         if (typeof newAngleDeg === "number" && Number.isFinite(newAngleDeg)) {
             while (newAngleDeg < 0) newAngleDeg += 360;
             newAngleDeg = newAngleDeg % 360;
