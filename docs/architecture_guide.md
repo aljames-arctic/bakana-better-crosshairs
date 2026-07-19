@@ -32,26 +32,36 @@ src/
 ├── adapter/
 │   ├── foundry/
 │   │   ├── base-foundryvtt-adapter.js     # Shared abstract Foundry context & lookup pipeline
-│   │   ├── foundryvtt-v12-adapter.js      # V12/V13 MeasuredTemplate adapter (pixel sizing)
+│   │   ├── foundryvtt-v13-adapter.js      # V12/V13 MeasuredTemplate adapter (pixel sizing)
 │   │   ├── foundryvtt-v14-adapter.js      # V14+ Region adapter (grid units & feet-to-pixel scaling)
 │   │   └── index.js                       # Auto-selects active Foundry version adapter
 │   └── system/
 │       ├── base-system-adapter.js         # Generic system fallback adapter
 │       ├── dnd5e-adapter.js               # D&D 5e v3/v4 activity & flag extraction
+│       ├── pf2e-adapter.js                # PF2e action/strike & deferred placement adapter
 │       └── index.js                       # Auto-selects active system adapter
 ├── autorec/
+│   ├── BaseCrosshairMenuApplication.js    # Abstract ApplicationV2 base menu component
+│   ├── CrosshairConfiguration.js          # Canonical crosshair configuration schema & model
 │   ├── autorecManager.js                  # Stores and retrieves prioritized Autorec rules
-│   └── autorecMenu.js                     # ApplicationV2 UI for Autorec rules
+│   ├── autorecMenu.js                     # ApplicationV2 UI for Autorec rules
+│   └── itemConfigMenu.js                  # ApplicationV2 UI for per-item configuration
 ├── crosshair/
+│   ├── base.js                            # BaseCrosshairShape template method class
 │   ├── circle.js                          # Circle crosshair Sequencer builder
 │   ├── cone.js                            # Cone crosshair Sequencer builder
+│   ├── index.js                           # Public crosshair shape factory & barrel exports
 │   ├── ray.js                             # Ray crosshair Sequencer builder
 │   ├── square.js                          # Square/Rect crosshair Sequencer builder
 │   └── util.js                            # Placement resolvers & precision mousewheel hooks
 ├── lib/
 │   ├── compat.js                          # Safe Foundry version compatibility wrappers
+│   ├── constants.js                       # Shared module constants
+│   ├── dependency.js                      # Module dependency validation engine
 │   ├── filemanager.js                     # Sequencer database path/asset resolution
-│   └── logger.js                          # Structured logging system
+│   ├── logger.js                          # Structured logging system
+│   ├── notifier.js                        # UI notification batcher
+│   └── utils.js                           # Localization and version helper utilities
 └── module.js                              # Main entrypoint & hook registration
 ```
 
@@ -86,6 +96,7 @@ Modules and systems without native support can programmatically interact with it
 Located in [`src/adapter/system/`](../src/adapter/system/), system adapters determine whether a candidate Autorec entry matches the calling context:
 - **`BaseSystemAdapter`**: Checks generic `itemName` / `itemId` equality against registered rules.
 - **`Dnd5eSystemAdapter`**: Resolves D&D 5e origin UUIDs (`flags.dnd5e.origin`), extracts v4 Activity objects (`item.system.activities`), and matches both `activityId` and `activityName` case-insensitively.
+- **`Pf2eSystemAdapter`**: Resolves Pathfinder 2e actions/strikes, handles single-click programmatic template creation deferrals, and extracts PF2e item context cleanly.
 
 ---
 

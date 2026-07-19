@@ -68,7 +68,7 @@ src/adapter/foundry/base-foundryvtt-adapter.js
 ├── handleDrawPreview(placeable)
 │   ├── autorecManager.getEntryForDocument(doc)
 │   ├── crosshairAdapter.hidePreview(placeable)
-│   └── crosshairModule.play(token, handlerConfig)
+│   └── crosshair.play(token, handlerConfig)
 ├── handlePreCreate(doc, _data, _options, userId)
 │   └── crosshairAdapter.applyDocumentPlacement(doc, coords, config)
 ├── handleCreateDocument(doc, _options, userId)
@@ -78,9 +78,9 @@ src/adapter/foundry/base-foundryvtt-adapter.js
     ├── Sort candidate entries: activity rules first, item fallback last
     └── systemAdapter.isMatch(context, entry)
 
-src/adapter/foundry/foundryvtt-v12-adapter.js
-├── formatDocumentUpdate(doc, coords, config) # Legacy MeasuredTemplate update
-└── getTemplatePixelFactor()                  # Returns { factor: 1, gridUnits: false }
+src/adapter/foundry/foundryvtt-v13-adapter.js
+├── formatPlacementCoordinates(x, y, dir, config) # MeasuredTemplate placement payload
+└── getTemplatePixelFactor()                      # Returns { factor: 1, gridUnits: false }
 
 src/adapter/foundry/foundryvtt-v14-adapter.js
 ├── formatDocumentUpdate(doc, coords, config) # V14 Region shape update
@@ -94,6 +94,11 @@ src/adapter/system/dnd5e-adapter.js
 └── shouldReplace(context, entry)
     ├── Match Item Name or Item UUID
     └── Match Activity Name or Activity UUID (case-insensitive)
+
+src/crosshair/index.js
+├── normalizePlayArguments(typeOrToken, tokenOrConfig, config)
+└── play(typeOrToken, tokenOrConfig, config)
+    └── Builder dispatch: circle, cone, ray, square
 
 src/crosshair/util.js
 ├── attachWheelRotation(crosshair, config)
