@@ -69,13 +69,8 @@ function bestFit(modulePrefix, ...categories) {
     }
 
     if (diverged) {
-        const isNumericDivergence = /\b(?:radius|size)_\d+/i.test(originalPath);
         const msg = `Filemanager closest path diverged from requested path. Requested: ${originalPath} -> Resolved as: ${currentPath} (available: ${divergenceOptions})`;
-        if (isNumericDivergence) {
-            log.debug(msg);
-        } else {
-            log.warn(msg);
-        }
+        log.warn(msg);
     }
     return currentPath;
 }
