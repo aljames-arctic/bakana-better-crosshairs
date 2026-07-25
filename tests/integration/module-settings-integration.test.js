@@ -38,14 +38,15 @@ test('socketlib emit, on, and off enforce strict input contracts', () => {
     assert.strictEqual(emitted, null);
 });
 
-test('setupApiCalls safely merges API functions into globalThis.bbc', () => {
+test('setupApiCalls safely merges API functions into game.modules.get(MODULE_ID).api', () => {
     setupApiCalls(null);
     setupApiCalls("invalid");
 
     const testApi = { testFn: () => 'hello' };
     setupApiCalls(testApi);
-    assert.strictEqual(typeof globalThis.bbc.testFn, 'function');
-    assert.strictEqual(globalThis.bbc.testFn(), 'hello');
+    const modApi = game.modules.get(MODULE_ID).api;
+    assert.strictEqual(typeof modApi.testFn, 'function');
+    assert.strictEqual(modApi.testFn(), 'hello');
 });
 
 test('registerModuleSettings registers menus and settings with safe onChange handlers', () => {

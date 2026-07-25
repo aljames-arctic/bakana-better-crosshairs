@@ -114,8 +114,6 @@ globalThis.CONST = {
     }
 };
 
-globalThis.bbc = {};
-
 const settingsStore = new Map([
     ['bakana-better-crosshairs.logVerbosity', 3],
     ['bakana-better-crosshairs.registeredTemplates', {}]

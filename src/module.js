@@ -16,10 +16,10 @@ import { MODULE_ID, MODULE_NAME } from './lib/constants.js';
  */
 export function setupApiCalls(exportedFunctions) {
     if (!exportedFunctions || typeof exportedFunctions !== "object") return;
-    globalThis.bbc = foundry.utils.mergeObject(
-        globalThis.bbc ?? {},
-        exportedFunctions
-    );
+    const mod = game?.modules?.get(MODULE_ID);
+    if (mod) {
+        mod.api = foundry.utils.mergeObject(mod.api ?? {}, exportedFunctions);
+    }
 }
 
 /**
