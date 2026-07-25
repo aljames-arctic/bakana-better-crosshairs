@@ -324,6 +324,96 @@ export class BaseCrosshairShape {
         }
         await this.playGraphicEffect(crosshair);
         alignCrosshairAndEffects(crosshair, this.config, this.direction * (Math.PI / 180));
+        this._updateRangeText();
+    }
+
+    /**
+     * Helper to destroy and detach live range text overlay if present.
+     * @protected
+     * @returns {void}
+     */
+    _destroyRangeText() {
+        if (this._rangeText) {
+            try {
+                if (typeof this._rangeText.destroy === "function") {
+                    this._rangeText.destroy({ children: true });
+                }
+            } catch (e) {}
+            this._rangeText = null;
+        }
+    }
+
+    /**
+     * Helper to update live grid distance measurement text beneath the reticle.
+     * @protected
+     * @returns {void}
+     */
+    _updateRangeText() {
+        if (this.stickToToken || !this.token || this.config.showRange === false || !this.sequencerCrosshair) {
+            if (this._rangeText) this._rangeText.visible = false;
+            return;
+        }
+        const origin = this.token.center ?? { x: this.token.x ?? 0, y: this.token.y ?? 0 };
+        const target = { x: this.x, y: this.y };
+        let distance = 0;
+        try {
+            if (canvas?.grid && typeof canvas.grid.measurePath === "function") {
+                const measured = canvas.grid.measurePath([origin, target]);
+                distance = measured?.distance ?? 0;
+            } else if (canvas?.grid && typeof canvas.grid.measureDistance === "function") {
+                distance = Math.round(canvas.grid.measureDistance(origin, target) * 10) / 10;
+            } else if (canvas?.dimensions) {
+                const distPx = Math.hypot(target.x - origin.x, target.y - origin.y);
+                const gridDist = canvas.dimensions.distance ?? 5;
+                const gridSize = canvas.dimensions.size ?? 100;
+                distance = Math.round((distPx / gridSize) * gridDist);
+            }
+        } catch (e) {
+            const distPx = Math.hypot(target.x - origin.x, target.y - origin.y);
+            const gridDist = canvas?.dimensions?.distance ?? 5;
+            const gridSize = canvas?.dimensions?.size ?? 100;
+            distance = Math.round((distPx / gridSize) * gridDist);
+        }
+
+        const units = canvas?.grid?.units || canvas?.dimensions?.units || "ft";
+        const labelStr = `${distance} ${units}`;
+
+        if (!this._rangeText) {
+            const TextClass = globalThis.foundry?.canvas?.containers?.PreciseText ?? globalThis.PreciseText ?? globalThis.PIXI?.Text;
+            if (!TextClass) return;
+            const baseStyle = globalThis.CONFIG?.canvasTextStyle ? globalThis.CONFIG.canvasTextStyle.clone() : {};
+            const style = {
+                fontFamily: baseStyle.fontFamily ?? "Signika, sans-serif",
+                fontSize: 18,
+                fill: "#ffffff",
+                stroke: "#000000",
+                strokeThickness: 4,
+                dropShadow: true,
+                dropShadowColor: "#000000",
+                dropShadowBlur: 2,
+                align: "center"
+            };
+            try {
+                this._rangeText = new TextClass(labelStr, style);
+                if (this._rangeText.anchor && typeof this._rangeText.anchor.set === "function") {
+                    this._rangeText.anchor.set(0.5, 0);
+                }
+                if (typeof this.sequencerCrosshair.addChild === "function") {
+                    this.sequencerCrosshair.addChild(this._rangeText);
+                }
+            } catch (e) {
+                log.debug("BaseCrosshairShape._updateRangeText | Could not create range text element:", e);
+                return;
+            }
+        }
+
+        this._rangeText.text = labelStr;
+        this._rangeText.visible = true;
+        const { heightPx } = this.getGraphicDimensions();
+        const offsetY = (heightPx / 2) + 12;
+        if (this._rangeText.position && typeof this._rangeText.position.set === "function") {
+            this._rangeText.position.set(0, offsetY);
+        }
     }
 
     /**
@@ -333,6 +423,7 @@ export class BaseCrosshairShape {
      * @returns {Promise<void>}
      */
     async onPlacedCallback(crosshair, ...extraArgs) {
+        this._destroyRangeText();
         Sequencer.EffectManager.endEffects({ name: this.id });
         resolveCrosshairPlacement(this, this.config, ...extraArgs);
     }
@@ -342,6 +433,7 @@ export class BaseCrosshairShape {
      * @returns {void}
      */
     onCancelCallback() {
+        this._destroyRangeText();
         detachWheelRotation();
         Sequencer.EffectManager.endEffects({ name: this.id });
         if (this.context && typeof this.context.cancel === "function") {
@@ -414,6 +506,7 @@ export class BaseCrosshairShape {
             this.sequencerCrosshair.y = targetY;
         }
 
+        this._updateRangeText();
         this.refreshTemplateHighlights();
     }
 
