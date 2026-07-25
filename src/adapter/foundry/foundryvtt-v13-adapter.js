@@ -425,10 +425,8 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             if (typeof doc?.updateSource === "function") {
                 doc.updateSource({ direction });
             }
-            doc._shape = null;
             if (doc.shape?.clear) doc.shape.clear();
         }
-        tmpl._shape = null;
         if (tmpl.shape?.clear) tmpl.shape.clear();
 
         if (tmpl.ray && Ray) {
@@ -439,12 +437,12 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
 
         this._safeSetRenderFlags(tmpl, {
             refreshTemplate: true,
+            refreshShape: true,
             refreshGrid: true,
             refreshState: true,
             refresh: true
         });
         if (typeof tmpl.applyRenderFlags === "function") tmpl.applyRenderFlags();
-        if (typeof tmpl._refreshShape === "function") tmpl._refreshShape();
         if (typeof tmpl.highlightGrid === "function") tmpl.highlightGrid();
 
         this.hidePreview(tmpl);

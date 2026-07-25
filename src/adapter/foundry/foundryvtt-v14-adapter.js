@@ -250,7 +250,6 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             const updatedShape = this._formatRegionShapeUpdate(orig, coords);
             delete updatedShape._id;
             delete updatedShape.id;
-            delete updatedShape._source;
             try {
                 targetDoc.updateSource({ shapes: [updatedShape] }); 
             } catch (e) {
@@ -315,7 +314,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         const docName = targetDoc.documentName ?? (targetDoc.shapes ? "Region" : "MeasuredTemplate");
         if (docName === "Region") {
             const shapesList = this._getShapesArray(targetDoc);
-            const originalShape = shapesList[0] ?? targetDoc._source?.shapes?.[0] ?? data?.shapes?.[0] ?? { type: "rectangle" };
+            const originalShape = shapesList[0] ?? (typeof targetDoc.toObject === "function" ? targetDoc.toObject().shapes?.[0] : null) ?? data?.shapes?.[0] ?? { type: "rectangle" };
             if (originalShape) {
                 const updateData = {
                     flags: styling.flags
@@ -453,8 +452,8 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
     _formatRegionShapeUpdate(originalShape, coords) {
         // Deep clone shape payload as a plain object to prevent mutating caller or carrying stale _source references
         const raw = typeof originalShape?.toObject === "function" ? originalShape.toObject() : (originalShape ?? {});
-        const shape = foundry.utils.deepClone(raw);
-        delete shape._source;
+        const { _source, ...cleanRaw } = raw;
+        const shape = foundry.utils.deepClone(cleanRaw);
 
         const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
         const isGridUnits = Boolean(coords.gridUnits ?? true);
@@ -517,7 +516,6 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 shape.width = isGridUnits ? Math.round(coords.width * pxPerFoot) : coords.width;
             }
         }
-        delete shape._source;
         return shape;
     }
 
@@ -547,7 +545,6 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 const newShape = this._formatRegionShapeUpdate(origShape, coords);
                 delete newShape._id;
                 delete newShape.id;
-                delete newShape._source;
                 data.shapes = [newShape];
             }
         } else {
@@ -584,7 +581,6 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             });
             if (typeof tmpl.applyRenderFlags === "function") tmpl.applyRenderFlags();
             if (typeof tmpl.highlightGrid === "function") tmpl.highlightGrid();
-            if (typeof tmpl._refreshShape === "function") tmpl._refreshShape();
             this.hidePreview(tmpl);
             return;
         }
@@ -597,20 +593,17 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         if (typeof doc?.updateSource === "function") {
             doc.updateSource({ direction });
         }
-        doc._shape = null;
         if (doc.shape?.clear) doc.shape.clear();
-
-        tmpl._shape = null;
         if (tmpl.shape?.clear) tmpl.shape.clear();
 
         this._safeSetRenderFlags(tmpl, {
             refreshTemplate: true,
+            refreshShape: true,
             refreshGrid: true,
             refreshState: true,
             refresh: true
         });
         if (typeof tmpl.applyRenderFlags === "function") tmpl.applyRenderFlags();
-        if (typeof tmpl._refreshShape === "function") tmpl._refreshShape();
         if (typeof tmpl.highlightGrid === "function") tmpl.highlightGrid();
 
         this.hidePreview(tmpl);

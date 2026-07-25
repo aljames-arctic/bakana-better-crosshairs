@@ -9,7 +9,9 @@ let pendingPointerRaf = null;
 export const activePlacementTracker = {
     placeable: null,
     dimensions: null,
-    crosshair: null
+    crosshair: null,
+    config: null,
+    sticky: false
 };
 
 /**
@@ -158,18 +160,18 @@ function refreshTemplateHighlights(tmpl, newDirDeg, rad, wheelEvent = null) {
 
     const doc = tmpl.document ?? (tmpl.documentName ? tmpl : null);
     if (doc) {
-        const dims = tmpl._bbcDimensions ?? doc._bbcDimensions ?? activePlacementTracker.dimensions;
+        const dims = tmpl.dimensions ?? doc.dimensions ?? activePlacementTracker.dimensions;
         const docProps = crosshairAdapter.detectProperties(doc);
         const initialDist = dims?.distance ?? docProps.distance;
         const initialWidth = dims?.width ?? docProps.width;
         const isGridUnits = dims?.gridUnits ?? true;
 
-        const cfg = tmpl._bbcConfig ?? doc._bbcConfig ?? {};
+        const cfg = tmpl.config ?? doc.config ?? activePlacementTracker.config ?? {};
         const shapeType = cfg.type ?? cfg.originalType ?? docProps.type ?? "circle";
-        const isSticky = shouldStickToToken(cfg, shapeType) && Boolean(cfg.token ?? doc.flags?.bbc?.token ?? doc.flags?.bakana?.token ?? tmpl._bbcSticky);
+        const isSticky = shouldStickToToken(cfg, shapeType) && Boolean(cfg.token ?? doc.flags?.bbc?.token ?? doc.flags?.bakana?.token ?? activePlacementTracker.sticky);
         let targetX = 0, targetY = 0;
 
-        const visual = tmpl._bbcCrosshair ?? activePlacementTracker.crosshair;
+        const visual = tmpl.crosshair ?? activePlacementTracker.crosshair;
         if (isSticky && cfg.token && visual && Number.isFinite(visual.x) && Number.isFinite(visual.y)) {
             targetX = visual.x;
             targetY = visual.y;
@@ -271,22 +273,15 @@ function rotateCrosshairInstance(crosshair, newDirDeg, config = {}) {
     }
     const tmpl = crosshair.template;
     if (tmpl) {
-        tmpl._bbcCrosshair = crosshair;
+        activePlacementTracker.crosshair = crosshair;
         refreshTemplateHighlights(tmpl, newDirDeg, rad);
     }
 
     const isRayOrCone = shapeType === "ray" || shapeType === "cone";
 
     if (!isRayOrCone) {
-        if (crosshair.refresh) {
+        if (typeof crosshair.refresh === "function") {
             crosshair.refresh();
-        }
-        if (crosshair._onMouseMove && canvas?.mousePosition) {
-            crosshair._onMouseMove({
-                data: { getLocalPosition: () => canvas.mousePosition },
-                clientX: canvas.mousePosition.x,
-                clientY: canvas.mousePosition.y
-            });
         }
     }
 }
@@ -413,13 +408,6 @@ export function alignCrosshairAndEffects(crosshair, config = {}, rad = 0) {
                             eff.container.pivot.set(0, 0);
                             if (eff.sprite) eff.sprite.position.set(0, 0);
                             if (eff.spriteContainer) eff.spriteContainer.position.set(0, 0);
-                            if (typeof eff._updatePivot === "function") {
-                                eff._updatePivot = () => {
-                                    if (eff.container) eff.container.pivot.set(0, 0);
-                                    if (eff.sprite) eff.sprite.position.set(0, 0);
-                                    if (eff.spriteContainer) eff.spriteContainer.position.set(0, 0);
-                                };
-                            }
                         }
                     }
                     if (eff.container && typeof eff.container.rotation !== "undefined") {
@@ -499,7 +487,7 @@ export function resolveCrosshairPlacement(crosshair, config = {}, ...extraArgs) 
             } else if (arg.ray && typeof arg.ray.angle === "number" && direction === undefined) {
                 direction = arg.ray.angle * (180 / Math.PI);
             } else if (direction === undefined) {
-                const rot = arg.rotation ?? arg.data?.rotation ?? arg._rotation;
+                const rot = arg.rotation ?? arg.data?.rotation ?? arg.direction;
                 if (typeof rot === "number") {
                     direction = (Math.abs(rot) <= Math.PI * 2 && rot !== 0) ? (rot * (180 / Math.PI)) : rot;
                 }

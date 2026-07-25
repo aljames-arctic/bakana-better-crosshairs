@@ -20,7 +20,7 @@ export class BaseCrosshairShape {
         // Entry-boundary normalization for target document and placeable
         const doc = placeable?.document ?? (placeable?.documentName ? placeable : null);
         this.doc = doc;
-        const flagsToken = doc?.flags?.bbc?.token ?? doc?.flags?.bakana?.token ?? placeable?._bbcSticky;
+        const flagsToken = doc?.flags?.bbc?.token ?? doc?.flags?.bakana?.token ?? activePlacementTracker.sticky;
         const rawToken = config.token ?? flagsToken;
         this.token = crosshairAdapter.toToken(rawToken);
 
@@ -563,7 +563,7 @@ export class BaseCrosshairShape {
             this.config.rotation = rad;
         }
 
-        if (this.sequencerCrosshair && !this.sequencerCrosshair._destroyed) {
+        if (this.sequencerCrosshair && !this.sequencerCrosshair.destroyed) {
             const isRect = this.type === "rect" || this.type === "square";
             const isAttached = Boolean(this.stickToToken && this.token);
             if (!isAttached) {
@@ -612,13 +612,6 @@ export class BaseCrosshairShape {
                 if (typeof this.sequencerCrosshair.refresh === "function") {
                     this.sequencerCrosshair.refresh();
                 }
-                if (typeof this.sequencerCrosshair._onMouseMove === "function" && canvas?.mousePosition) {
-                    this.sequencerCrosshair._onMouseMove({
-                        data: { getLocalPosition: () => canvas.mousePosition },
-                        clientX: canvas.mousePosition.x,
-                        clientY: canvas.mousePosition.y
-                    });
-                }
             }
         }
     }
@@ -629,7 +622,7 @@ export class BaseCrosshairShape {
     refreshTemplateHighlights() {
         const doc = this.doc;
         if (doc) {
-            const dims = this.placeable?._bbcDimensions ?? doc._bbcDimensions ?? activePlacementTracker.dimensions;
+            const dims = this.placeable?.dimensions ?? doc.dimensions ?? activePlacementTracker.dimensions;
             const docProps = crosshairAdapter.detectProperties(doc);
             const initialDist = dims?.distance ?? docProps.distance;
             const initialWidth = dims?.width ?? docProps.width;

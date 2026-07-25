@@ -525,7 +525,7 @@ export class BaseFoundryVTTAdapter {
                 }
                 if (dirty && typeof gfx.geometry.invalidate === "function") gfx.geometry.invalidate();
             }
-            const instructions = gfx.instructions ?? gfx.context?.instructions ?? gfx._instructions;
+            const instructions = gfx.instructions ?? gfx.context?.instructions;
             if (Array.isArray(instructions)) {
                 for (const inst of instructions) {
                     if (!inst) continue;
@@ -612,10 +612,8 @@ export class BaseFoundryVTTAdapter {
      */
     async createDeferredDocument(scene, deferredData, coords, documentName, config = {}) {
         if (!scene || !deferredData || !coords) return;
-        const data = foundry.utils.deepClone(deferredData);
-        delete data._id;
-        delete data.id;
-        delete data._source;
+        const cloned = foundry.utils.deepClone(deferredData);
+        const { id, _id, _source, ...data } = cloned;
 
         const docName = this._getDeferredDocumentName(data, documentName);
         await this._applyDeferredCoordinates(data, coords, docName);
@@ -982,12 +980,8 @@ export class BaseFoundryVTTAdapter {
                 };
                 activePlacementTracker.dimensions = initialDims;
                 activePlacementTracker.placeable = placeable;
-                placeable._bbcDimensions = initialDims;
-                placeable._bbcConfig = finalConfig;
-                if (placeable.document) {
-                    placeable.document._bbcDimensions = initialDims;
-                    placeable.document._bbcConfig = finalConfig;
-                }
+                activePlacementTracker.config = finalConfig;
+                activePlacementTracker.sticky = Boolean(finalConfig.stickToToken);
 
                 await builder.play(placeable, finalConfig);
             }
