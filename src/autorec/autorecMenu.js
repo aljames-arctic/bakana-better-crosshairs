@@ -100,6 +100,8 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
             originLine: localize("BBC.autorecMenu.labels.originLine", "Origin Stretch Line"),
             showRange: localize("BBC.autorecMenu.labels.showRange", "Show Detached Distance"),
             showRangeLabel: localize("BBC.autorecMenu.labels.showRangeLabel", "Display live distance measurement at cursor"),
+            limitRange: localize("BBC.autorecMenu.labels.limitRange", "Limit Placement Range"),
+            limitRangeLabel: localize("BBC.autorecMenu.labels.limitRangeLabel", "Restrict crosshair placement within calling item's maximum range"),
             borderStyling: localize("BBC.autorecMenu.labels.borderStyling", "Border Styling (Tile Highlight)"),
             fillStyling: localize("BBC.autorecMenu.labels.fillStyling", "Fill Styling (Tile Highlight)"),
             customIcon: localize("BBC.autorecMenu.labels.customIcon", "Custom Cursor Icon"),

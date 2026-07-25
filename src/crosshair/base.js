@@ -266,7 +266,8 @@ export class BaseCrosshairShape {
             if (this.token && this.config.showRange !== false) {
                 locationOpts.showRange = true;
             }
-            const maxRange = this.config.maxRange ?? systemAdapter?.getItemMaxRange?.(this.config.item, this.config.activity);
+            const limitRangeEnabled = this.config.limitRange !== false;
+            const maxRange = limitRangeEnabled ? (this.config.maxRange ?? systemAdapter?.getItemMaxRange?.(this.config.item, this.config.activity)) : null;
             if (this.token && Number.isFinite(maxRange) && maxRange > 0) {
                 locationOpts.limitMaxRange = maxRange;
                 locationOpts.displayRangePoly = true;

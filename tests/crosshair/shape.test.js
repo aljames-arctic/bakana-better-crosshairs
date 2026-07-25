@@ -336,5 +336,35 @@ test('BaseCrosshairShape.create automatically passes limitMaxRange and displayRa
     assert.deepEqual(passedLocationOpts, { showRange: true, limitMaxRange: 120, displayRangePoly: true });
 });
 
+test('BaseCrosshairShape.create suppresses limitMaxRange when limitRange is false', async () => {
+    const { CircleCrosshairShape } = await import('../../src/crosshair/circle.js');
+    const mockDocument = { x: 0, y: 0 };
+    const mockPlaceable = { x: 0, y: 0, document: mockDocument };
+    const mockToken = { name: "Caster", center: { x: 50, y: 50 } };
+    const mockItem = { name: "Fireball", system: { range: { value: 120 } } };
+    const shape = new CircleCrosshairShape(mockPlaceable, { radius: 20, token: mockToken, stickToToken: false, item: mockItem, limitRange: false });
+
+    let passedLocationOpts = null;
+    const mockCrosshairBuilder = {
+        type() { return this; },
+        borderColor() { return this; },
+        fillColor() { return this; },
+        distance() { return this; },
+        snapPosition() { return this; },
+        icon() { return this; },
+        callback() { return this; },
+        location(obj, opts) {
+            passedLocationOpts = opts;
+            return this;
+        }
+    };
+    globalThis.Sequence = class {
+        crosshair() { return mockCrosshairBuilder; }
+    };
+
+    await shape.create();
+    assert.deepEqual(passedLocationOpts, { showRange: true });
+});
+
 
 
