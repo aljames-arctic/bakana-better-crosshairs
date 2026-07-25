@@ -396,7 +396,7 @@ export class BaseCrosshairShape {
             try {
                 this._rangeText = new TextClass(labelStr, style);
                 if (this._rangeText.anchor && typeof this._rangeText.anchor.set === "function") {
-                    this._rangeText.anchor.set(0.5, 0);
+                    this._rangeText.anchor.set(0.5, 1);
                 }
                 if (typeof this.sequencerCrosshair.addChild === "function") {
                     this.sequencerCrosshair.addChild(this._rangeText);
@@ -409,10 +409,8 @@ export class BaseCrosshairShape {
 
         this._rangeText.text = labelStr;
         this._rangeText.visible = true;
-        const { heightPx } = this.getGraphicDimensions();
-        const offsetY = (heightPx / 2) + 12;
         if (this._rangeText.position && typeof this._rangeText.position.set === "function") {
-            this._rangeText.position.set(0, offsetY);
+            this._rangeText.position.set(0, -20);
         }
     }
 
