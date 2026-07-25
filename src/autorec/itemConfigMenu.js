@@ -180,9 +180,9 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             icon: source.icon ?? "",
 
             placedFillColor: source.placedFillColor ?? "#000000",
-            placedFillAlpha: source.placedFillAlpha ?? 0,
+            placedFillAlpha: source.placedFillAlpha ?? 0.25,
             placedBorderColor: source.placedBorderColor ?? "#ffffff",
-            placedBorderAlpha: source.placedBorderAlpha ?? 0,
+            placedBorderAlpha: source.placedBorderAlpha ?? 0.25,
 
             postPlacementCode: (source.postPlacementCode ?? "").trim(),
 
@@ -202,9 +202,9 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             ),
             hasPlacedStyling: Boolean(
                 (source.placedFillColor && source.placedFillColor !== "#000000") ||
-                (source.placedFillAlpha !== undefined && source.placedFillAlpha !== 0) ||
+                (source.placedFillAlpha !== undefined && source.placedFillAlpha !== 0.25) ||
                 (source.placedBorderColor && source.placedBorderColor !== "#ffffff") ||
-                (source.placedBorderAlpha !== undefined && source.placedBorderAlpha !== 0)
+                (source.placedBorderAlpha !== undefined && source.placedBorderAlpha !== 0.25)
             )
         };
 
@@ -436,9 +436,9 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             fillColor: String(formData.get("fillColor") ?? "#000000").trim(),
             fillAlpha: parseFloat(String(formData.get("fillAlpha") ?? "0")),
             placedFillColor: String(formData.get("placedFillColor") ?? "").trim(),
-            placedFillAlpha: parseFloat(String(formData.get("placedFillAlpha") ?? "0")),
+            placedFillAlpha: parseFloat(String(formData.get("placedFillAlpha") ?? "0.25")),
             placedBorderColor: String(formData.get("placedBorderColor") ?? "").trim(),
-            placedBorderAlpha: parseFloat(String(formData.get("placedBorderAlpha") ?? "0")),
+            placedBorderAlpha: parseFloat(String(formData.get("placedBorderAlpha") ?? "0.25")),
             concurrentCode: String(formData.get("concurrentCode") ?? "").trim(),
             postPlacementCode: String(formData.get("postPlacementCode") ?? "").trim(),
             icon: String(formData.get("icon") ?? "").trim()

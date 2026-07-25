@@ -61,9 +61,9 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
             placedBorderColorPicker: normalizeHexColor(e.placedBorderColor, "#000000"),
             hasPlacedStyling: Boolean(
                 (e.placedFillColor && e.placedFillColor !== "#000000") ||
-                (e.placedFillAlpha !== undefined && e.placedFillAlpha !== 0) ||
+                (e.placedFillAlpha !== undefined && e.placedFillAlpha !== 0.25) ||
                 (e.placedBorderColor && e.placedBorderColor !== "#ffffff") ||
-                (e.placedBorderAlpha !== undefined && e.placedBorderAlpha !== 0)
+                (e.placedBorderAlpha !== undefined && e.placedBorderAlpha !== 0.25)
             )
         }));
 

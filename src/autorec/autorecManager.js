@@ -26,9 +26,9 @@ export const DEFAULT_AUTOREC_ENTRY = {
     squareFile: "eskie.crosshair.ray.fantasy_01.white",
     lineFile: "eskie.crosshair.line.generic_01.white",
     placedFillColor: "#000000",
-    placedFillAlpha: 0,
+    placedFillAlpha: 0.25,
     placedBorderColor: "#ffffff",
-    placedBorderAlpha: 0,
+    placedBorderAlpha: 0.25,
 
     enablePrePlacement: false,
     enableAnimation: false,
@@ -657,11 +657,11 @@ export class AutorecManager {
             const placedFillColor = config.placedFillColor ?? "#0099ff";
             const placedFillAlpha = config.placedFillAlpha ?? 0.25;
             const placedBorderColor = config.placedBorderColor ?? "#000000";
-            const placedBorderAlpha = config.placedBorderAlpha ?? 1;
+            const placedBorderAlpha = config.placedBorderAlpha ?? 0.25;
             const hasPlacedStyling = Boolean(config.placedFillColor)
                 || (config.placedFillAlpha !== undefined && config.placedFillAlpha !== 0.25)
                 || Boolean(config.placedBorderColor)
-                || (config.placedBorderAlpha !== undefined && config.placedBorderAlpha !== 1);
+                || (config.placedBorderAlpha !== undefined && config.placedBorderAlpha !== 0.25);
 
             const concurrentCode = (config.concurrentCode ?? "").trim();
             const postPlacementCode = (config.postPlacementCode ?? "").trim();
