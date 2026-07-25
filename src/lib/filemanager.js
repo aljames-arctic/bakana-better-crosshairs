@@ -11,13 +11,13 @@ import { localize } from './utils.js';
  * @returns {string} The best-fit path in the Sequencer database.
  */
 function bestFit(modulePrefix, ...categories) {
-    if (typeof globalThis.Sequencer === 'undefined' || !globalThis.Sequencer?.Database) {
+    if (typeof Sequencer === 'undefined' || !Sequencer?.Database) {
         return `${modulePrefix}.${categories.join('.')}`;
     }
     let diverged = false;
     let currentPath = modulePrefix;
     const originalPath = `${modulePrefix}.${categories.join('.')}`;
-    let remainingOptions = globalThis.Sequencer.Database.getPathsUnder(currentPath);
+    let remainingOptions = Sequencer.Database.getPathsUnder(currentPath);
     let divergenceOptions = '';
 
     /**
@@ -43,13 +43,13 @@ function bestFit(modulePrefix, ...categories) {
             }
             const bestOption = remainingOptions[0] ?? '';
             currentPath += `.${bestOption}`;
-            remainingOptions = globalThis.Sequencer.Database.getPathsUnder(currentPath);
+            remainingOptions = Sequencer.Database.getPathsUnder(currentPath);
             categories.shift(); // Remove the missing category and continue with primary default option
             continue;
         }
 
         currentPath += `.${categories.shift()}`;
-        remainingOptions = globalThis.Sequencer.Database.getPathsUnder(currentPath);
+        remainingOptions = Sequencer.Database.getPathsUnder(currentPath);
     }
 
     if (diverged) {
@@ -133,9 +133,9 @@ export function closest(path) {
 export function absolutePath(configPath) {
     if (typeof configPath !== 'string' || !configPath.trim()) return undefined;
     const resolvedConfig = closest(configPath);
-    if (!resolvedConfig || typeof globalThis.Sequencer === 'undefined' || !globalThis.Sequencer?.Database) return resolvedConfig;
+    if (!resolvedConfig || typeof Sequencer === 'undefined' || !Sequencer?.Database) return resolvedConfig;
     try {
-        const entry = globalThis.Sequencer.Database.getEntry(resolvedConfig, { softFail: true });
+        const entry = Sequencer.Database.getEntry(resolvedConfig, { softFail: true });
         return typeof entry === 'string' ? entry : (entry?.file ?? entry?.files?.[0] ?? resolvedConfig);
     } catch (e) {
         log.debug(`filemanager | Failed to resolve Sequencer entry for: ${resolvedConfig}`, e);

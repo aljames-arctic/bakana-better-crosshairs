@@ -53,7 +53,7 @@ export class BaseCrosshairMenuApplication extends HandlebarsApplicationMixin(App
      * @returns {{prePlacementTitle: string, placementSectionTitle: string, postPlacementTitle: string, docTerm: string}} Normalized adapter titles.
      */
     _getAdapterTitles() {
-        const adapter = globalThis.bbc?.crosshairAdapter;
+        const adapter = bbc?.crosshairAdapter ?? game.modules?.get("bakana-better-crosshairs")?.api?.crosshairAdapter;
         if (adapter) {
             return {
                 prePlacementTitle: adapter.prePlacementTitle,

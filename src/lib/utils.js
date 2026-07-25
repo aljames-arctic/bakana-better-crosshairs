@@ -6,7 +6,7 @@
  */
 export function localize(key, fallback = key) {
     if (typeof key !== "string" || !key) return fallback ?? "";
-    return globalThis.game?.i18n?.has(key) ? globalThis.game.i18n.localize(key) : fallback;
+    return game?.i18n?.has(key) ? game.i18n.localize(key) : fallback;
 }
 
 /**
@@ -22,7 +22,7 @@ export const version = {
      */
     clamp(current, min, max) {
         if (!current || !min) return false;
-        const isNewer = globalThis.foundry?.utils?.isNewerVersion;
+        const isNewer = foundry?.utils?.isNewerVersion;
         if (!isNewer) return false;
 
         if (isNewer(min, current)) return false;

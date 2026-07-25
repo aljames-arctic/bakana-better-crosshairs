@@ -6,6 +6,12 @@ let activeWheelHandler = null;
 let activePointerHandler = null;
 let pendingPointerRaf = null;
 
+export const activePlacementTracker = {
+    placeable: null,
+    dimensions: null,
+    crosshair: null
+};
+
 /**
  * Helper: Normalize an angle in degrees to the [0, 360) range.
  * @param {number} angleDeg - Raw angle in degrees
@@ -49,12 +55,12 @@ function _refreshPreviewHighlights(currentDirection, rad, crosshair, event = nul
         canvas?.regions?.preview?.children,
         canvas?.regions?.placeables,
         crosshair?.template ? [crosshair.template] : null,
-        globalThis._activeBBCPlaceable ? [globalThis._activeBBCPlaceable] : null
+        activePlacementTracker.placeable ? [activePlacementTracker.placeable] : null
     ];
     for (const list of previewLists) {
         if (Array.isArray(list)) {
             for (const p of list) {
-                if (p && (crosshairAdapter.isPreview(p) || p === crosshair?.template || p === globalThis._activeBBCPlaceable)) {
+                if (p && (crosshairAdapter.isPreview(p) || p === crosshair?.template || p === activePlacementTracker.placeable)) {
                     refreshTemplateHighlights(p, currentDirection, rad, event);
                 }
             }
@@ -152,7 +158,7 @@ function refreshTemplateHighlights(tmpl, newDirDeg, rad, wheelEvent = null) {
 
     const doc = tmpl.document ?? (tmpl.documentName ? tmpl : null);
     if (doc) {
-        const dims = tmpl._bbcDimensions ?? doc._bbcDimensions ?? globalThis._activeBBCDimensions;
+        const dims = tmpl._bbcDimensions ?? doc._bbcDimensions ?? activePlacementTracker.dimensions;
         const docProps = crosshairAdapter.detectProperties(doc);
         const initialDist = dims?.distance ?? docProps.distance;
         const initialWidth = dims?.width ?? docProps.width;
@@ -163,7 +169,7 @@ function refreshTemplateHighlights(tmpl, newDirDeg, rad, wheelEvent = null) {
         const isSticky = shouldStickToToken(cfg, shapeType) && Boolean(cfg.token ?? doc.flags?.bbc?.token ?? doc.flags?.bakana?.token ?? tmpl._bbcSticky);
         let targetX = 0, targetY = 0;
 
-        const visual = tmpl._bbcCrosshair ?? globalThis._activeBBCCrosshair;
+        const visual = tmpl._bbcCrosshair ?? activePlacementTracker.crosshair;
         if (isSticky && cfg.token && visual && Number.isFinite(visual.x) && Number.isFinite(visual.y)) {
             targetX = visual.x;
             targetY = visual.y;
@@ -444,12 +450,12 @@ export function alignCrosshairAndEffects(crosshair, config = {}, rad = 0) {
 export function getGridSnapMode(config = {}) {
     if (config.snapToGrid === false || config.snapToGrid === "none" || config.snapToGrid === 0 || config.snapToGrid === "0") return 0;
     if (typeof config.snapToGrid === "number") return config.snapToGrid;
-    if (config.snapToGrid === "center") return globalThis.CONST?.GRID_SNAPPING_MODES?.CENTER ?? 1;
-    if (config.snapToGrid === "corner" || config.snapToGrid === "vertex" || config.snapToGrid === "corners") return globalThis.CONST?.GRID_SNAPPING_MODES?.VERTEX ?? 2;
-    if (config.snapToGrid === "side" || config.snapToGrid === "edge" || config.snapToGrid === "edges") return globalThis.CONST?.GRID_SNAPPING_MODES?.SIDE_MIDPOINT ?? globalThis.CONST?.GRID_SNAPPING_MODES?.SIDE ?? 4;
-    return (globalThis.CONST?.GRID_SNAPPING_MODES?.CENTER ?? 1) |
-           (globalThis.CONST?.GRID_SNAPPING_MODES?.VERTEX ?? 2) |
-           (globalThis.CONST?.GRID_SNAPPING_MODES?.SIDE_MIDPOINT ?? globalThis.CONST?.GRID_SNAPPING_MODES?.SIDE ?? 4);
+    if (config.snapToGrid === "center") return CONST?.GRID_SNAPPING_MODES?.CENTER ?? 1;
+    if (config.snapToGrid === "corner" || config.snapToGrid === "vertex" || config.snapToGrid === "corners") return CONST?.GRID_SNAPPING_MODES?.VERTEX ?? 2;
+    if (config.snapToGrid === "side" || config.snapToGrid === "edge" || config.snapToGrid === "edges") return CONST?.GRID_SNAPPING_MODES?.SIDE_MIDPOINT ?? CONST?.GRID_SNAPPING_MODES?.SIDE ?? 4;
+    return (CONST?.GRID_SNAPPING_MODES?.CENTER ?? 1) |
+           (CONST?.GRID_SNAPPING_MODES?.VERTEX ?? 2) |
+           (CONST?.GRID_SNAPPING_MODES?.SIDE_MIDPOINT ?? CONST?.GRID_SNAPPING_MODES?.SIDE ?? 4);
 }
 
 /**
@@ -467,7 +473,7 @@ export function resolveCrosshairPlacement(crosshair, config = {}, ...extraArgs) 
 
     const shape = (crosshair && typeof crosshair.getPlacementUpdates === "function")
         ? crosshair
-        : (crosshair?.shapeInstance ?? config?.shapeInstance ?? globalThis._activeBBCCrosshair?.shapeInstance);
+        : (crosshair?.shapeInstance ?? config?.shapeInstance ?? activePlacementTracker.crosshair?.shapeInstance);
 
     if (shape && typeof shape.getPlacementUpdates === "function") {
         const result = shape.getPlacementUpdates();

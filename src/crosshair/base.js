@@ -1,7 +1,7 @@
 import { closest } from "../lib/filemanager.js";
 import { log } from "../lib/logger.js";
 import { crosshairAdapter, systemAdapter } from "../adapter/index.js";
-import { resolveCrosshairPlacement, attachWheelRotation, detachWheelRotation, shouldStickToToken, resolveCrosshairIcon, alignCrosshairAndEffects, getGridSnapMode, snapCoordinates } from "./util.js";
+import { resolveCrosshairPlacement, attachWheelRotation, detachWheelRotation, shouldStickToToken, resolveCrosshairIcon, alignCrosshairAndEffects, getGridSnapMode, snapCoordinates, activePlacementTracker } from "./util.js";
 
 /**
  * Base class for crosshair shape instances, managing Sequencer animations, grid alignments,
@@ -324,7 +324,7 @@ export class BaseCrosshairShape {
         if (crosshair) {
             this.sequencerCrosshair = crosshair;
             crosshair.shapeInstance = this;
-            globalThis._activeBBCCrosshair = crosshair;
+            activePlacementTracker.crosshair = crosshair;
         }
         if ((this.type === "rect" || this.type === "square") && !this.stickToToken && !this.token && crosshair?.pivot?.set) {
             crosshair.pivot.set(0, 0);
@@ -392,10 +392,10 @@ export class BaseCrosshairShape {
         const labelStr = `${distance} ${units}`;
 
         if (!this._rangeText) {
-            const TextClass = globalThis.foundry?.canvas?.containers?.PreciseText ?? globalThis.PreciseText ?? globalThis.PIXI?.Text;
+            const TextClass = foundry?.canvas?.containers?.PreciseText ?? PreciseText ?? PIXI?.Text;
             if (!TextClass) return;
-            const style = globalThis.CONFIG?.canvasTextStyle
-                ? globalThis.CONFIG.canvasTextStyle.clone()
+            const style = CONFIG?.canvasTextStyle
+                ? CONFIG.canvasTextStyle.clone()
                 : {
                     fontFamily: "Signika, sans-serif",
                     fontSize: 24,
@@ -629,7 +629,7 @@ export class BaseCrosshairShape {
     refreshTemplateHighlights() {
         const doc = this.doc;
         if (doc) {
-            const dims = this.placeable?._bbcDimensions ?? doc._bbcDimensions ?? globalThis._activeBBCDimensions;
+            const dims = this.placeable?._bbcDimensions ?? doc._bbcDimensions ?? activePlacementTracker.dimensions;
             const docProps = crosshairAdapter.detectProperties(doc);
             const initialDist = dims?.distance ?? docProps.distance;
             const initialWidth = dims?.width ?? docProps.width;

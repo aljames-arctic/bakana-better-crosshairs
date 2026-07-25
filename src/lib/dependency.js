@@ -12,7 +12,7 @@ import { localize } from "./utils.js";
 function _isAscending(min, version, max) {
     if ((Boolean(min) || Boolean(max)) && !version) return false;
     let isValidVersion = true;
-    const isNewer = globalThis.foundry?.utils?.isNewerVersion;
+    const isNewer = foundry?.utils?.isNewerVersion;
     if (!isNewer) return false;
     if (min) isValidVersion = isValidVersion && !isNewer(min, version);
     if (max) isValidVersion = isValidVersion && !isNewer(version, max);
@@ -29,8 +29,9 @@ function _isAscending(min, version, max) {
 function _getEntity(dependency) {
     const depId = dependency?.id;
     if (!depId) return undefined;
-    if (depId === "foundry") return globalThis.game;
-    return globalThis.game?.modules?.get(depId) ?? globalThis[depId];
+    if (depId === "foundry") return game;
+    const win = typeof window !== "undefined" ? window : global;
+    return game?.modules?.get(depId) ?? win[depId];
 }
 
 /**
@@ -41,7 +42,7 @@ function _getEntity(dependency) {
  * @private
  */
 function _getVersion(dependency, entity = _getEntity(dependency)) {
-    return entity?.version ?? (dependency?.id === "foundry" ? globalThis.game?.version : undefined);
+    return entity?.version ?? (dependency?.id === "foundry" ? game?.version : undefined);
 }
 
 /**

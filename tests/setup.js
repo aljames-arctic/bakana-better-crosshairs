@@ -105,6 +105,17 @@ globalThis.CONFIG = {
     }
 };
 
+globalThis.CONST = {
+    GRID_SNAPPING_MODES: {
+        CENTER: 1,
+        VERTEX: 2,
+        SIDE_MIDPOINT: 4,
+        SIDE: 4
+    }
+};
+
+globalThis.bbc = {};
+
 const settingsStore = new Map([
     ['bakana-better-crosshairs.logVerbosity', 3],
     ['bakana-better-crosshairs.registeredTemplates', {}]

@@ -5,7 +5,7 @@ import { MODULE_ID } from "../../lib/constants.js";
 import { DEFAULT_AUTOREC_ENTRY, autorecManager } from "../../autorec/autorecManager.js";
 import { CrosshairConfiguration } from "../../autorec/CrosshairConfiguration.js";
 import { notify } from "../../lib/notifier.js";
-import { runConcurrentScript } from "../../crosshair/util.js";
+import { runConcurrentScript, activePlacementTracker } from "../../crosshair/util.js";
 /**
  * Base abstract class for Foundry VTT version-specific adapters.
  */
@@ -720,12 +720,12 @@ export class BaseFoundryVTTAdapter {
     _getGridSnapMode(snapToGrid) {
         if (snapToGrid === false || snapToGrid === "none" || snapToGrid === 0 || snapToGrid === "0") return 0;
         if (typeof snapToGrid === "number") return snapToGrid;
-        if (snapToGrid === "center") return globalThis.CONST?.GRID_SNAPPING_MODES?.CENTER ?? 1;
-        if (snapToGrid === "corner" || snapToGrid === "vertex" || snapToGrid === "corners") return globalThis.CONST?.GRID_SNAPPING_MODES?.VERTEX ?? 2;
-        if (snapToGrid === "side" || snapToGrid === "edge" || snapToGrid === "edges") return globalThis.CONST?.GRID_SNAPPING_MODES?.SIDE_MIDPOINT ?? globalThis.CONST?.GRID_SNAPPING_MODES?.SIDE ?? 4;
-        return (globalThis.CONST?.GRID_SNAPPING_MODES?.CENTER ?? 1) |
-               (globalThis.CONST?.GRID_SNAPPING_MODES?.VERTEX ?? 2) |
-               (globalThis.CONST?.GRID_SNAPPING_MODES?.SIDE_MIDPOINT ?? globalThis.CONST?.GRID_SNAPPING_MODES?.SIDE ?? 4);
+        if (snapToGrid === "center") return CONST?.GRID_SNAPPING_MODES?.CENTER ?? 1;
+        if (snapToGrid === "corner" || snapToGrid === "vertex" || snapToGrid === "corners") return CONST?.GRID_SNAPPING_MODES?.VERTEX ?? 2;
+        if (snapToGrid === "side" || snapToGrid === "edge" || snapToGrid === "edges") return CONST?.GRID_SNAPPING_MODES?.SIDE_MIDPOINT ?? CONST?.GRID_SNAPPING_MODES?.SIDE ?? 4;
+        return (CONST?.GRID_SNAPPING_MODES?.CENTER ?? 1) |
+               (CONST?.GRID_SNAPPING_MODES?.VERTEX ?? 2) |
+               (CONST?.GRID_SNAPPING_MODES?.SIDE_MIDPOINT ?? CONST?.GRID_SNAPPING_MODES?.SIDE ?? 4);
     }
 
     _snapPoint(x, y, numMode) {
@@ -1017,8 +1017,8 @@ export class BaseFoundryVTTAdapter {
                     radius: finalConfig.radius ?? detected.radius,
                     gridUnits: Boolean(finalConfig.gridUnits ?? true)
                 };
-                globalThis._activeBBCDimensions = initialDims;
-                globalThis._activeBBCPlaceable = placeable;
+                activePlacementTracker.dimensions = initialDims;
+                activePlacementTracker.placeable = placeable;
                 placeable._bbcDimensions = initialDims;
                 placeable._bbcConfig = finalConfig;
                 if (placeable.document) {
