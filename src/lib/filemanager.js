@@ -41,26 +41,10 @@ function bestFit(modulePrefix, ...categories) {
                 diverged = true;
                 divergenceOptions = remainingOptions.join(', ');
             }
-            const targetCat = categories[0];
-            const numMatch = targetCat.match(/\d+(?:\.\d+)?/);
-            let bestOption = remainingOptions[0] ?? '';
-            if (numMatch) {
-                const targetNum = parseFloat(numMatch[0]);
-                let minDiff = Infinity;
-                for (const opt of remainingOptions) {
-                    const optMatch = opt.match(/\d+(?:\.\d+)?/);
-                    if (optMatch) {
-                        const diff = Math.abs(targetNum - parseFloat(optMatch[0]));
-                        if (diff < minDiff) {
-                            minDiff = diff;
-                            bestOption = opt;
-                        }
-                    }
-                }
-            }
+            const bestOption = remainingOptions[0] ?? '';
             currentPath += `.${bestOption}`;
             remainingOptions = globalThis.Sequencer.Database.getPathsUnder(currentPath);
-            categories.shift(); // Remove the used category and continue (try to match as best we can)
+            categories.shift(); // Remove the missing category and continue with primary default option
             continue;
         }
 
