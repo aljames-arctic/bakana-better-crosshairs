@@ -249,7 +249,7 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             lockToToken: localize("BBC.autorecMenu.labels.lockToToken", "Lock to Token (Stick)"),
             originLine: localize("BBC.autorecMenu.labels.originLine", "Origin Stretch Line"),
             showLineLabel: localize("BBC.autorecMenu.labels.showLine", "Show Line"),
-            showRange: localize("BBC.autorecMenu.labels.showRange", "Show Distance Measurement"),
+            showRange: localize("BBC.autorecMenu.labels.showRange", "Show Detached Distance"),
             showRangeLabel: localize("BBC.autorecMenu.labels.showRangeLabel", "Display live distance measurement at cursor"),
             borderStyling: localize("BBC.autorecMenu.labels.borderStyling", "Border Styling (Tile Highlight)"),
             fillStyling: localize("BBC.autorecMenu.labels.fillStyling", "Fill Styling (Tile Highlight)"),
