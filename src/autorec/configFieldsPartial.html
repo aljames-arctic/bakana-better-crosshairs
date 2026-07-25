@@ -126,35 +126,35 @@
                 <tr data-override-child="enableAnimation" {{#if (and showOverrides (not enableAnimation))}}style="display: none;"{{/if}}>
                     <th>{{labels.circleFile}}</th>
                     <td>
-                        <code class="bbc-code-pill view-only">{{circleFile}}</code>
+                        <span class="view-only">{{#if circleFile}}<code class="bbc-code-pill">{{circleFile}}</code>{{else}}<span class="bbc-pill none">{{labels.nonePill}}</span>{{/if}}</span>
                         <input type="text" class="bbc-edit-input edit-only" name="circleFile" data-field="circleFile" value="{{circleFile}}" placeholder="eskie.crosshair.circle.fantasy_01.white.full" />
                     </td>
                 </tr>
                 <tr data-override-child="enableAnimation" {{#if (and showOverrides (not enableAnimation))}}style="display: none;"{{/if}}>
                     <th>{{labels.coneFile}}</th>
                     <td>
-                        <code class="bbc-code-pill view-only">{{coneFile}}</code>
+                        <span class="view-only">{{#if coneFile}}<code class="bbc-code-pill">{{coneFile}}</code>{{else}}<span class="bbc-pill none">{{labels.nonePill}}</span>{{/if}}</span>
                         <input type="text" class="bbc-edit-input edit-only" name="coneFile" data-field="coneFile" value="{{coneFile}}" placeholder="eskie.crosshair.cone.thin.fantasy_01.white.full" />
                     </td>
                 </tr>
                 <tr data-override-child="enableAnimation" {{#if (and showOverrides (not enableAnimation))}}style="display: none;"{{/if}}>
                     <th>{{labels.rayFile}}</th>
                     <td>
-                        <code class="bbc-code-pill view-only">{{rayFile}}</code>
+                        <span class="view-only">{{#if rayFile}}<code class="bbc-code-pill">{{rayFile}}</code>{{else}}<span class="bbc-pill none">{{labels.nonePill}}</span>{{/if}}</span>
                         <input type="text" class="bbc-edit-input edit-only" name="rayFile" data-field="rayFile" value="{{rayFile}}" placeholder="eskie.crosshair.ray.fantasy_01.white" />
                     </td>
                 </tr>
                 <tr data-override-child="enableAnimation" {{#if (and showOverrides (not enableAnimation))}}style="display: none;"{{/if}}>
                     <th>{{labels.squareFile}}</th>
                     <td>
-                        <code class="bbc-code-pill view-only">{{squareFile}}</code>
-                        <input type="text" class="bbc-edit-input edit-only" name="squareFile" data-field="squareFile" value="{{squareFile}}" placeholder="eskie.crosshair.ray.fantasy_01.white" />
+                        <span class="view-only">{{#if squareFile}}<code class="bbc-code-pill">{{squareFile}}</code>{{else}}<span class="bbc-pill none">{{labels.nonePill}}</span>{{/if}}</span>
+                        <input type="text" class="bbc-edit-input edit-only" name="squareFile" data-field="squareFile" value="{{squareFile}}" placeholder="eskie.crosshair.square.fantasy_01.white" />
                     </td>
                 </tr>
                 <tr data-override-child="enableAnimation" {{#if (and showOverrides (not enableAnimation))}}style="display: none;"{{/if}}>
                     <th>{{labels.originLine}}</th>
                     <td>
-                        <span class="view-only bbc-inline-flex-row">{{#if showLine}}<span class="bbc-pill">{{labels.enabledPill}}</span><code class="bbc-code-pill">{{lineFile}}</code>{{else}}<span class="bbc-pill">{{labels.disabledPill}}</span>{{/if}}</span>
+                        <span class="view-only bbc-inline-flex-row">{{#if showLine}}<span class="bbc-pill enabled">{{labels.enabledPill}}</span>{{#if lineFile}}<code class="bbc-code-pill">{{lineFile}}</code>{{else}}<span class="bbc-pill none">{{labels.nonePill}}</span>{{/if}}{{else}}<span class="bbc-pill disabled">{{labels.disabledPill}}</span>{{/if}}</span>
                         <div class="bbc-edit-row edit-only">
                             <label class="bbc-edit-checkbox-label">
                                 <input type="checkbox" class="bbc-edit-checkbox" name="showLine" data-field="showLine" {{#if showLine}}checked{{/if}} />
@@ -167,7 +167,7 @@
                 <tr data-override-child="enableAnimation" {{#if (and showOverrides (not enableAnimation))}}style="display: none;"{{/if}}>
                     <th>{{labels.showRange}}</th>
                     <td>
-                        <span class="view-only">{{#if showRange}}<span class="bbc-pill">{{labels.enabledPill}}</span>{{else}}<span class="bbc-pill">{{labels.disabledPill}}</span>{{/if}}</span>
+                        <span class="view-only">{{#if showRange}}<span class="bbc-pill enabled">{{labels.enabledPill}}</span>{{else}}<span class="bbc-pill disabled">{{labels.disabledPill}}</span>{{/if}}</span>
                         <div class="bbc-edit-row edit-only">
                             <label class="bbc-edit-checkbox-label">
                                 <input type="checkbox" class="bbc-edit-checkbox" name="showRange" data-field="showRange" {{#if showRange}}checked{{/if}} />
@@ -176,10 +176,38 @@
                         </div>
                     </td>
                 </tr>
+                <tr data-override-child="enableAnimation" {{#if (and showOverrides (not enableAnimation))}}style="display: none;"{{/if}}>
+                    <th>{{labels.borderStyling}}</th>
+                    <td>
+                        <span class="view-only">
+                            <span class="bbc-color-swatch" data-color="{{borderColor}}"></span>
+                            <code>{{borderColor}}</code> ({{labels.alphaLabel}} {{borderAlpha}})
+                        </span>
+                        <div class="bbc-edit-color-row edit-only">
+                            <input type="color" class="bbc-edit-color" data-color-target="bbc-item-bordercolor" data-field="borderColor" value="{{borderColorPicker}}" />
+                            <input type="text" id="bbc-item-bordercolor" class="bbc-edit-input" name="borderColor" data-field="borderColor" value="{{borderColor}}" placeholder="#ffffff" />
+                            <label>{{labels.alphaLabel}} <input type="number" step="0.05" min="0" max="1" class="bbc-edit-input small" name="borderAlpha" data-field="borderAlpha" value="{{borderAlpha}}" /></label>
+                        </div>
+                    </td>
+                </tr>
+                <tr data-override-child="enableAnimation" {{#if (and showOverrides (not enableAnimation))}}style="display: none;"{{/if}}>
+                    <th>{{labels.fillStyling}}</th>
+                    <td>
+                        <span class="view-only">
+                            <span class="bbc-color-swatch" data-color="{{fillColor}}"></span>
+                            <code>{{fillColor}}</code> ({{labels.alphaLabel}} {{fillAlpha}})
+                        </span>
+                        <div class="bbc-edit-color-row edit-only">
+                            <input type="color" class="bbc-edit-color" data-color-target="bbc-item-fillcolor" data-field="fillColor" value="{{fillColorPicker}}" />
+                            <input type="text" id="bbc-item-fillcolor" class="bbc-edit-input" name="fillColor" data-field="fillColor" value="{{fillColor}}" placeholder="#000000" />
+                            <label>{{labels.alphaLabel}} <input type="number" step="0.05" min="0" max="1" class="bbc-edit-input small" name="fillAlpha" data-field="fillAlpha" value="{{fillAlpha}}" /></label>
+                        </div>
+                    </td>
+                </tr>
                 <tr class="{{#if (and (not showOverrides) (not icon))}}edit-only{{/if}}" data-override-child="enableAnimation" {{#if (and showOverrides (not enableAnimation))}}style="display: none;"{{/if}}>
                     <th>{{labels.customIcon}}</th>
                     <td>
-                        <span class="view-only"><code class="bbc-code-pill">{{icon}}</code></span>
+                        <span class="view-only">{{#if icon}}<code class="bbc-code-pill">{{icon}}</code>{{else}}<span class="bbc-pill none">{{labels.nonePill}}</span>{{/if}}</span>
                         <input type="text" class="bbc-edit-input edit-only" name="icon" data-field="icon" value="{{icon}}" placeholder="eskie.crosshair.reticle.generic_02.white" />
                     </td>
                 </tr>

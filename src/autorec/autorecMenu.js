@@ -112,6 +112,7 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
             noPostScript: localize("BBC.autorecMenu.labels.noPostScript", "No custom post-placement script configured"),
             enabledPill: localize("BBC.autorecMenu.pills.enabled", "Enabled"),
             disabledPill: localize("BBC.autorecMenu.pills.disabled", "Disabled"),
+            nonePill: localize("BBC.autorecMenu.pills.none", "None"),
             allActivitiesPill: localize("BBC.autorecMenu.pills.allActivities", "All Activities"),
             localOnlyPill: localize("BBC.autorecMenu.pills.localOnly", "Local Only (Session Scope)"),
             worldSyncedPill: localize("BBC.autorecMenu.pills.worldSynced", "World Synced (Persisted)"),

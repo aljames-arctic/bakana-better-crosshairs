@@ -257,6 +257,9 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             placedFill: localize("BBC.autorecMenu.labels.placedFill", "Placed Fill Color"),
             placedBorder: localize("BBC.autorecMenu.labels.placedBorder", "Placed Border Color"),
             alphaLabel: localize("BBC.autorecMenu.labels.alpha", "Alpha:"),
+            enabledPill: localize("BBC.autorecMenu.pills.enabled", "Enabled"),
+            disabledPill: localize("BBC.autorecMenu.pills.disabled", "Disabled"),
+            nonePill: localize("BBC.autorecMenu.pills.none", "None"),
             stickDefault: localize("BBC.autorecMenu.pills.stickDefault", "Default behavior per module's System adapter"),
             stickOn: localize("BBC.autorecMenu.pills.stickOn", "On (Locked to Origin Token)"),
             stickOff: localize("BBC.autorecMenu.pills.stickOff", "Off (Free Cursor Placement)")
