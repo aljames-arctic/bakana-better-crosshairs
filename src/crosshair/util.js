@@ -40,6 +40,9 @@ function _calculateAngleFromOrigin(origin, target) {
  * @param {Event|null} [event=null] - Triggering event if any
  */
 function _refreshPreviewHighlights(currentDirection, rad, crosshair, event = null) {
+    if (crosshair?.shapeInstance && typeof crosshair.shapeInstance._updateRangeText === "function") {
+        crosshair.shapeInstance._updateRangeText();
+    }
     const previewLists = [
         canvas?.templates?.preview?.children,
         canvas?.templates?.placeables,

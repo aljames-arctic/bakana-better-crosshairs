@@ -316,12 +316,10 @@ export class BaseCrosshairShape {
             crosshair.shapeInstance = this;
             globalThis._activeBBCCrosshair = crosshair;
         }
-        if (this.requiresWheelRotation || this.stickToToken) {
-            if ((this.type === "rect" || this.type === "square") && !this.stickToToken && !this.token && crosshair?.pivot?.set) {
-                crosshair.pivot.set(0, 0);
-            }
-            attachWheelRotation(this, this.config);
+        if ((this.type === "rect" || this.type === "square") && !this.stickToToken && !this.token && crosshair?.pivot?.set) {
+            crosshair.pivot.set(0, 0);
         }
+        attachWheelRotation(this, this.config);
         await this.playGraphicEffect(crosshair);
         alignCrosshairAndEffects(crosshair, this.config, this.direction * (Math.PI / 180));
         this._updateRangeText();
@@ -354,7 +352,9 @@ export class BaseCrosshairShape {
             return;
         }
         const origin = this.token.center ?? { x: this.token.x ?? 0, y: this.token.y ?? 0 };
-        const target = { x: this.x, y: this.y };
+        const targetX = (this.sequencerCrosshair && Number.isFinite(this.sequencerCrosshair.x)) ? this.sequencerCrosshair.x : this.x;
+        const targetY = (this.sequencerCrosshair && Number.isFinite(this.sequencerCrosshair.y)) ? this.sequencerCrosshair.y : this.y;
+        const target = { x: targetX, y: targetY };
         let distance = 0;
         try {
             if (canvas?.grid && typeof canvas.grid.measurePath === "function") {
