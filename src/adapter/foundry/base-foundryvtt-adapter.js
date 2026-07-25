@@ -312,12 +312,10 @@ export class BaseFoundryVTTAdapter {
         try {
             tmpl.renderFlags.set(flags);
         } catch (err) {
-            // log.debug("BaseFoundryVTTAdapter._safeSetRenderFlags | Bulk renderFlags.set failed, attempting key-by-key safe assignment:", err);
             for (const [flagName, val] of Object.entries(flags)) {
                 try {
                     tmpl.renderFlags.set({ [flagName]: val });
                 } catch (e) {
-                    // log.debug(`BaseFoundryVTTAdapter._safeSetRenderFlags | Flag "${flagName}" is unsupported on placeable:`, e);
                 }
             }
         }
@@ -865,7 +863,6 @@ export class BaseFoundryVTTAdapter {
         const doc = placeable.document;
         const isPreview = this.isPreview(placeable);
 
-        // log.debug("BaseFoundryVTTAdapter.handleDrawPreview | Hook fired:", {
         //     docId: doc.id,
         //     isPreview,
         //     isOwner: this.isOwner(doc),
@@ -873,17 +870,14 @@ export class BaseFoundryVTTAdapter {
         // });
 
         if (!isPreview || !this.isOwner(doc)) {
-            // log.debug("BaseFoundryVTTAdapter.handleDrawPreview | Skipping non-preview or non-owned placeable:", { docId: doc.id, isPreview });
             return;
         }
 
         const entry = autorecManager.getEntryForDocument(doc);
         if (!entry) {
-            // log.debug("BaseFoundryVTTAdapter.handleDrawPreview | No registered handler matched for preview.");
             return;
         }
 
-        // log.debug(`BaseFoundryVTTAdapter.handleDrawPreview | Intercepting template preview for "${entry.itemName}"`, {
         //     placeableClass: placeable?.constructor?.name,
         //     docData: typeof doc.toObject === "function" ? doc.toObject() : doc,
         //     docFlags: doc.flags
@@ -899,7 +893,6 @@ export class BaseFoundryVTTAdapter {
         const token = this.toToken(rawToken);
         const actor = token?.actor ?? item?.actor;
 
-        // log.debug("BaseFoundryVTTAdapter.handleDrawPreview | Using token context:", token?.name);
 
         const placementKey = `${entry.itemName}_${game?.user?.id}`;
         const entryConfig = typeof entry.handler === "object" && entry.handler !== null ? entry.handler : entry;
@@ -931,7 +924,6 @@ export class BaseFoundryVTTAdapter {
              * @returns {Promise<void>} Resolves when deferred document placement is processed
              */
             async resolve(coords = {}) {
-                // log.debug(`context.resolve | Sequencer crosshair PLACED at (${coords.x}, ${coords.y}):`, coords);
                 Object.assign(this, coords);
                 this.resolved = true;
 
@@ -941,7 +933,6 @@ export class BaseFoundryVTTAdapter {
                     pendingItem.resolved = true;
 
                     if (pendingItem.deferredCreateData && typeof canvas !== "undefined" && canvas.scene) {
-                        // log.debug(`context.resolve | Resuming deferred document creation on scene "${canvas.scene.name}"`);
                         await self.createDeferredDocument(canvas.scene, pendingItem.deferredCreateData, coords, pendingItem.documentName, pendingItem.config);
                         if (placeable && typeof self.dismissPreview === "function") {
                             self.dismissPreview(placeable);
@@ -961,7 +952,6 @@ export class BaseFoundryVTTAdapter {
              * @returns {void}
              */
             cancel() {
-                // log.debug(`context.cancel | Sequencer crosshair CANCELLED for "${entry.itemName}"`);
                 this.cancelled = true;
                 this.resolved = true;
                 const pendingItem = self.pendingPlacements.get(placementKey);
@@ -997,7 +987,6 @@ export class BaseFoundryVTTAdapter {
             };
 
             if (mergedConfig.concurrentCode) {
-                // log.debug(`BaseFoundryVTTAdapter.handleDrawPreview | Executing pre-placement script before template placement selection for "${entry.itemName}"`);
                 await runConcurrentScript(token, mergedConfig, null);
             }
 
@@ -1037,11 +1026,9 @@ export class BaseFoundryVTTAdapter {
                     placeable.document._bbcConfig = finalConfig;
                 }
 
-                // log.debug(`BaseFoundryVTTAdapter.handleDrawPreview | Playing "${crosshairType}" crosshair for "${entry.itemName}" with config:`, finalConfig);
                 await builder.play(placeable, finalConfig);
             }
 
-            // log.debug(`BaseFoundryVTTAdapter.handleDrawPreview | Sequencer crosshair sequence completed for "${entry.itemName}".`);
         } catch (err) {
             const msg = typeof err === "string" ? err : (err?.message ?? "Failed to play Sequencer crosshair effect");
             log.error(`BaseFoundryVTTAdapter.handleDrawPreview | Error running sequencer sequence for "${entry.itemName}":`, err);
@@ -1063,10 +1050,8 @@ export class BaseFoundryVTTAdapter {
     handlePreCreate(target, _data, _options, userId) {
         if (!target) return true;
         const doc = target.document ?? target;
-        // log.debug(`BaseFoundryVTTAdapter.handlePreCreate | [ENTRY] preCreate hook triggered for docName=${doc.documentName}, id=${doc.id}, userId=${userId}, localUser=${game?.user?.id}`);
 
         if (userId !== game?.user?.id) {
-            // log.debug(`BaseFoundryVTTAdapter.handlePreCreate | [SKIP] Skipping document from remote user ${userId}`);
             return true;
         }
 
@@ -1084,42 +1069,35 @@ export class BaseFoundryVTTAdapter {
                     pending = val;
                     placementKey = key;
                     entry = { itemName: val.itemName, handler: val.config };
-                    // log.debug(`BaseFoundryVTTAdapter.handlePreCreate | [FALLBACK MATCH] Matched active pending placement "${val.itemName}" (key=${key})`);
                     break;
                 }
             }
         }
 
-        // log.debug(`BaseFoundryVTTAdapter.handlePreCreate | [LOOKUP RESULT] entry="${entry?.itemName ?? null}", hasPending=${Boolean(pending)}, pending.resolved=${pending?.resolved}, pending.coords=`, pending?.coords);
 
         if (!entry || !pending) {
-            // log.debug(`BaseFoundryVTTAdapter.handlePreCreate | [PASS] No matching autorec entry or active pending placement. Allowing standard creation.`);
             return true;
         }
 
         // If the sequencer sequence was right-click cancelled, abort placement
         if (pending.cancelled) {
-            // log.debug(`BaseFoundryVTTAdapter.handlePreCreate | [ABORT] Placement was cancelled by user ("${entry.itemName}"). Returning false.`);
             this.pendingPlacements.delete(placementKey);
             return false;
         }
 
         // If placement sequence has resolved with coordinates, apply placement onto document payload
         if (pending.resolved && pending.coords) {
-            // log.debug(`BaseFoundryVTTAdapter.handlePreCreate | [APPLY] Sequencer placement resolved for "${entry.itemName}". Applying placement onto document:`, pending.coords);
             this.applyDocumentPlacement(doc, pending.coords, pending.config, _data);
             if (pending.placeable && typeof this.dismissPreview === "function") {
                 this.dismissPreview(pending.placeable);
             }
             this.pendingPlacements.delete(placementKey);
-            // log.debug(`BaseFoundryVTTAdapter.handlePreCreate | [APPLY COMPLETE] Document updated successfully.`);
             return true;
         }
 
         // If sequence is still interactive/running, defer creation until sequence resolves
         pending.deferredCreateData = typeof doc.toObject === "function" ? doc.toObject() : doc;
         pending.documentName = doc.documentName;
-        // log.debug(`BaseFoundryVTTAdapter.handlePreCreate | [DEFER] Sequencer crosshair is still interactive ("${entry.itemName}"). Deferring document creation until click.`);
         return false;
     }
 
@@ -1144,7 +1122,6 @@ export class BaseFoundryVTTAdapter {
         };
 
         const code = config.postPlacementCode;
-        // log.debug(`BaseFoundryVTTAdapter.handleCreateDocument | Evaluated post-placement hook for ${doc.documentName} (${doc.id}):`, { hasCode: Boolean(code), code, flagsConfig });
         if (!code || typeof code !== "string" || !code.trim()) return;
 
         const callingContext = this.extractCallingContext(doc);

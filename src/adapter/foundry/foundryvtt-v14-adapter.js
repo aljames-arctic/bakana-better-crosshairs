@@ -160,7 +160,6 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 x: targetDoc.x ?? 0,
                 y: targetDoc.y ?? 0
             };
-            // log.debug("FoundryVTTV14Adapter.detectProperties | Detected from doc.t (MeasuredTemplate):", result);
             return result;
         }
 
@@ -336,7 +335,6 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
 
                 if (config.hidden || config.hideTemplate) updateData.hidden = true;
 
-                // log.debug("FoundryVTTV14Adapter.applyDocumentPlacement | Applying Region updateSource:", updateData);
                 if (typeof targetDoc?.updateSource === "function") {
                     targetDoc.updateSource(updateData);
                 }
