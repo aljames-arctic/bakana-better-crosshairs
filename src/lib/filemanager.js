@@ -120,7 +120,9 @@ export function closest(path) {
             break;
     }
 
-    return bestFit(modulePrefix, ...categories);
+    const closestReturn = bestFit(modulePrefix, ...categories);
+    log.debug(`Returning ${closestReturn} as filepath`);
+    return closestReturn;
 }
 
 /**
