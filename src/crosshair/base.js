@@ -343,6 +343,9 @@ export class BaseCrosshairShape {
     _destroyRangeText() {
         if (this._rangeText) {
             try {
+                if (this._rangeText.parent && typeof this._rangeText.parent.removeChild === "function") {
+                    this._rangeText.parent.removeChild(this._rangeText);
+                }
                 if (typeof this._rangeText.destroy === "function") {
                     this._rangeText.destroy({ children: true });
                 }
@@ -407,19 +410,33 @@ export class BaseCrosshairShape {
                 if (this._rangeText.anchor && typeof this._rangeText.anchor.set === "function") {
                     this._rangeText.anchor.set(0.5, 1);
                 }
-                if (typeof this.sequencerCrosshair.addChild === "function") {
-                    this.sequencerCrosshair.addChild(this._rangeText);
+                const parentContainer = this.sequencerCrosshair.parent ?? canvas?.controls ?? canvas?.stage ?? this.sequencerCrosshair;
+                if (typeof parentContainer.addChild === "function") {
+                    parentContainer.addChild(this._rangeText);
                 }
             } catch (e) {
                 log.debug("BaseCrosshairShape._updateRangeText | Could not create range text element:", e);
                 return;
             }
+        } else {
+            const targetParent = this.sequencerCrosshair.parent ?? canvas?.controls ?? canvas?.stage ?? this.sequencerCrosshair;
+            if (this._rangeText.parent !== targetParent && typeof targetParent.addChild === "function") {
+                try { targetParent.addChild(this._rangeText); } catch (e) {}
+            }
         }
 
         this._rangeText.text = labelStr;
         this._rangeText.visible = true;
-        if (this._rangeText.position && typeof this._rangeText.position.set === "function") {
-            this._rangeText.position.set(0, -20);
+        if (this._rangeText.parent !== this.sequencerCrosshair) {
+            if (this._rangeText.position && typeof this._rangeText.position.set === "function") {
+                this._rangeText.position.set(target.x, target.y - 25);
+            }
+            try { this._rangeText.rotation = 0; } catch (e) {}
+        } else {
+            if (this._rangeText.position && typeof this._rangeText.position.set === "function") {
+                this._rangeText.position.set(0, -25);
+            }
+            try { this._rangeText.rotation = -(this.sequencerCrosshair.rotation ?? 0); } catch (e) {}
         }
     }
 

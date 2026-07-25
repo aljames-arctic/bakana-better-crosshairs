@@ -397,5 +397,34 @@ test('BaseCrosshairShape.playGraphicEffect isolates origin stretch line under ${
     assert.ok(effectNames.includes("Circle Crosshair"));
 });
 
+test('BaseCrosshairShape._updateRangeText keeps distance measurement text unrotated', async () => {
+    const { CircleCrosshairShape } = await import('../../src/crosshair/circle.js');
+    const mockDocument = { x: 0, y: 0 };
+    const mockPlaceable = { x: 0, y: 0, document: mockDocument };
+    const mockToken = { name: "Caster", center: { x: 50, y: 50 } };
+    const shape = new CircleCrosshairShape(mockPlaceable, { radius: 20, token: mockToken, stickToToken: false, showRange: true });
+
+    class MockText {
+        constructor(txt, style) {
+            this.text = txt;
+            this.style = style;
+            this.anchor = { set() {} };
+            this.position = { set() {} };
+            this.rotation = 0;
+            this.visible = true;
+            this.parent = null;
+        }
+    }
+    globalThis.foundry = { canvas: { containers: { PreciseText: MockText } } };
+    shape.sequencerCrosshair = {
+        x: 100,
+        y: 100,
+        rotation: 0.785,
+        parent: { addChild(child) { child.parent = this; } }
+    };
+    shape._updateRangeText();
+    assert.equal(shape._rangeText.rotation, 0);
+});
+
 
 
