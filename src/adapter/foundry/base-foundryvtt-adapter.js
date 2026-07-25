@@ -208,6 +208,9 @@ export class BaseFoundryVTTAdapter {
         } catch (e) {}
         const hideContainers = (obj) => {
             if (!obj) return;
+            const isSeqCrosshair = obj.constructor?.name === "CrosshairsPlaceable" || Boolean(obj.crosshair) || Boolean(obj.tag && String(obj.tag).includes("sequencer-crosshair"));
+            if (isSeqCrosshair) return;
+
             obj.visible = false;
             obj.renderable = false;
             obj.alpha = 0;
