@@ -184,7 +184,7 @@ export class BaseCrosshairShape {
 
         if (this.type === "circle" && this.token && this.showLine && !this.stickToToken) {
             seq.effect()
-                .name(this.id)
+                .name(`${this.id}-line`)
                 .file(this.lineFile)
                 .attachTo(this.token)
                 .stretchTo(crosshair, { attachTo: true })
@@ -432,6 +432,7 @@ export class BaseCrosshairShape {
     async onPlacedCallback(crosshair, ...extraArgs) {
         this._destroyRangeText();
         Sequencer.EffectManager.endEffects({ name: this.id });
+        Sequencer.EffectManager.endEffects({ name: `${this.id}-line` });
         resolveCrosshairPlacement(this, this.config, ...extraArgs);
     }
 
@@ -443,6 +444,7 @@ export class BaseCrosshairShape {
         this._destroyRangeText();
         detachWheelRotation();
         Sequencer.EffectManager.endEffects({ name: this.id });
+        Sequencer.EffectManager.endEffects({ name: `${this.id}-line` });
         if (this.context && typeof this.context.cancel === "function") {
             this.context.cancel();
         }
@@ -466,7 +468,8 @@ export class BaseCrosshairShape {
      */
     static async stop(token, options = {}) {
         const id = options?.id ?? "Crosshair";
-        return Sequencer.EffectManager.endEffects({ name: id, object: token });
+        await Sequencer.EffectManager.endEffects({ name: id, object: token });
+        return Sequencer.EffectManager.endEffects({ name: `${id}-line`, object: token });
     }
 
     /**

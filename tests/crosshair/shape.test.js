@@ -366,5 +366,36 @@ test('BaseCrosshairShape.create suppresses limitMaxRange when limitRange is fals
     assert.deepEqual(passedLocationOpts, { showRange: true });
 });
 
+test('BaseCrosshairShape.playGraphicEffect isolates origin stretch line under ${id}-line effect name', async () => {
+    const { CircleCrosshairShape } = await import('../../src/crosshair/circle.js');
+    const mockDocument = { x: 0, y: 0 };
+    const mockPlaceable = { x: 0, y: 0, document: mockDocument };
+    const mockToken = { name: "Caster", center: { x: 50, y: 50 } };
+    const shape = new CircleCrosshairShape(mockPlaceable, { radius: 20, token: mockToken, stickToToken: false, showLine: true, lineFile: "line.png", circleFile: "circle.png" });
+
+    const effectNames = [];
+    const mockEffectBuilder = {
+        name(n) { effectNames.push(n); return this; },
+        file() { return this; },
+        attachTo() { return this; },
+        stretchTo() { return this; },
+        opacity() { return this; },
+        locally() { return this; },
+        persist() { return this; },
+        anchor() { return this; },
+        size() { return this; },
+        belowTokens() { return this; }
+    };
+    globalThis.Sequence = class {
+        wait() { return this; }
+        effect() { return mockEffectBuilder; }
+        play() { return Promise.resolve(); }
+    };
+
+    await shape.playGraphicEffect({ x: 100, y: 100 });
+    assert.ok(effectNames.includes("Circle Crosshair-line"));
+    assert.ok(effectNames.includes("Circle Crosshair"));
+});
+
 
 
