@@ -388,7 +388,7 @@ export class BaseCrosshairShape {
             distance = Math.round((distPx / gridSize) * gridDist);
         }
 
-        const units = canvas?.grid?.units || canvas?.dimensions?.units || "ft";
+        const units = canvas?.grid?.units ?? canvas?.dimensions?.units ?? "ft";
         const labelStr = `${distance} ${units}`;
 
         if (!this._rangeText) {

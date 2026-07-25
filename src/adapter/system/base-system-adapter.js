@@ -120,29 +120,17 @@ export class BaseSystemAdapter {
      * @returns {number|null} Max range in canvas distance units, or null if unrestricted/touch/self
      */
     getItemMaxRange(item, activity = null) {
-        const candidateValues = [
-            activity?.system?.range?.value,
-            activity?.range?.value,
-            item?.system?.range?.value,
-            item?.system?.range?.long,
-            item?.system?.target?.value
-        ];
-
-        for (const rawVal of candidateValues) {
-            if (rawVal === undefined || rawVal === null || rawVal === "") continue;
-            let num = NaN;
-            if (typeof rawVal === "number") {
-                num = rawVal;
-            } else if (typeof rawVal === "string") {
-                const lower = rawVal.trim().toLowerCase();
-                if (lower === "touch" || lower === "self" || lower === "unlimited" || lower === "special") continue;
-                num = parseFloat(rawVal);
-            }
-            if (Number.isFinite(num) && num > 0) {
-                return num;
-            }
+        const rawVal = activity?.system?.range?.value ?? activity?.range?.value ?? item?.system?.range?.value;
+        if (rawVal === undefined || rawVal === null || rawVal === "") return null;
+        let num = NaN;
+        if (typeof rawVal === "number") {
+            num = rawVal;
+        } else if (typeof rawVal === "string") {
+            const lower = rawVal.trim().toLowerCase();
+            if (lower === "touch" || lower === "self" || lower === "unlimited" || lower === "special") return null;
+            num = parseFloat(rawVal);
         }
-        return null;
+        return (Number.isFinite(num) && num > 0) ? num : null;
     }
 
     /**
