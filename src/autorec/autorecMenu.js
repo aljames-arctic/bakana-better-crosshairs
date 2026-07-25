@@ -98,6 +98,8 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
             customHandler: localize("BBC.autorecMenu.labels.customHandler", "Custom Function Handler"),
             lockToToken: localize("BBC.autorecMenu.labels.lockToToken", "Lock to Token (Stick)"),
             originLine: localize("BBC.autorecMenu.labels.originLine", "Origin Stretch Line"),
+            showRange: localize("BBC.autorecMenu.labels.showRange", "Show Distance Measurement"),
+            showRangeLabel: localize("BBC.autorecMenu.labels.showRangeLabel", "Display live distance measurement at cursor"),
             borderStyling: localize("BBC.autorecMenu.labels.borderStyling", "Border Styling (Tile Highlight)"),
             fillStyling: localize("BBC.autorecMenu.labels.fillStyling", "Fill Styling (Tile Highlight)"),
             customIcon: localize("BBC.autorecMenu.labels.customIcon", "Custom Cursor Icon"),

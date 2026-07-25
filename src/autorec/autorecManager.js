@@ -16,6 +16,7 @@ export const DEFAULT_AUTOREC_ENTRY = {
     enabled: true,
     stickToToken: "default",
     showLine: true,
+    showRange: true,
     borderColor: "#ffffff",
     borderAlpha: 0,
     fillColor: "#000000",
