@@ -113,6 +113,39 @@ export class BaseSystemAdapter {
     }
 
     /**
+     * Extract maximum placement distance range from a calling item or activity document/schema.
+     * Evaluates activity range first, falling back to calling item system range attributes.
+     * @param {Document|null} item - Target calling item document
+     * @param {Object|null} [activity=null] - Calling activity document or object
+     * @returns {number|null} Max range in canvas distance units, or null if unrestricted/touch/self
+     */
+    getItemMaxRange(item, activity = null) {
+        const candidateValues = [
+            activity?.system?.range?.value,
+            activity?.range?.value,
+            item?.system?.range?.value,
+            item?.system?.range?.long,
+            item?.system?.target?.value
+        ];
+
+        for (const rawVal of candidateValues) {
+            if (rawVal === undefined || rawVal === null || rawVal === "") continue;
+            let num = NaN;
+            if (typeof rawVal === "number") {
+                num = rawVal;
+            } else if (typeof rawVal === "string") {
+                const lower = rawVal.trim().toLowerCase();
+                if (lower === "touch" || lower === "self" || lower === "unlimited" || lower === "special") continue;
+                num = parseFloat(rawVal);
+            }
+            if (Number.isFinite(num) && num > 0) {
+                return num;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Handle delayed single-click programmatic document creation when native placement listeners are blocked or deferred.
      * Base implementation defaults to NOP to preserve native placement behavior across standard game systems.
      * System subclasses that block pointer events on Click #1 (e.g. Pathfinder 2e) override this method.

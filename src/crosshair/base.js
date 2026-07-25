@@ -1,6 +1,6 @@
 import { closest } from "../lib/filemanager.js";
 import { log } from "../lib/logger.js";
-import { crosshairAdapter } from "../adapter/foundry/index.js";
+import { crosshairAdapter, systemAdapter } from "../adapter/index.js";
 import { resolveCrosshairPlacement, attachWheelRotation, detachWheelRotation, shouldStickToToken, resolveCrosshairIcon, alignCrosshairAndEffects, getGridSnapMode, snapCoordinates } from "./util.js";
 
 /**
@@ -262,8 +262,17 @@ export class BaseCrosshairShape {
         if (this.stickToToken && this.token) {
             crosshairSeq.location(this.token, { lockToEdge: true, lockToEdgeDirection: false });
         } else {
+            const locationOpts = {};
             if (this.token && this.config.showRange !== false) {
-                crosshairSeq.location(this.token, { showRange: true });
+                locationOpts.showRange = true;
+            }
+            const maxRange = this.config.maxRange ?? systemAdapter?.getItemMaxRange?.(this.config.item, this.config.activity);
+            if (this.token && Number.isFinite(maxRange) && maxRange > 0) {
+                locationOpts.limitMaxRange = maxRange;
+                locationOpts.displayRangePoly = true;
+            }
+            if (this.token && Object.keys(locationOpts).length > 0) {
+                crosshairSeq.location(this.token, locationOpts);
             }
             const snapMode = getGridSnapMode(this.config);
             if (snapMode !== 0) crosshairSeq.snapPosition(snapMode);
