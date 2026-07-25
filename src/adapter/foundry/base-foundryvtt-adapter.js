@@ -191,20 +191,9 @@ export class BaseFoundryVTTAdapter {
     hidePreview(placeable) {
         if (!placeable) return;
         try {
-            placeable._onMouseMove = () => {};
-            placeable._onMouseDrag = () => {};
-            placeable._onDragLeftStart = () => {};
-            placeable._onDragLeftMove = () => {};
-            placeable._onDragLeftDrop = () => {};
-            placeable._onRotate = () => {};
-            placeable._onWheel = () => {};
-            placeable._onMouseWheel = () => {};
-            if (placeable.document) {
-                placeable.document._onMouseMove = () => {};
-                placeable.document._onMouseDrag = () => {};
-                placeable.document._onRotate = () => {};
-                placeable.document._onWheel = () => {};
-            }
+            placeable.interactive = false;
+            placeable.interactiveChildren = false;
+            if ("eventMode" in placeable) placeable.eventMode = "none";
         } catch (e) {}
         const hideContainers = (obj) => {
             if (!obj) return;
@@ -323,24 +312,12 @@ export class BaseFoundryVTTAdapter {
         }
         if (typeof canvas?.app?.ticker?.remove === "function") {
             try { canvas.app.ticker.remove(placeable.applyRenderFlags, placeable); } catch (e) {}
-            try { canvas.app.ticker.remove(placeable._tick, placeable); } catch (e) {}
         }
 
-        if (typeof placeable._onConfirm === "function") {
-            try { placeable._onConfirm({ preventDefault: () => {}, stopPropagation: () => {} }); } catch (e) {}
-        }
-        if (typeof placeable._finishPreview === "function") {
-            try { placeable._finishPreview(); } catch (e) {}
-        }
-        if (typeof placeable._onCancel === "function") {
-            try { placeable._onCancel({ preventDefault: () => {}, stopPropagation: () => {} }); } catch (e) {}
-        }
-        if (typeof canvas?.templates?._onCancel === "function") {
-            try { canvas.templates._onCancel({ preventDefault: () => {}, stopPropagation: () => {} }); } catch (e) {}
-        }
-        if (typeof canvas?.regions?._onCancel === "function") {
-            try { canvas.regions._onCancel({ preventDefault: () => {}, stopPropagation: () => {} }); } catch (e) {}
-        }
+        try {
+            if (typeof canvas?.templates?.deactivate === "function") canvas.templates.deactivate();
+            if (typeof canvas?.regions?.deactivate === "function") canvas.regions.deactivate();
+        } catch (e) {}
 
         const stages = [canvas?.stage, canvas?.app?.stage, canvas?.templates, canvas?.templates?.preview, canvas?.regions, canvas?.regions?.preview].filter(Boolean);
         const eventNames = ["pointermove", "mousemove", "pointerdown", "mousedown", "pointerup", "mouseup", "click", "rightclick"];
@@ -351,7 +328,7 @@ export class BaseFoundryVTTAdapter {
                         const lns = stg.listeners(evName);
                         if (Array.isArray(lns)) {
                             for (const fn of lns) {
-                                if (fn && (fn.context === placeable || fn._context === placeable || (fn.name && (fn.name.includes("mousemove") || fn.name.includes("pointermove") || fn.name.includes("pointerdown") || fn.name.includes("mousedown") || fn.name.includes("click") || fn.name.includes("preview") || fn.name.includes("template") || fn.name.includes("region"))))) {
+                                if (fn && (fn.context === placeable || (fn.name && (fn.name.includes("mousemove") || fn.name.includes("pointermove") || fn.name.includes("pointerdown") || fn.name.includes("mousedown") || fn.name.includes("click") || fn.name.includes("preview") || fn.name.includes("template") || fn.name.includes("region"))))) {
                                     stg.off(evName, fn);
                                 }
                             }
@@ -367,9 +344,11 @@ export class BaseFoundryVTTAdapter {
         if (canvas?.regions?.preview?.children?.includes(placeable)) {
             try { canvas.regions.preview.removeChild(placeable); } catch (e) {}
         }
-        if (typeof placeable.destroy === "function") {
-            try { placeable.destroy({ children: true }); } catch (e) {}
-        }
+        try {
+            if (typeof placeable.destroy === "function") {
+                placeable.destroy({ children: true });
+            }
+        } catch (e) {}
 
         const dummyContainer = {
             position: { x: 0, y: 0, set: () => {} },

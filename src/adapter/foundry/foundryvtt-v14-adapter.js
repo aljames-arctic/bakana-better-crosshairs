@@ -590,13 +590,6 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         }
 
         // MeasuredTemplate in V14:
-        if (tmpl.isPreview && !tmpl._bbcRotateOverridden) {
-            tmpl._bbcRotateOverridden = true;
-            tmpl._onRotate = function(event) {
-                if (event && typeof event.stopPropagation === "function") event.stopPropagation();
-            };
-        }
-
         const rad = direction * (Math.PI / 180);
         tmpl.direction = direction;
 

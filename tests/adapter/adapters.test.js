@@ -67,15 +67,12 @@ test('foundry and system adapters extract properties and calling context consist
 });
 
 test('crosshairAdapter.dismissPreview safely detaches stage listeners and destroys placeable', () => {
-    let confirmCalled = false;
     let destroyCalled = false;
     const mockPlaceable = {
-        _onConfirm() { confirmCalled = true; },
         destroy(opts) { destroyCalled = true; }
     };
 
     crosshairAdapter.dismissPreview(mockPlaceable);
-    assert.equal(confirmCalled, true);
     assert.equal(destroyCalled, true);
 });
 
@@ -142,14 +139,12 @@ test('BaseSystemAdapter and Dnd5eSystemAdapter strictly NOP handleProgrammaticPl
 });
 
 test('crosshairAdapter.dismissPreview is resilient against getter-only properties on PlaceableObjects', () => {
-    let confirmCalled = false;
     let destroyCalled = false;
 
     class GetterOnlyPlaceable {
         get isPreview() { return true; }
         get visible() { return true; }
         get renderable() { return true; }
-        _onConfirm() { confirmCalled = true; }
         destroy(opts) { destroyCalled = true; }
     }
 
@@ -158,7 +153,6 @@ test('crosshairAdapter.dismissPreview is resilient against getter-only propertie
         crosshairAdapter.dismissPreview(customPlaceable);
     });
     assert.equal(customPlaceable.isPreview, false);
-    assert.equal(confirmCalled, true);
     assert.equal(destroyCalled, true);
 });
 
