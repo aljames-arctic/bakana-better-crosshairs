@@ -176,34 +176,6 @@
                         </div>
                     </td>
                 </tr>
-                <tr data-override-child="enableAnimation" {{#if (and showOverrides (not enableAnimation))}}style="display: none;"{{/if}}>
-                    <th>{{labels.borderStyling}}</th>
-                    <td>
-                        <span class="view-only">
-                            <span class="bbc-color-swatch" data-color="{{borderColor}}"></span>
-                            <code>{{borderColor}}</code> ({{labels.alphaLabel}} {{borderAlpha}})
-                        </span>
-                        <div class="bbc-edit-color-row edit-only">
-                            <input type="color" class="bbc-edit-color" data-color-target="bbc-item-bordercolor" data-field="borderColor" value="{{borderColorPicker}}" />
-                            <input type="text" id="bbc-item-bordercolor" class="bbc-edit-input" name="borderColor" data-field="borderColor" value="{{borderColor}}" placeholder="#ffffff" />
-                            <label>{{labels.alphaLabel}} <input type="number" step="0.05" min="0" max="1" class="bbc-edit-input small" name="borderAlpha" data-field="borderAlpha" value="{{borderAlpha}}" /></label>
-                        </div>
-                    </td>
-                </tr>
-                <tr data-override-child="enableAnimation" {{#if (and showOverrides (not enableAnimation))}}style="display: none;"{{/if}}>
-                    <th>{{labels.fillStyling}}</th>
-                    <td>
-                        <span class="view-only">
-                            <span class="bbc-color-swatch" data-color="{{fillColor}}"></span>
-                            <code>{{fillColor}}</code> ({{labels.alphaLabel}} {{fillAlpha}})
-                        </span>
-                        <div class="bbc-edit-color-row edit-only">
-                            <input type="color" class="bbc-edit-color" data-color-target="bbc-item-fillcolor" data-field="fillColor" value="{{fillColorPicker}}" />
-                            <input type="text" id="bbc-item-fillcolor" class="bbc-edit-input" name="fillColor" data-field="fillColor" value="{{fillColor}}" placeholder="#000000" />
-                            <label>{{labels.alphaLabel}} <input type="number" step="0.05" min="0" max="1" class="bbc-edit-input small" name="fillAlpha" data-field="fillAlpha" value="{{fillAlpha}}" /></label>
-                        </div>
-                    </td>
-                </tr>
                 <tr class="{{#if (and (not showOverrides) (not icon))}}edit-only{{/if}}" data-override-child="enableAnimation" {{#if (and showOverrides (not enableAnimation))}}style="display: none;"{{/if}}>
                     <th>{{labels.customIcon}}</th>
                     <td>
