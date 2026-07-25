@@ -827,6 +827,26 @@ test('REGRESSION: alignCrosshairAndEffects resolves token attachment and keeps d
     assert.equal(mockSequencerCrosshair.data.rotation, 0);
 });
 
+test('REGRESSION: BaseCrosshairShape.move() does not mutate sequencerCrosshair visual coordinates in attached mode', () => {
+    const mockDocument = { direction: 0, updateSource: () => {} };
+    const mockPlaceable = { document: mockDocument, direction: 0 };
+    const mockToken = { center: { x: 500, y: 500 }, width: 1, height: 1 };
+    const config = {
+        stickToToken: true,
+        token: mockToken,
+        type: 'circle'
+    };
+
+    const shape = new BaseCrosshairShape(mockPlaceable, config);
+    const mockSequencerCrosshair = { x: 550, y: 500 };
+    shape.sequencerCrosshair = mockSequencerCrosshair;
+
+    shape.move(600, 500);
+
+    assert.equal(mockSequencerCrosshair.x, 550, 'sequencerCrosshair X must not be overwritten by move() when attached to token');
+    assert.equal(mockSequencerCrosshair.y, 500, 'sequencerCrosshair Y must not be overwritten by move() when attached to token');
+});
+
 test('REGRESSION: FoundryVTTV14Adapter.refreshTemplateHighlights does not overwrite tmpl.ray', () => {
     const adapter = new FoundryVTTV14Adapter();
     const mockRay = {

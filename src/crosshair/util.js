@@ -279,7 +279,7 @@ function rotateCrosshairInstance(crosshair, newDirDeg, config = {}) {
 
     const isRayOrCone = shapeType === "ray" || shapeType === "cone";
 
-    if (!isRayOrCone) {
+    if (!isRayOrCone && !isAttached) {
         if (typeof crosshair.refresh === "function") {
             crosshair.refresh();
         }

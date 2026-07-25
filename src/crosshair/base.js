@@ -528,7 +528,8 @@ export class BaseCrosshairShape {
         this.x = targetX;
         this.y = targetY;
 
-        if (this.sequencerCrosshair) {
+        const isAttached = Boolean(this.stickToToken && this.token);
+        if (this.sequencerCrosshair && !isAttached) {
             this.sequencerCrosshair.x = targetX;
             this.sequencerCrosshair.y = targetY;
         }
