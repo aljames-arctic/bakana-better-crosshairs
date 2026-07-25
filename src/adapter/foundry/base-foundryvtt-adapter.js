@@ -251,22 +251,6 @@ export class BaseFoundryVTTAdapter {
                     }
                 }
             }
-            if (Array.isArray(obj._measurementLines)) {
-                for (const line of obj._measurementLines) {
-                    if (line) {
-                        line.visible = false;
-                        line.alpha = 0;
-                    }
-                }
-            }
-            if (Array.isArray(obj._measurementLabels)) {
-                for (const label of obj._measurementLabels) {
-                    if (label) {
-                        label.visible = false;
-                        label.alpha = 0;
-                    }
-                }
-            }
 
             const hId = obj.highlightId ?? obj.id ?? "preview";
             clearHighlightLayer(hId);
