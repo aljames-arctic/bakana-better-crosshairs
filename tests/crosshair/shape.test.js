@@ -245,5 +245,37 @@ test('REGRESSION: refreshTemplateHighlights does not throw TypeError when placea
     });
 });
 
+test('BaseCrosshairShape.create enables location showRange when token is present and stickToToken is false', async () => {
+    const { CircleCrosshairShape } = await import('../../src/crosshair/circle.js');
+    const mockDocument = { x: 0, y: 0 };
+    const mockPlaceable = { x: 0, y: 0, document: mockDocument };
+    const mockToken = { name: "Caster", center: { x: 50, y: 50 } };
+    const shape = new CircleCrosshairShape(mockPlaceable, { radius: 15, token: mockToken, stickToToken: false });
+
+    let locationObj = null;
+    let locationOpts = null;
+    const mockCrosshairBuilder = {
+        type() { return this; },
+        borderColor() { return this; },
+        fillColor() { return this; },
+        distance() { return this; },
+        snapPosition() { return this; },
+        icon() { return this; },
+        callback() { return this; },
+        location(obj, opts) {
+            locationObj = obj;
+            locationOpts = opts;
+            return this;
+        }
+    };
+    globalThis.Sequence = class {
+        crosshair() { return mockCrosshairBuilder; }
+    };
+
+    await shape.create();
+    assert.equal(locationObj, mockToken);
+    assert.deepEqual(locationOpts, { showRange: true });
+});
+
 
 

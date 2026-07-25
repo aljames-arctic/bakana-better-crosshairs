@@ -262,6 +262,9 @@ export class BaseCrosshairShape {
         if (this.stickToToken && this.token) {
             crosshairSeq.location(this.token, { lockToEdge: true, lockToEdgeDirection: false });
         } else {
+            if (this.token && this.config.showRange !== false) {
+                crosshairSeq.location(this.token, { showRange: true });
+            }
             const snapMode = getGridSnapMode(this.config);
             if (snapMode !== 0) crosshairSeq.snapPosition(snapMode);
         }
