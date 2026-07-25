@@ -58,7 +58,13 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
             borderColorPicker: normalizeHexColor(e.borderColor, "#ffffff"),
             fillColorPicker: normalizeHexColor(e.fillColor, "#000000"),
             placedFillColorPicker: normalizeHexColor(e.placedFillColor, "#000000"),
-            placedBorderColorPicker: normalizeHexColor(e.placedBorderColor, "#000000")
+            placedBorderColorPicker: normalizeHexColor(e.placedBorderColor, "#000000"),
+            hasPlacedStyling: Boolean(
+                (e.placedFillColor && e.placedFillColor !== "#000000") ||
+                (e.placedFillAlpha !== undefined && e.placedFillAlpha !== 0) ||
+                (e.placedBorderColor && e.placedBorderColor !== "#ffffff") ||
+                (e.placedBorderAlpha !== undefined && e.placedBorderAlpha !== 0)
+            )
         }));
 
         const { prePlacementTitle, placementSectionTitle, postPlacementTitle, docTerm } = this._getAdapterTitles();

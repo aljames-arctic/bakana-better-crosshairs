@@ -190,7 +190,9 @@ test('extractPlacedStylingFlags and applyDocumentPlacement extract and set borde
 
     // Test handleMeasuredTemplateRefresh syncing bbc flags across PIXI 7 graphicsData and PIXI 8 instructions
     const mockTemplate = {
+        isPreview: false,
         document: {
+            id: 'placed_tmpl_123',
             flags: {
                 bbc: {
                     placedBorderColor: '#fc753b',
@@ -225,6 +227,20 @@ test('extractPlacedStylingFlags and applyDocumentPlacement extract and set borde
     assert.equal(mockTemplate.template.instructions[0].data.alpha, 0.6);
     assert.equal(mockTemplate.template.instructions[1].data.color, 0xff0000);
     assert.equal(mockTemplate.template.instructions[1].data.alpha, 0.5);
+
+    // Verify handleMeasuredTemplateRefresh ignores previews
+    const previewTemplate = {
+        isPreview: true,
+        document: {
+            id: null,
+            flags: { bbc: { placedBorderColor: '#ff0000', placedFillColor: '#00ff00' } },
+            borderColor: '#000000',
+            fillColor: '#ffffff'
+        }
+    };
+    adapterV13.handleMeasuredTemplateRefresh(previewTemplate);
+    assert.equal(previewTemplate.document.borderColor, '#000000', 'Preview template borderColor should not be overwritten by placed border color');
+    assert.equal(previewTemplate.document.fillColor, '#ffffff', 'Preview template fillColor should not be overwritten by placed fill color');
 });
 
 test('abstracted registerPlacementHooks combines both Foundry version adapter and System adapter without coupling', () => {

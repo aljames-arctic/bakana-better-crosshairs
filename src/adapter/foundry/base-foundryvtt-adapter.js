@@ -498,6 +498,7 @@ export class BaseFoundryVTTAdapter {
      */
     handleMeasuredTemplateRefresh(template) {
         if (!template?.document) return;
+        if (this.isPreview(template)) return;
         const doc = template.document;
         const bbcFlags = doc.flags?.bbc ?? {};
         const docFillColor = "fillColor" in doc ? doc.fillColor : doc.color;
@@ -645,7 +646,7 @@ export class BaseFoundryVTTAdapter {
      * @param {Object} coords - Resolved placement coordinates from Sequencer
      * @returns {Promise<void>} Resolves when deferred document creation completes
      */
-    async createDeferredDocument(scene, deferredData, coords, documentName) {
+    async createDeferredDocument(scene, deferredData, coords, documentName, config = {}) {
         if (!scene || !deferredData || !coords) return;
         const data = foundry.utils.deepClone(deferredData);
         delete data._id;
@@ -654,6 +655,7 @@ export class BaseFoundryVTTAdapter {
 
         const docName = this._getDeferredDocumentName(data, documentName);
         await this._applyDeferredCoordinates(data, coords, docName);
+        this.applyDocumentPlacement(data, coords, config, data);
 
         log.debug(`Adapter.createDeferredDocument | Deferred ${docName} payload:`, {
             docName,
@@ -937,7 +939,7 @@ export class BaseFoundryVTTAdapter {
 
                     if (pendingItem.deferredCreateData && typeof canvas !== "undefined" && canvas.scene) {
                         // log.debug(`context.resolve | Resuming deferred document creation on scene "${canvas.scene.name}"`);
-                        await self.createDeferredDocument(canvas.scene, pendingItem.deferredCreateData, coords, pendingItem.documentName);
+                        await self.createDeferredDocument(canvas.scene, pendingItem.deferredCreateData, coords, pendingItem.documentName, pendingItem.config);
                         if (placeable && typeof self.dismissPreview === "function") {
                             self.dismissPreview(placeable);
                         }
@@ -945,7 +947,8 @@ export class BaseFoundryVTTAdapter {
                         systemAdapter.handleProgrammaticPlacement(canvas.scene, doc, placeable, coords, {
                             crosshairAdapter: self,
                             pendingPlacements: self.pendingPlacements,
-                            placementKey
+                            placementKey,
+                            config: pendingItem.config
                         });
                     }
                 }

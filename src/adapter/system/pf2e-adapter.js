@@ -109,11 +109,9 @@ export class Pf2eSystemAdapter extends BaseSystemAdapter {
                     const newShape = crosshairAdapter._formatRegionShapeUpdate(origShape, stillPending.coords);
                     delete newShape._id;
                     createData.shapes = [newShape];
-                } else {
-                    if (stillPending.coords.x !== undefined) createData.x = stillPending.coords.x;
-                    if (stillPending.coords.y !== undefined) createData.y = stillPending.coords.y;
-                    if (stillPending.coords.direction !== undefined) createData.direction = stillPending.coords.direction;
-                    if (stillPending.coords.distance !== undefined) createData.distance = stillPending.coords.distance;
+                }
+                if (crosshairAdapter && typeof crosshairAdapter.applyDocumentPlacement === "function") {
+                    crosshairAdapter.applyDocumentPlacement(createData, stillPending.coords, stillPending.config ?? options.config ?? {}, createData);
                 }
 
                 try {

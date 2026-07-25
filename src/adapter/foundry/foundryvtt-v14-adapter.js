@@ -399,7 +399,11 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             if (styling.placedBorderAlpha !== undefined) updateData.borderAlpha = styling.placedBorderAlpha;
             if (config.hidden || config.hideTemplate) updateData.hidden = true;
 
-            targetDoc.updateSource(updateData);
+            if (typeof targetDoc?.updateSource === "function") {
+                targetDoc.updateSource(updateData);
+            } else {
+                Object.assign(targetDoc, updateData);
+            }
             if (data && typeof data === "object") {
                 if (typeof foundry?.utils?.mergeObject === "function") {
                     foundry.utils.mergeObject(data, updateData);
