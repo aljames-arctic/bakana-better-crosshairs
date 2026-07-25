@@ -381,18 +381,17 @@ export class BaseCrosshairShape {
         if (!this._rangeText) {
             const TextClass = globalThis.foundry?.canvas?.containers?.PreciseText ?? globalThis.PreciseText ?? globalThis.PIXI?.Text;
             if (!TextClass) return;
-            const baseStyle = globalThis.CONFIG?.canvasTextStyle ? globalThis.CONFIG.canvasTextStyle.clone() : {};
-            const style = {
-                fontFamily: baseStyle.fontFamily ?? "Signika, sans-serif",
-                fontSize: 18,
-                fill: "#ffffff",
-                stroke: "#000000",
-                strokeThickness: 4,
-                dropShadow: true,
-                dropShadowColor: "#000000",
-                dropShadowBlur: 2,
-                align: "center"
-            };
+            const style = globalThis.CONFIG?.canvasTextStyle
+                ? globalThis.CONFIG.canvasTextStyle.clone()
+                : {
+                    fontFamily: "Signika, sans-serif",
+                    fontSize: 24,
+                    fill: "#ffffff",
+                    stroke: "#000000",
+                    strokeThickness: 4,
+                    align: "center"
+                };
+            if (style) style.align = "center";
             try {
                 this._rangeText = new TextClass(labelStr, style);
                 if (this._rangeText.anchor && typeof this._rangeText.anchor.set === "function") {
