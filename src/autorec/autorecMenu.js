@@ -1,6 +1,7 @@
 import { MODULE_ID } from "../lib/constants.js";
-import { DEFAULT_AUTOREC_ENTRY, autorecManager } from "./autorecManager.js";
+import { DEFAULT_AUTOREC_ENTRY, autorecManager, computeRegistrationKey } from "./autorecManager.js";
 import { systemAdapter } from "../adapter/system/index.js";
+import { promptJsonFileImport } from "./autorecExchange.js";
 import { localize, notify } from "../lib/utils.js";
 import { log } from "../lib/logger.js";
 import { BaseCrosshairMenuApplication, normalizeHexColor } from "./BaseCrosshairMenuApplication.js";
@@ -77,6 +78,8 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
             removeBtn: localize("BBC.autorecMenu.labels.removeBtn", "Remove"),
             deleteBtn: localize("BBC.autorecMenu.labels.deleteBtn", "Delete"),
             saveBtn: localize("BBC.autorecMenu.labels.saveBtn", "Save"),
+            importJsonBtn: localize("BBC.autorecMenu.labels.importJsonBtn", "Import JSON"),
+            exportJsonBtn: localize("BBC.autorecMenu.labels.exportJsonBtn", "Export JSON"),
 
             emptySidebar: localize("BBC.autorecMenu.labels.emptySidebar", "No crosshair animations registered yet."),
 
@@ -208,9 +211,8 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
                                 const formEl = button.form ?? html;
                                 const itemInput = typeof formEl?.querySelector === "function" ? formEl.querySelector("input[name='workflowName']") : null;
                                 const actInput = supportsActivities && typeof formEl?.querySelector === "function" ? formEl.querySelector("input[name='activityName']") : null;
-                                const trimmedName = (itemInput?.value ?? "").trim();
-                                const itemName = trimmedName !== "" ? trimmedName : null;
-                                const activity = (actInput?.value ?? "").trim();
+                                const itemName = (itemInput?.value ?? "").trim() || null;
+                                const activity = (actInput?.value ?? "").trim() || undefined;
                                 return itemName ? { itemName, activity } : null;
                             }
                         }
@@ -222,10 +224,10 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
 
                 if (!result?.itemName) return;
                 const { itemName, activity } = result;
-                const regKey = activity !== "" ? `${itemName} | ${activity}` : itemName;
+                const regKey = computeRegistrationKey(itemName, activity, activity);
 
                 if (!autorecManager.has(regKey)) {
-                    const config = activity !== "" ? { itemName, activityId: activity, activityName: activity } : { itemName };
+                    const config = activity !== "" ? { itemName, activityId: activity, activityName: activity, sourceModule: "world" } : { itemName, sourceModule: "world" };
                     autorecManager.register(regKey, config, { persist: true });
                     autorecManager.broadcastSync();
                     notify.info(localize("BBC.autorecMenu.notify.added", `Added workflow: "${regKey}".`));
@@ -258,6 +260,32 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
                 await autorecManager.unregisterMany(names, { persist: true });
                 notify.info(localize("BBC.autorecMenu.notify.removedMany", `Removed ${names.length} workflow(s).`));
                 this.render(false);
+            });
+        }
+
+        // Export JSON Package
+        const exportJsonBtn = rootEl.querySelector(".bbc-export-json-btn");
+        if (exportJsonBtn) {
+            exportJsonBtn.addEventListener("click", () => {
+                autorecManager.exportToFile({ sourceModule: "world" });
+            });
+        }
+
+        // Import JSON Package
+        const importJsonBtn = rootEl.querySelector(".bbc-import-json-btn");
+        if (importJsonBtn) {
+            importJsonBtn.addEventListener("click", () => {
+                promptJsonFileImport(async (content) => {
+                    try {
+                        const res = await autorecManager.importAutorecs(content, { sourceModule: "world", interactive: true });
+                        if (res) {
+                            this.render(false);
+                        }
+                    } catch (err) {
+                        log.error("AutorecMenuApplication | Import JSON failed:", err);
+                        notify.error(localize("BBC.autorecExchange.notify.importError", `Import failed: ${err.message}`));
+                    }
+                });
             });
         }
 
@@ -392,7 +420,7 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
         });
 
         if (modified) {
-            autorecManager.register(regKey, config, { persist: false, local: Boolean(config.local) });
+            autorecManager.register(regKey, config, { persist: false, local: Boolean(config.local), isHydration: true });
         }
 
         const persistedDict = {};

@@ -2,6 +2,7 @@ import { crosshair } from './crosshair/index.js';
 import { file, closest, absolutePath } from './lib/filemanager.js';
 import { log } from './lib/logger.js';
 import { autorecManager } from './autorec/autorecManager.js';
+import { ModuleAutorecManager } from './autorec/moduleAutorecManager.js';
 import { systemAdapter, initializeSystemAdapter, crosshairAdapter, initializeFoundryAdapter, initializeHooks } from './adapter/index.js';
 import { attachWheelRotation, detachWheelRotation, resolveCrosshairPlacement, getTokenEdgePoint, snapCoordinates } from './crosshair/util.js';
 import { localize } from './lib/utils.js';
@@ -33,7 +34,8 @@ export function setupModule() {
     initializeFoundryAdapter();
     initializeHooks();
     loadTemplates([
-        `modules/${MODULE_ID}/src/autorec/configFieldsPartial.html`
+        `modules/${MODULE_ID}/src/autorec/configFieldsPartial.html`,
+        `modules/${MODULE_ID}/src/autorec/autorecImportDialog.html`
     ]);
 
     const manager = autorecManager;
@@ -53,17 +55,14 @@ export function setupModule() {
     const moduleApi = {
         crosshair,
         util,
-        manager,
         autorecManager,
+        ModuleAutorecManager,
         systemAdapter,
         crosshairAdapter,
         log,
     };
 
     setupApiCalls(moduleApi);
-
-    const mod = game.modules.get(MODULE_ID);
-    if (mod) mod.api = moduleApi;
 }
 
 /**
@@ -73,7 +72,7 @@ export function setupModule() {
  */
 Hooks.once('init', () => {
     setupModule();
-    log.info(`${MODULE_NAME} module ready`);
+    log.info(`Initializing ${MODULE_NAME} module`);
 });
 
 /**
@@ -83,5 +82,6 @@ Hooks.once('init', () => {
  */
 Hooks.once('ready', () => {
     autorecManager.initializeReadySync();
+    log.info(`${MODULE_NAME} module ready`);
 });
 

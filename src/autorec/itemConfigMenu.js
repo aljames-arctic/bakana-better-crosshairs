@@ -193,7 +193,7 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             placedFillColorPicker: normalizeHexColor(source.placedFillColor, "#000000"),
             placedBorderColorPicker: normalizeHexColor(source.placedBorderColor, "#000000"),
 
-            isStickDefault: stickToTokenValue === "default" || !stickToTokenValue,
+            isStickDefault: stickToTokenValue === "default",
             isStickOn: stickToTokenValue === "true",
             isStickOff: stickToTokenValue === "false",
             hasCustomStyling: Boolean(
@@ -336,22 +336,6 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
                 } else {
                     syncEditModeControls(true);
                 }
-            });
-
-            // Live-toggle child configuration options and badge text when an override checkbox changes in edit mode
-            rootEl.querySelectorAll("input[type='checkbox'][name^='enable']").forEach(chk => {
-                chk.addEventListener("change", (ev) => {
-                    const fieldName = ev.currentTarget.name;
-                    const isChecked = Boolean(ev.currentTarget.checked);
-                    rootEl.querySelectorAll(`[data-override-child='${fieldName}']`).forEach(el => {
-                        el.style.display = isChecked ? "" : "none";
-                    });
-                    rootEl.querySelectorAll(`[data-override-badge='${fieldName}']`).forEach(el => {
-                        el.textContent = isChecked
-                            ? localize("BBC.itemConfigMenu.badgeCustomOverride", "CUSTOM OVERRIDE")
-                            : localize("BBC.itemConfigMenu.badgeInherited", "INHERITED");
-                    });
-                });
             });
         }
 
