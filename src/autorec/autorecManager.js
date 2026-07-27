@@ -3,7 +3,11 @@ import { log } from '../lib/logger.js';
 import { systemAdapter } from '../adapter/system/index.js';
 import { crosshairAdapter } from '../adapter/foundry/index.js';
 import { socketlib } from '../integration/index.js';
-import { localize } from '../lib/utils.js';
+import { localize, notify } from '../lib/utils.js';
+import { buildExportPackage, validateImportPackage as exchangeValidateImportPackage, analyzeImportDiff as exchangeAnalyzeImportDiff, triggerFileDownload } from './autorecExchange.js';
+import { AutorecImportDialog } from './autorecImportDialog.js';
+import { ModuleAutorecManager } from './moduleAutorecManager.js';
+import { autorecCompatibilityUpdate } from './autorecMigration.js';
 
 /**
  * Canonical default configuration schema for an automatic recognition (autorec) registration entry.
@@ -14,6 +18,8 @@ export const DEFAULT_AUTOREC_ENTRY = {
     itemName: "DEFAULT",
     isDefault: true,
     enabled: true,
+    sourceModule: "world",
+    local: false,
     stickToToken: "default",
     showLine: true,
     showRange: true,
@@ -41,6 +47,33 @@ export const DEFAULT_AUTOREC_ENTRY = {
     postPlacementCode: "",
     icon: "eskie.crosshair.reticle.generic_02.white"
 };
+
+/**
+ * Generate a deterministic non-colliding identity registration key for an item and activity combination.
+ * Uses FNV-1a non-cryptographic hashing when an activity scope is attached to eliminate delimiter collision risks.
+ * Single concrete inputs with nullish coalescing defaults (Rule 1 & Rule 4).
+ * @param {string} itemName - Target item or spell name
+ * @param {string} [activityName=""] - Optional activity title
+ * @param {string} [activityId=""] - Optional system activity ID
+ * @returns {string} Deterministic registration identity key
+ */
+export function computeRegistrationKey(itemName, activityName = "", activityId = "") {
+    const cleanItem = String(itemName ?? "").trim();
+    const cleanActName = String(activityName ?? "").trim();
+    const cleanActId = String(activityId ?? "").trim();
+    const actToken = cleanActId !== "" ? cleanActId : cleanActName;
+    if (actToken === "") {
+        return cleanItem;
+    }
+    const rawToken = `${cleanItem.toLowerCase()}::${actToken.toLowerCase()}`;
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < rawToken.length; i++) {
+        hash ^= rawToken.charCodeAt(i);
+        hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+    }
+    const hexHash = (hash >>> 0).toString(16).padStart(8, "0");
+    return `${cleanItem}#${hexHash}`;
+}
 
 /**
  * AutorecManager manages automatic recognition (autorec) registrations for template/region items.
@@ -85,8 +118,25 @@ export class AutorecManager {
         this.getDefault = this.getDefaultConfig;
         this.customize = this.customize.bind(this);
         this.broadcastSync = this.broadcastSync.bind(this);
+        this.exportAutorecs = this.exportAutorecs.bind(this);
+        this.exportToFile = this.exportToFile.bind(this);
+        this.validateImportPackage = this.validateImportPackage.bind(this);
+        this.analyzeImportDiff = this.analyzeImportDiff.bind(this);
+        this.importAutorecs = this.importAutorecs.bind(this);
+        this.mergeImportedEntries = this.mergeImportedEntries.bind(this);
+        this.forModule = this.forModule.bind(this);
 
         this.indexRegistration("DEFAULT", DEFAULT_AUTOREC_ENTRY);
+    }
+
+    /**
+     * Create or retrieve a module-scoped registration manager bound to a specific module-id.
+     * Macro registration methods on the returned manager automatically tag entries with the module-id.
+     * @param {string} moduleId - Unique caller module identifier (e.g. "eskie-macro-pack")
+     * @returns {ModuleAutorecManager} Scoped manager instance
+     */
+    forModule(moduleId) {
+        return new ModuleAutorecManager(moduleId, this);
     }
 
     /**
@@ -162,13 +212,55 @@ export class AutorecManager {
      * @returns {void}
      */
     indexRegistration(registeredKey, handler) {
-        const itemName = handler?.itemName ?? registeredKey.split(" | ")[0].trim();
-        const isDefault = Boolean(handler?.isDefault ?? (registeredKey === "DEFAULT"));
-        const activityId = isDefault ? "" : (handler?.activityId ?? "").trim();
-        const activityName = isDefault ? "" : (handler?.activityName ?? "").trim();
-        const hasActivity = Boolean(activityId) || Boolean(activityName);
-        const enabled = handler?.enabled !== false;
         const baseConfig = typeof handler === "function" ? { handler } : (handler ?? {});
+        const optionsRaw = baseConfig.options ?? {};
+        const fileRaw = baseConfig.file ?? {};
+        const previewRaw = baseConfig.preview ?? {};
+        const previewFill = previewRaw.fill ?? {};
+        const previewBorder = previewRaw.border ?? {};
+        const placedRaw = baseConfig.placed ?? {};
+        const placedFill = placedRaw.fill ?? {};
+        const placedBorder = placedRaw.border ?? {};
+        const macroRaw = baseConfig.macro ?? {};
+
+        const itemName = String(baseConfig.itemName ?? registeredKey).trim();
+        const isDefault = Boolean(baseConfig.isDefault ?? (registeredKey === "DEFAULT"));
+        const activityId = isDefault ? "" : String(baseConfig.activityId ?? "").trim();
+        const activityName = isDefault ? "" : String(baseConfig.activityName ?? "").trim();
+        const hasActivity = Boolean(activityId) || Boolean(activityName);
+        const enabled = baseConfig.enabled !== false;
+        const sourceModule = String(baseConfig.sourceModule ?? baseConfig.module ?? "world").trim();
+
+        const circleFile = String(baseConfig.circleFile ?? fileRaw.circle ?? DEFAULT_AUTOREC_ENTRY.circleFile).trim();
+        const coneFile = String(baseConfig.coneFile ?? fileRaw.cone ?? DEFAULT_AUTOREC_ENTRY.coneFile).trim();
+        const rayFile = String(baseConfig.rayFile ?? fileRaw.ray ?? DEFAULT_AUTOREC_ENTRY.rayFile).trim();
+        const squareFile = String(baseConfig.squareFile ?? fileRaw.square ?? DEFAULT_AUTOREC_ENTRY.squareFile).trim();
+        const lineFile = String(baseConfig.lineFile ?? fileRaw.line ?? DEFAULT_AUTOREC_ENTRY.lineFile).trim();
+        const icon = String(baseConfig.icon ?? fileRaw.reticle ?? DEFAULT_AUTOREC_ENTRY.icon).trim();
+
+        const stickToToken = String(baseConfig.stickToToken ?? optionsRaw.attachMode ?? DEFAULT_AUTOREC_ENTRY.stickToToken);
+        const showLine = Boolean(baseConfig.showLine ?? optionsRaw.showLine ?? DEFAULT_AUTOREC_ENTRY.showLine);
+        const showRange = Boolean(baseConfig.showRange ?? optionsRaw.showRange ?? DEFAULT_AUTOREC_ENTRY.showRange);
+        const limitRange = Boolean(baseConfig.limitRange ?? optionsRaw.limitRange ?? DEFAULT_AUTOREC_ENTRY.limitRange);
+
+        const borderColor = String(baseConfig.borderColor ?? previewBorder.color ?? DEFAULT_AUTOREC_ENTRY.borderColor).trim();
+        const borderAlpha = Number(baseConfig.borderAlpha ?? previewBorder.alpha ?? DEFAULT_AUTOREC_ENTRY.borderAlpha);
+        const fillColor = String(baseConfig.fillColor ?? previewFill.color ?? DEFAULT_AUTOREC_ENTRY.fillColor).trim();
+        const fillAlpha = Number(baseConfig.fillAlpha ?? previewFill.alpha ?? DEFAULT_AUTOREC_ENTRY.fillAlpha);
+
+        const placedFillColor = String(baseConfig.placedFillColor ?? placedFill.color ?? DEFAULT_AUTOREC_ENTRY.placedFillColor).trim();
+        const placedFillAlpha = Number(baseConfig.placedFillAlpha ?? placedFill.alpha ?? DEFAULT_AUTOREC_ENTRY.placedFillAlpha);
+        const placedBorderColor = String(baseConfig.placedBorderColor ?? placedBorder.color ?? DEFAULT_AUTOREC_ENTRY.placedBorderColor).trim();
+        const placedBorderAlpha = Number(baseConfig.placedBorderAlpha ?? placedBorder.alpha ?? DEFAULT_AUTOREC_ENTRY.placedBorderAlpha);
+
+        const concurrentCode = String(baseConfig.concurrentCode ?? macroRaw.pre ?? "").trim();
+        const postPlacementCode = String(baseConfig.postPlacementCode ?? macroRaw.post ?? "").trim();
+
+        const enablePrePlacement = Boolean(baseConfig.enablePrePlacement ?? optionsRaw.enablePrePlacement);
+        const enableAnimation = Boolean(baseConfig.enableAnimation ?? optionsRaw.enableAnimation);
+        const enablePlacedStyling = Boolean(baseConfig.enablePlacedStyling ?? optionsRaw.enablePlacedStyling);
+        const enablePostPlacement = Boolean(baseConfig.enablePostPlacement ?? optionsRaw.enablePostPlacement);
+
         const entry = {
             ...DEFAULT_AUTOREC_ENTRY,
             ...baseConfig,
@@ -179,10 +271,38 @@ export class AutorecManager {
             activityName,
             hasActivity,
             isDefault,
-            enabled
+            enabled,
+            sourceModule,
+            module: sourceModule,
+            circleFile,
+            coneFile,
+            rayFile,
+            squareFile,
+            lineFile,
+            icon,
+            stickToToken,
+            showLine,
+            showRange,
+            limitRange,
+            borderColor,
+            borderAlpha,
+            fillColor,
+            fillAlpha,
+            placedFillColor,
+            placedFillAlpha,
+            placedBorderColor,
+            placedBorderAlpha,
+            concurrentCode,
+            postPlacementCode,
+            enablePrePlacement,
+            enableAnimation,
+            enablePlacedStyling,
+            enablePostPlacement
         };
 
         this.fastLookupMap.set(registeredKey.toLowerCase(), entry);
+        const computedKey = computeRegistrationKey(itemName, activityName, activityId);
+        this.fastLookupMap.set(computedKey.toLowerCase(), entry);
 
         if (itemName && !hasActivity) {
             this.fastLookupMap.set(itemName.toLowerCase(), entry);
@@ -190,6 +310,7 @@ export class AutorecManager {
         if (hasActivity) {
             const act = activityId !== "" ? activityId : activityName;
             this.fastLookupMap.set(`${itemName.toLowerCase()}|${act.toLowerCase()}`, entry);
+            this.fastLookupMap.set(`${itemName.toLowerCase()} | ${act.toLowerCase()}`, entry);
         }
     }
 
@@ -237,7 +358,19 @@ export class AutorecManager {
      */
     getEntryByName(itemName) {
         if (!itemName) return null;
-        return this.fastLookupMap.get(itemName.toLowerCase()) ?? null;
+        const cleanName = String(itemName).trim();
+        const lowerClean = cleanName.toLowerCase();
+        const directMatch = this.fastLookupMap.get(lowerClean);
+        if (directMatch) return directMatch;
+
+        if (cleanName.includes(" | ")) {
+            const parts = cleanName.split(" | ");
+            const baseItem = parts[0].trim();
+            const actPart = parts.slice(1).join(" | ").trim();
+            const hashedKey = computeRegistrationKey(baseItem, actPart).toLowerCase();
+            return this.fastLookupMap.get(hashedKey) ?? null;
+        }
+        return null;
     }
 
     /**
@@ -385,17 +518,18 @@ export class AutorecManager {
         }
 
         for (const [itemName, rawConfig] of Object.entries(savedRegistrations)) {
-            const config = rawConfig?.handler ?? rawConfig;
+            const baseConfig = rawConfig?.handler ?? rawConfig;
+            const config = autorecCompatibilityUpdate(baseConfig);
             const current = this.registeredHandlers.get(itemName);
             const isCurrentLocal = Boolean(current?.local);
             if (!isCurrentLocal) {
-                this.register(itemName, config, { persist: false });
+                this.register(itemName, config, { persist: false, isHydration: true });
                 this.persistedItemNames.add(itemName);
             }
         }
 
         const currentDefault = this.registeredHandlers.get("DEFAULT") ?? {};
-        this.register("DEFAULT", currentDefault, { persist: false });
+        this.register("DEFAULT", currentDefault, { persist: false, isHydration: true });
     }
 
     /**
@@ -409,11 +543,46 @@ export class AutorecManager {
      * @param {boolean} [options.local=false] - Whether this registration should only exist locally on this client and not persist or sync
      * @returns {void}
      */
-    register(itemName, handlerOrConfig = {}, { persist = true, local = false } = {}) {
+    register(itemName, handlerOrConfig = {}, { persist = true, local = false, sourceModule = null, isHydration = false, isImport = false, suppressWarn = false } = {}) {
         if (this._onRegisterCallback) {
             this._onRegisterCallback();
         }
-        const isLocal = Boolean(local || handlerOrConfig?.local);
+        const isLocal = Boolean(local || handlerOrConfig?.local || (!persist && !isHydration));
+        if (isLocal && typeof handlerOrConfig === "object" && handlerOrConfig !== null) {
+            handlerOrConfig.local = true;
+        }
+        if (sourceModule && typeof handlerOrConfig === "object" && handlerOrConfig !== null) {
+            handlerOrConfig.sourceModule = sourceModule;
+        }
+
+        const callingModule = String(sourceModule ?? handlerOrConfig?.sourceModule ?? handlerOrConfig?.module ?? "world").trim();
+        const existing = itemName !== "DEFAULT" ? this.registeredHandlers.get(itemName) : null;
+        const existingModule = String(existing?.sourceModule ?? existing?.module ?? "world").trim();
+
+        if (
+            !isHydration &&
+            !isImport &&
+            !suppressWarn &&
+            existing &&
+            !existing.isDefault &&
+            existingModule !== "world" &&
+            callingModule !== "world" &&
+            existingModule.toLowerCase() !== callingModule.toLowerCase()
+        ) {
+            const displayAct = String(existing.activityName ?? existing.activityId ?? "").trim() || "default";
+            const warnMsg = `An overwrite attempt on (${itemName} / ${displayAct} / ${existingModule}) was attempted by ${callingModule}.`;
+            if (typeof ui !== "undefined" && ui?.notifications?.warn) {
+                ui.notifications.warn(warnMsg);
+            }
+            log.warn(`AutorecManager.register | Overwrite attempt rejected: item "${itemName}" is owned by module "${existingModule}".`);
+            return {
+                success: false,
+                code: "ERR_MODULE_OVERWRITE_REJECTED",
+                reason: warnMsg,
+                existingModule,
+                callingModule
+            };
+        }
 
         if (itemName === "DEFAULT" && typeof handlerOrConfig !== "function") {
             handlerOrConfig = {
@@ -444,6 +613,11 @@ export class AutorecManager {
         } else if (persist && typeof registered !== "function") {
             this.persistRegistration(itemName, registered);
         }
+
+        return {
+            success: true,
+            code: "OK"
+        };
     }
 
     /**
@@ -456,21 +630,43 @@ export class AutorecManager {
      * @returns {boolean} True if the item registration was successfully deleted, false otherwise
      */
     unregister(itemName, { persist = true, local = false } = {}) {
-        const existing = this.registeredHandlers.get(itemName);
-        if (existing?.isDefault) {
-            log.warn("AutorecManager.unregister | Cannot delete canonical default fallback entry (isDefault: true). You may disable it by setting enabled: false.");
-            return false;
+        const cleanName = String(itemName ?? "").trim();
+        if (!cleanName) return false;
+        const lowerClean = cleanName.toLowerCase();
+        const targetHash = cleanName.includes(" | ")
+            ? computeRegistrationKey(cleanName.split(" | ")[0].trim(), cleanName.split(" | ").slice(1).join(" | ").trim()).toLowerCase()
+            : null;
+        const matchingKeys = [];
+        for (const [key, handler] of this.registeredHandlers.entries()) {
+            const lowerKey = key.toLowerCase();
+            const handlerItemName = String(handler?.itemName ?? key).trim().toLowerCase();
+            const isExactMatch = lowerKey === lowerClean;
+            const isItemNameMatch = handlerItemName === lowerClean;
+            const isHashedSubMatch = lowerKey.startsWith(`${lowerClean}#`);
+            const isLegacySubMatch = lowerKey.startsWith(`${lowerClean} | `);
+            const isHashExactMatch = Boolean(targetHash && lowerKey === targetHash);
+            if (isExactMatch || isItemNameMatch || isHashedSubMatch || isLegacySubMatch || isHashExactMatch) {
+                matchingKeys.push(key);
+            }
         }
-        const deleted = this.registeredHandlers.delete(itemName);
-        const wasPersisted = this.persistedItemNames.has(itemName);
-        if (deleted) {
+        let anyDeleted = false;
+        for (const key of matchingKeys) {
+            const existing = this.registeredHandlers.get(key);
+            if (existing?.isDefault) continue;
+            const deleted = this.registeredHandlers.delete(key);
+            const wasPersisted = this.persistedItemNames.has(key);
+            if (deleted) {
+                anyDeleted = true;
+                if (persist && !local && wasPersisted) {
+                    this.persistUnregistration(key);
+                }
+            }
+        }
+        if (anyDeleted) {
             this.rebuildFastLookupMap();
-            log.debug(`AutorecManager.unregister | Unregistered template sequence for item: ${itemName}`);
+            log.debug(`AutorecManager.unregister | Unregistered template sequence(s) for item: ${cleanName}`);
         }
-        if (persist && !local && wasPersisted && typeof itemName === "string") {
-            this.persistUnregistration(itemName);
-        }
-        return deleted;
+        return anyDeleted;
     }
 
     /**
@@ -483,12 +679,33 @@ export class AutorecManager {
      */
     async unregisterMany(itemNames, { persist = true, local = false } = {}) {
         if (!Array.isArray(itemNames)) return;
-        for (const itemName of itemNames) {
-            const existing = this.registeredHandlers.get(itemName);
+        const matchingKeys = new Set();
+        for (const rawName of itemNames) {
+            const cleanName = String(rawName ?? "").trim();
+            if (!cleanName) continue;
+            const lowerClean = cleanName.toLowerCase();
+            const targetHash = cleanName.includes(" | ")
+                ? computeRegistrationKey(cleanName.split(" | ")[0].trim(), cleanName.split(" | ").slice(1).join(" | ").trim()).toLowerCase()
+                : null;
+            for (const [key, handler] of this.registeredHandlers.entries()) {
+                const lowerKey = key.toLowerCase();
+                const handlerItemName = String(handler?.itemName ?? key).trim().toLowerCase();
+                const isExactMatch = lowerKey === lowerClean;
+                const isItemNameMatch = handlerItemName === lowerClean;
+                const isHashedSubMatch = lowerKey.startsWith(`${lowerClean}#`);
+                const isLegacySubMatch = lowerKey.startsWith(`${lowerClean} | `);
+                const isHashExactMatch = Boolean(targetHash && lowerKey === targetHash);
+                if (isExactMatch || isItemNameMatch || isHashedSubMatch || isLegacySubMatch || isHashExactMatch) {
+                    matchingKeys.add(key);
+                }
+            }
+        }
+        for (const key of matchingKeys) {
+            const existing = this.registeredHandlers.get(key);
             if (existing?.isDefault) continue;
-            this.registeredHandlers.delete(itemName);
-            this.persistedItemNames.delete(itemName);
-            log.debug(`AutorecManager.unregisterMany | Unregistered template sequence for item: ${itemName}`);
+            this.registeredHandlers.delete(key);
+            this.persistedItemNames.delete(key);
+            log.debug(`AutorecManager.unregisterMany | Unregistered template sequence for key: ${key}`);
         }
         this.rebuildFastLookupMap();
 
@@ -516,9 +733,10 @@ export class AutorecManager {
         if (!Array.isArray(entries)) return;
         const toPersist = {};
         for (const { itemName, config, local } of entries) {
-            this.register(itemName, config, { persist: false, local });
+            const isEntryLocal = Boolean(local || !persist);
+            this.register(itemName, config, { persist: false, local: isEntryLocal, isHydration: true });
             const registered = this.registeredHandlers.get(itemName);
-            if (persist && !local && typeof registered !== "function") {
+            if (persist && !isEntryLocal && typeof registered !== "function") {
                 toPersist[itemName] = registered;
                 this.persistedItemNames.add(itemName);
             }
@@ -645,6 +863,15 @@ export class AutorecManager {
             const stickToTokenMode = isStickOn ? "true" : (isStickOff ? "false" : "default");
             const stickToToken = isStickOn;
             const showLine = config.showLine !== false;
+            const showRange = config.showRange !== false;
+            const limitRange = config.limitRange !== false;
+            const enablePrePlacement = Boolean(config.enablePrePlacement);
+            const enableAnimation = Boolean(config.enableAnimation);
+            const enablePlacedStyling = Boolean(config.enablePlacedStyling);
+            const enablePostPlacement = Boolean(config.enablePostPlacement);
+            const distance = config.distance ?? "";
+            const width = config.width ?? "";
+            const angle = config.angle ?? "";
             const lineFile = config.lineFile ?? DEFAULT_AUTOREC_ENTRY.lineFile;
             const borderColor = config.borderColor ?? DEFAULT_AUTOREC_ENTRY.borderColor;
             const borderAlpha = config.borderAlpha ?? DEFAULT_AUTOREC_ENTRY.borderAlpha;
@@ -656,10 +883,10 @@ export class AutorecManager {
                 || (config.fillAlpha !== undefined && config.fillAlpha !== 0);
             const icon = config.icon ?? null;
 
-            const placedFillColor = config.placedFillColor ?? "#0099ff";
-            const placedFillAlpha = config.placedFillAlpha ?? 0.25;
-            const placedBorderColor = config.placedBorderColor ?? "#000000";
-            const placedBorderAlpha = config.placedBorderAlpha ?? 0.25;
+            const placedFillColor = config.placedFillColor ?? DEFAULT_AUTOREC_ENTRY.placedFillColor;
+            const placedFillAlpha = config.placedFillAlpha ?? DEFAULT_AUTOREC_ENTRY.placedFillAlpha;
+            const placedBorderColor = config.placedBorderColor ?? DEFAULT_AUTOREC_ENTRY.placedBorderColor;
+            const placedBorderAlpha = config.placedBorderAlpha ?? DEFAULT_AUTOREC_ENTRY.placedBorderAlpha;
             const hasPlacedStyling = Boolean(config.placedFillColor)
                 || (config.placedFillAlpha !== undefined && config.placedFillAlpha !== 0.25)
                 || Boolean(config.placedBorderColor)
@@ -673,12 +900,14 @@ export class AutorecManager {
             const hasActivity = Boolean(activityId) || Boolean(activityName);
             const activityDisplay = activityName !== "" ? activityName : activityId;
             const enabled = config.enabled !== false;
+            const sourceModule = String(config.sourceModule ?? "world");
 
             results.push({
                 regKey: itemName,
                 itemName: isDefault ? "DEFAULT" : cleanItemName,
                 isDefault,
                 enabled,
+                sourceModule,
                 activityId,
                 activityName,
                 hasActivity,
@@ -695,6 +924,9 @@ export class AutorecManager {
                 isCustomFunction,
                 isLocal,
                 config,
+                distance,
+                width,
+                angle,
                 distanceDisplay,
                 widthDisplay,
                 angleDisplay,
@@ -704,6 +936,12 @@ export class AutorecManager {
                 isStickOn,
                 isStickOff,
                 showLine,
+                showRange,
+                limitRange,
+                enablePrePlacement,
+                enableAnimation,
+                enablePlacedStyling,
+                enablePostPlacement,
                 lineFile,
                 borderColor,
                 borderAlpha,
@@ -734,10 +972,246 @@ export class AutorecManager {
     broadcastSync() {
         socketlib.emit({ type: "SYNC_AUTORECS" });
     }
+
+    /**
+     * Export all current autorec registrations into a standardized JSON exchange package.
+     * @param {Object} [options={}] - Export configuration options
+     * @param {string} [options.sourceModule="world"] - Attribution module identifier
+     * @param {boolean} [options.includeDefault=false] - Whether to include DEFAULT fallback
+     * @param {string} [options.description=""] - Optional description metadata
+     * @param {Array<Object>|null} [options.entriesInput=null] - Optional pre-filtered entries list
+     * @returns {Object} Exchange package object conforming to AUTOREC_EXCHANGE_VERSION
+     */
+    exportAutorecs({ sourceModule = "world", includeDefault = false, description = "", entriesInput = null } = {}) {
+        let rawEntries = entriesInput;
+        if (!Array.isArray(rawEntries)) {
+            rawEntries = [];
+            for (const [regKey, handler] of this.registeredHandlers.entries()) {
+                if (!handler || typeof handler === "function") continue;
+                const config = handler.config ?? handler;
+                rawEntries.push({
+                    ...config,
+                    regKey,
+                    itemName: String(config.itemName ?? regKey).trim()
+                });
+            }
+        }
+        return buildExportPackage(rawEntries, { sourceModule, includeDefault, description });
+    }
+
+    /**
+     * Export all current autorec registrations to a downloaded JSON file.
+     * @param {Object} [options={}] - File export options
+     * @param {string} [options.filename] - Custom output filename
+     * @param {string} [options.sourceModule="world"] - Attribution module identifier
+     * @param {boolean} [options.includeDefault=false] - Whether to include DEFAULT fallback
+     * @param {string} [options.description=""] - Optional description metadata
+     * @returns {void}
+     */
+    exportToFile({ filename = null, sourceModule = "world", includeDefault = false, description = "" } = {}) {
+        const pkg = this.exportAutorecs({ sourceModule, includeDefault, description });
+        const jsonStr = JSON.stringify(pkg, null, 2);
+        const defaultName = `bbc-autorec-export-${new Date().toISOString().slice(0, 10)}.json`;
+        const outName = filename ?? defaultName;
+        triggerFileDownload(jsonStr, outName);
+    }
+
+    /**
+     * Validate an incoming JSON package string or raw object against schema requirements.
+     * Throws concrete validation errors for incompatible versions or invalid entries.
+     * @param {string|Object} rawInput - Incoming raw JSON content
+     * @param {Object} [options={}] - Validation options
+     * @param {string|null} [options.overrideSourceModule=null] - Optional override module-id to force on all imported entries
+     * @returns {Object} Validated package container object
+     */
+    validateImportPackage(rawInput, { overrideSourceModule = null } = {}) {
+        return exchangeValidateImportPackage(rawInput, { overrideSourceModule });
+    }
+
+    /**
+     * Compute visual diff classification (new vs conflict overwrites vs identical) between import package and current system state.
+     * @param {Object} validatedPackage - Validated exchange package object
+     * @param {Object} [options={}] - Options
+     * @param {string} [options.defaultSourceModule="world"] - Module fallback
+     * @param {string|null} [options.overrideSourceModule=null] - Optional override module-id to force on all diff items
+     * @returns {Object} Diff analysis view contract
+     */
+    analyzeImportDiff(validatedPackage, { defaultSourceModule = "world", overrideSourceModule = null } = {}) {
+        return exchangeAnalyzeImportDiff(validatedPackage, this.registeredHandlers, { defaultSourceModule, overrideSourceModule });
+    }
+
+    /**
+     * Import a JSON package string or structure, running validation, analyzing conflicts,
+     * prompting user confirmation via modal if interactive, and applying selected items.
+     * @param {string|Object} jsonOrString - Raw JSON payload string or parsed package object
+     * @param {Object} [options={}] - Import flow configuration
+     * @param {string} [options.sourceModule="world"] - Caller attribution ID
+     * @param {string|null} [options.overrideSourceModule=null] - Optional override module-id tag applied to all imported entries
+     * @param {boolean} [options.interactive=true] - Whether to display interactive merge selection prompt UI
+     * @param {boolean} [options.overwrite=true] - Default behavior when interactive is false
+     * @returns {Promise<{mergedCount: number, importedEntries: Array<Object>}|null>} Merge summary object or null if cancelled
+     */
+    async importAutorecs(jsonOrString, { sourceModule = "world", overrideSourceModule = null, interactive = true, overwrite = true } = {}) {
+        const validatedPkg = this.validateImportPackage(jsonOrString, { overrideSourceModule });
+        const diffAnalysis = this.analyzeImportDiff(validatedPkg, { defaultSourceModule: sourceModule, overrideSourceModule });
+
+        let selectedEntries = null;
+
+        const canShowDialog = Boolean(interactive && game?.user?.isGM);
+        if (canShowDialog) {
+            selectedEntries = await AutorecImportDialog.promptMerge(diffAnalysis);
+            if (!selectedEntries) {
+                log.info("AutorecManager.importAutorecs | Import sequence cancelled by user.");
+                return null;
+            }
+        } else {
+            const list = [];
+            for (const item of diffAnalysis.newEntries) {
+                list.push(item);
+            }
+            if (overwrite) {
+                for (const item of diffAnalysis.conflictEntries) {
+                    list.push(item);
+                }
+            }
+            selectedEntries = list;
+        }
+
+        const mergedCount = await this.mergeImportedEntries(selectedEntries, {
+            persist: true,
+            fallbackSourceModule: sourceModule,
+            overrideSourceModule
+        });
+
+        notify.info(localize("BBC.autorecExchange.notify.imported", `Successfully imported ${mergedCount} autorec workflow(s).`));
+        return { mergedCount, importedEntries: selectedEntries };
+    }
+
+    /**
+     * Alias for exportAutorecs.
+     */
+    export(options = {}) {
+        return this.exportAutorecs(options);
+    }
+
+    /**
+     * Alias for importAutorecs.
+     */
+    async import(jsonOrString, options = {}) {
+        return this.importAutorecs(jsonOrString, options);
+    }
+
+    /**
+     * Apply an array of selected exchange entries into active registration store and persist to world settings.
+     * Overwrites existing entries sharing identical item name and activity name.
+     * @param {Array<Object>} selectedEntries - Array of entries chosen for application
+     * @param {Object} [options={}] - Options
+     * @param {boolean} [options.persist=true] - Whether to write updates to world settings
+     * @param {string} [options.fallbackSourceModule="world"] - Module ID fallback if missing in entry
+     * @param {string|null} [options.overrideSourceModule=null] - Optional override module-id tag applied to all merged items
+     * @returns {Promise<number>} Number of successfully merged registration entries
+     */
+    async mergeImportedEntries(selectedEntries, { persist = true, fallbackSourceModule = "world", overrideSourceModule = null } = {}) {
+        if (!Array.isArray(selectedEntries) || selectedEntries.length === 0) {
+            return 0;
+        }
+
+        const toPersist = {};
+        let count = 0;
+        const cleanOverride = overrideSourceModule !== null && overrideSourceModule !== undefined
+            ? String(overrideSourceModule).trim()
+            : null;
+
+        for (const entry of selectedEntries) {
+            const itemName = String(entry.itemName ?? "").trim();
+            if (!itemName) continue;
+
+            const actId = String(entry.activityId ?? "").trim();
+            const actName = String(entry.activityName ?? "").trim();
+            const regKey = computeRegistrationKey(itemName, actName, actId);
+            const sourceModule = cleanOverride !== null
+                ? cleanOverride
+                : String(entry.module ?? entry.sourceModule ?? fallbackSourceModule ?? "world").trim();
+
+            const config = {
+                ...entry,
+                itemName,
+                activityId: actId,
+                activityName: actName,
+                sourceModule,
+                module: sourceModule
+            };
+
+            delete config.importIndex;
+            delete config.isNew;
+            delete config.isConflict;
+            delete config.isIdentical;
+            delete config.selectedByDefault;
+            delete config.targetRegKey;
+            delete config.differences;
+
+            const isEntryLocal = Boolean(config.local || (!persist && !config.local));
+            this.register(regKey, config, { persist: false, local: Boolean(config.local), isHydration: true, isImport: true, suppressWarn: true });
+            const registered = this.registeredHandlers.get(regKey);
+            if (persist && !config.local && typeof registered !== "function") {
+                toPersist[regKey] = registered;
+                this.persistedItemNames.add(regKey);
+            }
+            count++;
+        }
+
+        if (persist && Object.keys(toPersist).length > 0) {
+            const isGM = Boolean(game?.user?.isGM);
+            if (isGM) {
+                try {
+                    const saved = foundry.utils.deepClone(game.settings.get(MODULE_ID, "registeredTemplates") ?? {});
+                    Object.assign(saved, toPersist);
+                    await game.settings.set(MODULE_ID, "registeredTemplates", saved);
+                    this.broadcastSync();
+                } catch (e) {
+                    log.error("AutorecManager.mergeImportedEntries | Failed to persist imported registrations to world setting:", e);
+                }
+            }
+        }
+
+        log.info(`AutorecManager.mergeImportedEntries | Merged ${count} autorec workflows into global state.`);
+        return count;
+    }
+}
+
+const rawAutorecManager = new AutorecManager();
+
+/**
+ * Make AutorecManager callable directly as a function `autorecManager("module-id")`
+ * to instantiate a ModuleAutorecManager for that module ID, while preserving all singleton properties and methods.
+ * @param {AutorecManager} managerInstance - Raw AutorecManager instance
+ * @returns {Function & AutorecManager} Callable proxy wrapping AutorecManager
+ */
+export function makeCallableManager(managerInstance) {
+    const callableFn = function (moduleId) {
+        return managerInstance.forModule(moduleId);
+    };
+    return new Proxy(callableFn, {
+        get(target, prop) {
+            const val = managerInstance[prop];
+            if (typeof val === "function") {
+                return val.bind(managerInstance);
+            }
+            return val;
+        },
+        set(target, prop, value) {
+            managerInstance[prop] = value;
+            return true;
+        },
+        has(target, prop) {
+            return prop in managerInstance;
+        }
+    });
 }
 
 /**
- * Singleton instance of AutorecManager for managing template and region autorec registrations.
- * @type {AutorecManager}
+ * Callable singleton instance of AutorecManager.
+ * Can be called as a function `autorecManager("module-id")` or used as a standard manager object.
+ * @type {Function & AutorecManager}
  */
-export const autorecManager = new AutorecManager();
+export const autorecManager = makeCallableManager(rawAutorecManager);
