@@ -243,19 +243,29 @@ export class BaseCrosshairShape {
                 .persist();
         }
 
+        const isCircleAttached = isSticky && this.token && this.type === "circle";
+
         log.debug(`BaseCrosshairShape.playGraphicEffect | Sizing graphic for "${this.id}":`, {
             widthPx,
             heightPx,
             factor,
             gridUnits,
             animationAnchor: this.animationAnchor,
-            initLoc
+            initLoc,
+            isCircleAttached
         });
 
-        seq.effect()
+        const mainEffect = seq.effect()
             .name(this.id)
-            .file(effectFile)
-            .atLocation(initLoc)
+            .file(effectFile);
+
+        if (isCircleAttached) {
+            mainEffect.attachTo(this.token);
+        } else {
+            mainEffect.atLocation(initLoc);
+        }
+
+        mainEffect
             .rotate(this.direction ?? 0)
             .anchor(this.animationAnchor)
             .size({ width: widthPx * factor, height: heightPx * factor }, { gridUnits: Boolean(gridUnits) })
@@ -267,10 +277,17 @@ export class BaseCrosshairShape {
         if (this.icon) {
             const iconPath = resolveCrosshairIcon(this.icon);
             if (iconPath) {
-                seq.effect()
+                const iconEffect = seq.effect()
                     .name(`${this.id}-icon`)
-                    .file(iconPath)
-                    .atLocation(initLoc)
+                    .file(iconPath);
+
+                if (isCircleAttached) {
+                    iconEffect.attachTo(this.token);
+                } else {
+                    iconEffect.atLocation(initLoc);
+                }
+
+                iconEffect
                     .size(50, { gridUnits: false })
                     .opacity(0.9)
                     .locally()

@@ -169,7 +169,12 @@ function refreshTemplateHighlights(tmpl, newDirDeg, rad, wheelEvent = null) {
         let targetX = 0, targetY = 0;
 
         const visual = tmpl.crosshair ?? activePlacementTracker.crosshair;
-        if (isSticky && cfg.token && visual && Number.isFinite(visual.x) && Number.isFinite(visual.y)) {
+        if (isSticky && cfg.token && shapeType === "circle") {
+            const token = crosshairAdapter.toToken(cfg.token) ?? cfg.token;
+            const center = token.center ?? { x: token.x ?? 0, y: token.y ?? 0 };
+            targetX = center.x;
+            targetY = center.y;
+        } else if (isSticky && cfg.token && visual && Number.isFinite(visual.x) && Number.isFinite(visual.y)) {
             targetX = visual.x;
             targetY = visual.y;
         } else if (isSticky && cfg.token && canvas?.mousePosition) {
@@ -402,12 +407,18 @@ export function alignCrosshairAndEffects(crosshair, config = {}, rad = 0) {
     let targetY = 0;
 
     if (isAttached && token) {
-        const cursorPt = (canvas?.mousePosition && Number.isFinite(canvas.mousePosition.x))
-            ? canvas.mousePosition
-            : { x: shape?.cursorX ?? shape?.x ?? crosshair?.x ?? 0, y: shape?.cursorY ?? shape?.y ?? crosshair?.y ?? 0 };
-        const anchored = crosshairAdapter.resolveAnchorPlacement(token, cursorPt);
-        targetX = anchored.x;
-        targetY = anchored.y;
+        if (shapeType === "circle") {
+            const center = token.center ?? { x: token.x ?? 0, y: token.y ?? 0 };
+            targetX = center.x;
+            targetY = center.y;
+        } else {
+            const cursorPt = (canvas?.mousePosition && Number.isFinite(canvas.mousePosition.x))
+                ? canvas.mousePosition
+                : { x: shape?.cursorX ?? shape?.x ?? crosshair?.x ?? 0, y: shape?.cursorY ?? shape?.y ?? crosshair?.y ?? 0 };
+            const anchored = crosshairAdapter.resolveAnchorPlacement(token, cursorPt);
+            targetX = anchored.x;
+            targetY = anchored.y;
+        }
     } else {
         const cursorPt = (canvas?.mousePosition && Number.isFinite(canvas.mousePosition.x))
             ? canvas.mousePosition

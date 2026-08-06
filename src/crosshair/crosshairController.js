@@ -106,11 +106,18 @@ export class CrosshairController {
         const isAttached = Boolean(this.shape.stickToToken && this.shape.token);
 
         if (isAttached) {
-            // Token edge anchoring for attached rays, cones, and shapes
-            const anchored = crosshairAdapter.resolveAnchorPlacement(this.shape.token, cursorPos);
-            this.shape.move(cursorPos.x, cursorPos.y);
-            const dir = anchored.direction ?? this.shape.direction ?? 0;
-            this.shape.rotate(dir);
+            if (this.shape.type === "circle") {
+                const token = crosshairAdapter.toToken(this.shape.token) ?? this.shape.token;
+                const center = token.center ?? { x: token.x ?? 0, y: token.y ?? 0 };
+                this.shape.move(center.x, center.y);
+                this.shape.rotate(0);
+            } else {
+                // Token edge anchoring for attached rays, cones, and shapes
+                const anchored = crosshairAdapter.resolveAnchorPlacement(this.shape.token, cursorPos);
+                this.shape.move(cursorPos.x, cursorPos.y);
+                const dir = anchored.direction ?? this.shape.direction ?? 0;
+                this.shape.rotate(dir);
+            }
         } else {
             // Free cursor placement with grid snapping
             this.shape.move(cursorPos.x, cursorPos.y);
