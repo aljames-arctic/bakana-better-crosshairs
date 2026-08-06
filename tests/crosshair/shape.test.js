@@ -306,7 +306,7 @@ test('BaseCrosshairShape.create suppresses location showRange when config.showRa
     assert.equal(locationCalledWithOpts, null);
 });
 
-test('BaseCrosshairShape.create automatically passes limitMaxRange and displayRangePoly when calling item has range', async () => {
+test('BaseCrosshairShape.create suppresses Sequencer range limitation (limitMaxRange/displayRangePoly) pending upstream stabilization', async () => {
     const { CircleCrosshairShape } = await import('../../src/crosshair/circle.js');
     const mockDocument = { x: 0, y: 0 };
     const mockPlaceable = { x: 0, y: 0, document: mockDocument };
@@ -333,16 +333,16 @@ test('BaseCrosshairShape.create automatically passes limitMaxRange and displayRa
     };
 
     await shape.create();
-    assert.deepEqual(passedLocationOpts, { showRange: true, limitMaxRange: 120, displayRangePoly: true });
+    assert.deepEqual(passedLocationOpts, { showRange: true });
 });
 
-test('BaseCrosshairShape.create suppresses limitMaxRange when limitRange is false', async () => {
+test('BaseCrosshairShape.create suppresses location opts when showRange is false', async () => {
     const { CircleCrosshairShape } = await import('../../src/crosshair/circle.js');
     const mockDocument = { x: 0, y: 0 };
     const mockPlaceable = { x: 0, y: 0, document: mockDocument };
     const mockToken = { name: "Caster", center: { x: 50, y: 50 } };
     const mockItem = { name: "Fireball", system: { range: { value: 120 } } };
-    const shape = new CircleCrosshairShape(mockPlaceable, { radius: 20, token: mockToken, stickToToken: false, item: mockItem, limitRange: false });
+    const shape = new CircleCrosshairShape(mockPlaceable, { radius: 20, token: mockToken, stickToToken: false, item: mockItem, showRange: false });
 
     let passedLocationOpts = null;
     const mockCrosshairBuilder = {
@@ -363,7 +363,7 @@ test('BaseCrosshairShape.create suppresses limitMaxRange when limitRange is fals
     };
 
     await shape.create();
-    assert.deepEqual(passedLocationOpts, { showRange: true });
+    assert.equal(passedLocationOpts, null);
 });
 
 test('BaseCrosshairShape.playGraphicEffect isolates origin stretch line under ${id}-line effect name', async () => {

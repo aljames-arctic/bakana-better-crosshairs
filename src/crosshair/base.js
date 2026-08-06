@@ -322,12 +322,17 @@ export class BaseCrosshairShape {
             if (this.token && this.config.showRange !== false) {
                 locationOpts.showRange = true;
             }
+            // NOTE: Sequencer range limitation ability (limitMaxRange / displayRangePoly)
+            // is disabled because it does not meet quality standards yet and exhibits edge-case placement issues.
+            // Preserved for future enablement once upstream Sequencer range constraint behaviors are stabilized:
+            /*
             const limitRangeEnabled = this.config.limitRange !== false;
             const maxRange = limitRangeEnabled ? (this.config.maxRange ?? systemAdapter?.getItemMaxRange?.(this.config.item, this.config.activity)) : null;
             if (this.token && Number.isFinite(maxRange) && maxRange > 0) {
                 locationOpts.limitMaxRange = maxRange;
                 locationOpts.displayRangePoly = true;
             }
+            */
             if (this.token && Object.keys(locationOpts).length > 0) {
                 crosshairSeq.location(this.token, locationOpts);
             }
