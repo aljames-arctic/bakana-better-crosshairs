@@ -572,5 +572,31 @@ test('BaseCrosshairShape tracks mouse fluidly on Sequencer visual effects while 
     }
 });
 
+test('REGRESSION: SquareCrosshairShape.create passes valid Sequencer type rect even when config.type is square', async () => {
+    const { SquareCrosshairShape } = await import('../../src/crosshair/square.js');
+    const mockDocument = { x: 0, y: 0 };
+    const mockPlaceable = { x: 0, y: 0, document: mockDocument };
+    const shape = new SquareCrosshairShape(mockPlaceable, { type: 'square', distance: 20, width: 20 });
+
+    let passedType = null;
+    const mockCrosshairBuilder = {
+        type(t) { passedType = t; return this; },
+        borderColor() { return this; },
+        fillColor() { return this; },
+        distance() { return this; },
+        width() { return this; },
+        snapPosition() { return this; },
+        icon() { return this; },
+        callback() { return this; },
+        location() { return this; }
+    };
+    globalThis.Sequence = class {
+        crosshair() { return mockCrosshairBuilder; }
+    };
+
+    await shape.create();
+    assert.equal(passedType, 'rect', 'Sequencer requires type to be "rect", not "square"');
+});
+
 
 

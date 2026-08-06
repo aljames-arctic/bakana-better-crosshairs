@@ -62,7 +62,8 @@ export class BaseCrosshairShape {
 
         this.id = config.id ?? this.getDefaultId();
         config.id = this.id;
-        this.type = config.type ?? this.defaultShapeType;
+        const rawType = config.type ?? this.defaultShapeType;
+        this.type = (rawType === "square") ? "rect" : rawType;
         this.stickToToken = shouldStickToToken(config, this.type);
         this.context = config.context ?? null;
         this.icon = config.icon ?? "";
