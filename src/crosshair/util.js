@@ -577,28 +577,36 @@ export function resolveCrosshairPlacement(crosshair, config = {}, ...extraArgs) 
     let y = clickY;
 
     if (isAnchored && config.token) {
-        const posX = (crosshair && Number.isFinite(crosshair.x)) ? crosshair.x : clickX;
-        const posY = (crosshair && Number.isFinite(crosshair.y)) ? crosshair.y : clickY;
-        x = posX;
-        y = posY;
-        if (direction === undefined) {
-            if (crosshair && Number.isFinite(crosshair.direction)) {
-                direction = crosshair.direction;
-            } else {
-                const mousePos = canvas?.mousePosition ?? { x: clickX, y: clickY };
-                const dx = mousePos.x - posX;
-                const dy = mousePos.y - posY;
-                if (Math.abs(dx) > 1e-6 || Math.abs(dy) > 1e-6) {
-                    let deg = Math.atan2(dy, dx) * (180 / Math.PI);
-                    if (deg < 0) deg += 360;
-                    direction = deg % 360;
+        if (shapeType === "circle") {
+            const token = crosshairAdapter.toToken(config.token) ?? config.token;
+            const center = token.center ?? { x: token.x ?? 0, y: token.y ?? 0 };
+            x = center.x;
+            y = center.y;
+            direction = 0;
+        } else {
+            const posX = (crosshair && Number.isFinite(crosshair.x)) ? crosshair.x : clickX;
+            const posY = (crosshair && Number.isFinite(crosshair.y)) ? crosshair.y : clickY;
+            x = posX;
+            y = posY;
+            if (direction === undefined) {
+                if (crosshair && Number.isFinite(crosshair.direction)) {
+                    direction = crosshair.direction;
                 } else {
-                    const anchored = crosshairAdapter.resolveAnchorPlacement(config.token, mousePos);
-                    direction = anchored.direction;
+                    const mousePos = canvas?.mousePosition ?? { x: clickX, y: clickY };
+                    const dx = mousePos.x - posX;
+                    const dy = mousePos.y - posY;
+                    if (Math.abs(dx) > 1e-6 || Math.abs(dy) > 1e-6) {
+                        let deg = Math.atan2(dy, dx) * (180 / Math.PI);
+                        if (deg < 0) deg += 360;
+                        direction = deg % 360;
+                    } else {
+                        const anchored = crosshairAdapter.resolveAnchorPlacement(config.token, mousePos);
+                        direction = anchored.direction;
+                    }
                 }
             }
         }
-        log.debug("resolveCrosshairPlacement | Token anchored placement using exact Sequencer visual position ->", { x, y, direction });
+        log.debug("resolveCrosshairPlacement | Token anchored placement ->", { x, y, direction });
     } else {
         // Detached / free cursor placement: Origin is where the user clicked (clickX, clickY)
         x = (crosshair && Number.isFinite(crosshair.x)) ? crosshair.x : clickX;

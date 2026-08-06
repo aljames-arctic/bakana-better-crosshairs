@@ -62,7 +62,7 @@ export class BaseCrosshairShape {
 
         this.id = config.id ?? this.getDefaultId();
         config.id = this.id;
-        this.type = this.defaultShapeType;
+        this.type = config.type ?? this.defaultShapeType;
         this.stickToToken = shouldStickToToken(config, this.type);
         this.context = config.context ?? null;
         this.icon = config.icon ?? "";
@@ -229,7 +229,7 @@ export class BaseCrosshairShape {
         const curX = Number.isFinite(this.cursorX) ? this.cursorX : this.x;
         const curY = Number.isFinite(this.cursorY) ? this.cursorY : this.y;
         const initLoc = (isSticky && this.token)
-            ? crosshairAdapter.resolveAnchorPlacement(this.token, { x: curX, y: curY })
+            ? ((this.type === "circle") ? (this.token.center ?? { x: this.token.x ?? 0, y: this.token.y ?? 0 }) : crosshairAdapter.resolveAnchorPlacement(this.token, { x: curX, y: curY }))
             : { x: curX, y: curY };
 
         if (this.type === "circle" && this.token && this.showLine && !this.stickToToken) {
@@ -314,7 +314,11 @@ export class BaseCrosshairShape {
         this.configureCrosshairShape(crosshairSeq);
 
         if (this.stickToToken && this.token && !this.config?.isRemote) {
-            crosshairSeq.location(this.token, { lockToEdge: true, lockToEdgeDirection: false });
+            if (this.type === "circle") {
+                crosshairSeq.location(this.token);
+            } else {
+                crosshairSeq.location(this.token, { lockToEdge: true, lockToEdgeDirection: false });
+            }
         } else if (this.config?.isRemote) {
             crosshairSeq.location({ x: this.x, y: this.y });
         } else {
@@ -795,14 +799,25 @@ export class BaseCrosshairShape {
         let targetY = y;
 
         if (this.stickToToken && this.token && !this.config?.isRemote) {
-            const anchored = crosshairAdapter.resolveAnchorPlacement(this.token, { x, y });
-            targetX = anchored.x;
-            targetY = anchored.y;
-            if (anchored.direction !== undefined) {
-                this.direction = anchored.direction;
+            if (this.type === "circle") {
+                const center = this.token.center ?? { x: this.token.x ?? 0, y: this.token.y ?? 0 };
+                targetX = center.x;
+                targetY = center.y;
+                this.direction = 0;
                 if (this.config) {
-                    this.config.currentDirection = anchored.direction;
-                    this.config.direction = anchored.direction;
+                    this.config.currentDirection = 0;
+                    this.config.direction = 0;
+                }
+            } else {
+                const anchored = crosshairAdapter.resolveAnchorPlacement(this.token, { x, y });
+                targetX = anchored.x;
+                targetY = anchored.y;
+                if (anchored.direction !== undefined) {
+                    this.direction = anchored.direction;
+                    if (this.config) {
+                        this.config.currentDirection = anchored.direction;
+                        this.config.direction = anchored.direction;
+                    }
                 }
             }
         } else if (!this.config?.isRemote) {
@@ -953,23 +968,30 @@ export class BaseCrosshairShape {
         let dir = this.config?.currentDirection ?? this.direction;
         const isAttached = Boolean(this.stickToToken && this.token);
         if (isAttached) {
-            if (this.sequencerCrosshair && Number.isFinite(this.sequencerCrosshair.x) && Number.isFinite(this.sequencerCrosshair.y)) {
-                posX = this.sequencerCrosshair.x;
-                posY = this.sequencerCrosshair.y;
-            }
-            if (this.sequencerCrosshair && Number.isFinite(this.sequencerCrosshair.direction)) {
-                dir = this.sequencerCrosshair.direction;
+            if (this.type === "circle") {
+                const center = this.token.center ?? { x: this.token.x ?? 0, y: this.token.y ?? 0 };
+                posX = center.x;
+                posY = center.y;
+                dir = 0;
             } else {
-                const mousePos = canvas?.mousePosition ?? { x: posX, y: posY };
-                const dx = mousePos.x - posX;
-                const dy = mousePos.y - posY;
-                if (Math.abs(dx) > 1e-6 || Math.abs(dy) > 1e-6) {
-                    let deg = Math.atan2(dy, dx) * (180 / Math.PI);
-                    if (deg < 0) deg += 360;
-                    dir = deg % 360;
+                if (this.sequencerCrosshair && Number.isFinite(this.sequencerCrosshair.x) && Number.isFinite(this.sequencerCrosshair.y)) {
+                    posX = this.sequencerCrosshair.x;
+                    posY = this.sequencerCrosshair.y;
+                }
+                if (this.sequencerCrosshair && Number.isFinite(this.sequencerCrosshair.direction)) {
+                    dir = this.sequencerCrosshair.direction;
                 } else {
-                    const anchored = crosshairAdapter.resolveAnchorPlacement(this.token, mousePos);
-                    dir = anchored.direction;
+                    const mousePos = canvas?.mousePosition ?? { x: posX, y: posY };
+                    const dx = mousePos.x - posX;
+                    const dy = mousePos.y - posY;
+                    if (Math.abs(dx) > 1e-6 || Math.abs(dy) > 1e-6) {
+                        let deg = Math.atan2(dy, dx) * (180 / Math.PI);
+                        if (deg < 0) deg += 360;
+                        dir = deg % 360;
+                    } else {
+                        const anchored = crosshairAdapter.resolveAnchorPlacement(this.token, mousePos);
+                        dir = anchored.direction;
+                    }
                 }
             }
         } else if (this.sequencerCrosshair && Number.isFinite(this.sequencerCrosshair.x) && Number.isFinite(this.sequencerCrosshair.y)) {

@@ -1044,11 +1044,11 @@ test('REGRESSION: alignCrosshairAndEffects updates visual effect rotation for co
     }
 });
 
-test('REGRESSION: getPlacementUpdates prioritizes sequencerCrosshair visual container coordinates over fallback shape coordinates', () => {
+test('REGRESSION: getPlacementUpdates prioritizes sequencerCrosshair visual container coordinates for directional attached shapes', () => {
     const mockDocument = { direction: 0, updateSource: () => {} };
     const mockPlaceable = { document: mockDocument, direction: 0, x: 10, y: 20 };
     const config = {
-        type: 'circle',
+        type: 'cone',
         stickToToken: true,
         token: { center: { x: 100, y: 100 } }
     };
@@ -1063,6 +1063,24 @@ test('REGRESSION: getPlacementUpdates prioritizes sequencerCrosshair visual cont
     const updates = shape.getPlacementUpdates();
     assert.equal(updates.x, 150, 'placement X must match sequencerCrosshair visual position (150) where animation appeared');
     assert.equal(updates.y, 100, 'placement Y must match sequencerCrosshair visual position (100) where animation appeared');
+});
+
+test('REGRESSION: getPlacementUpdates centers attached circle templates at token center rather than tile perimeter', () => {
+    const mockDocument = { direction: 0, updateSource: () => {} };
+    const mockPlaceable = { document: mockDocument, direction: 0, x: 10, y: 20 };
+    const config = {
+        type: 'circle',
+        stickToToken: true,
+        token: { center: { x: 100, y: 100 } }
+    };
+
+    const shape = new BaseCrosshairShape(mockPlaceable, config);
+    shape.sequencerCrosshair = { x: 150, y: 100 };
+
+    const updates = shape.getPlacementUpdates();
+    assert.equal(updates.x, 100, 'attached circle placement X must be token center X (100)');
+    assert.equal(updates.y, 100, 'attached circle placement Y must be token center Y (100)');
+    assert.equal(updates.direction, 0);
 });
 
 test('REGRESSION: FoundryVTTV14Adapter strips MeasuredTemplate schema properties from Region updateData payload', () => {
