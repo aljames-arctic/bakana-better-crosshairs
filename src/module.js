@@ -37,7 +37,8 @@ export function setupModule() {
     initializeHooks();
     loadTemplates([
         `modules/${MODULE_ID}/src/autorec/configFieldsPartial.html`,
-        `modules/${MODULE_ID}/src/autorec/autorecImportDialog.html`
+        `modules/${MODULE_ID}/src/autorec/autorecImportDialog.html`,
+        `modules/${MODULE_ID}/src/autorec/autorecExchangeMenu.html`
     ]);
 
     const manager = autorecManager;

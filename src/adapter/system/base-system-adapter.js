@@ -1,3 +1,4 @@
+import { MODULE_ID } from "../../lib/constants.js";
 import { log } from "../../lib/logger.js";
 import { ItemCrosshairConfigApplication } from "../../autorec/itemConfigMenu.js";
 
@@ -7,11 +8,12 @@ import { ItemCrosshairConfigApplication } from "../../autorec/itemConfigMenu.js"
  */
 export class BaseSystemAdapter {
     /**
-     * Initialize base system adapter properties (`systemId` and `supportsActivities`).
+     * Initialize base system adapter properties (`systemId`, `supportsActivities`, and `defaultsMap`).
      */
     constructor() {
         this.systemId = "base";
         this.supportsActivities = false;
+        this.defaultsMap = new Map();
     }
 
     /**
@@ -101,14 +103,74 @@ export class BaseSystemAdapter {
     }
 
     /**
+     * Load built-in system defaults dataset for this game system into memory.
+     * Fetches `modules/${MODULE_ID}/src/autorec/system-defaults/${this.systemId}.json`.
+     * @returns {Promise<void>}
+     */
+    async loadSystemDefaultsData() {
+        if (this.defaultsMap.size > 0) return;
+        try {
+            const bundlePath = `modules/${MODULE_ID}/src/autorec/system-defaults/${this.systemId}.json`;
+            const response = await fetch(bundlePath);
+            if (response.ok) {
+                const data = await response.json();
+                this.setDefaultsData(data ?? {});
+                log.debug(`BaseSystemAdapter | Loaded ${this.defaultsMap.size} system default definitions for "${this.systemId}".`);
+            }
+        } catch (e) {
+            log.debug(`BaseSystemAdapter | No system defaults bundle found for "${this.systemId}":`, e);
+        }
+    }
+
+    /**
+     * Populate the in-memory system defaults map from a dictionary or array of entries.
+     * @param {Object<string, boolean>|Array<Object>} data - Dictionary mapping spell names to stick booleans, or array of entry objects
+     * @returns {void}
+     */
+    setDefaultsData(data) {
+        if (!data || typeof data !== "object") return;
+        if (Array.isArray(data)) {
+            for (const entry of data) {
+                if (!entry?.itemName) continue;
+                const key = entry.itemName.trim().toLowerCase();
+                const stick = Boolean(entry.options?.attachMode === "true" || entry.stickToToken === "true" || entry.stickToToken === true);
+                this.defaultsMap.set(key, stick);
+            }
+        } else {
+            for (const [name, stick] of Object.entries(data)) {
+                if (!name) continue;
+                const key = name.trim().toLowerCase();
+                this.defaultsMap.set(key, Boolean(stick));
+            }
+        }
+    }
+
+    /**
+     * Retrieve the authoritative system default stick setting for a calling item/spell.
+     * Looks up by canonical item name (case-insensitive) in the built-in system dataset.
+     * @param {Object|string} [context={}] - Calling context or item name
+     * @returns {boolean|null} True if spell attaches to token, false if free placement, null if unlisted
+     */
+    getSystemDefault(context) {
+        const rawName = typeof context === "string" ? context : (context?.itemName ?? context?.item?.name ?? "");
+        const key = rawName.trim().toLowerCase();
+        if (!key) return null;
+        return this.defaultsMap.has(key) ? this.defaultsMap.get(key) : null;
+    }
+
+    /**
      * Determine the system default for whether a crosshair shape should stick to its source token
      * when no explicit item/autorec override (`stickToToken`) is defined.
-     * By default across most Foundry systems, cones stick to the token, while circles, rectangles, and rays are placed freely.
+     * Checks built-in system defaults dataset first, then falls back to shape defaults (cones stick).
      * @param {string} shapeType - The template or crosshair shape (`"cone"`, `"circle"`, `"ray"`, `"rect"`, `"square"`)
      * @param {object} [config={}] - Optional crosshair configuration object
      * @returns {boolean} Whether the crosshair shape defaults to sticking to the token
      */
     getDefaultStickToToken(shapeType, config = {}) {
+        const itemDefault = this.getSystemDefault(config);
+        if (itemDefault !== null && itemDefault !== undefined) {
+            return Boolean(itemDefault);
+        }
         return shapeType === "cone";
     }
 

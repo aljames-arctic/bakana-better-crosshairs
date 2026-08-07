@@ -24,6 +24,11 @@ export function initializeSystemAdapter() {
             systemAdapter = new BaseSystemAdapter();
             break;
     }
+
+    if (typeof systemAdapter.loadSystemDefaultsData === "function") {
+        systemAdapter.loadSystemDefaultsData();
+    }
+
     log.info(`Initialized System Adapter for system: "${systemAdapter.systemId}"`);
     return systemAdapter;
 }

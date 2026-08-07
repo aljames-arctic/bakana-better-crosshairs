@@ -149,7 +149,20 @@ export class BaseFoundryVTTAdapter {
         if (!baseEntry) {
             const defaultEntry = entries.get("DEFAULT");
             if (defaultEntry?.enabled) {
-                baseEntry = { ...defaultEntry, item: context.item, activity: context.activity };
+                const systemDefault = systemAdapter.getSystemDefault(context);
+                const systemAttach = typeof systemDefault === "boolean"
+                    ? (systemDefault ? "true" : "false")
+                    : (systemDefault?.options?.attachMode ?? systemDefault?.stickToToken);
+                const stickToToken = (defaultEntry.stickToToken && defaultEntry.stickToToken !== "default")
+                    ? defaultEntry.stickToToken
+                    : (systemAttach ?? defaultEntry.stickToToken ?? "default");
+                baseEntry = {
+                    ...defaultEntry,
+                    itemName: context.itemName,
+                    stickToToken,
+                    item: context.item,
+                    activity: context.activity
+                };
             }
         }
 
