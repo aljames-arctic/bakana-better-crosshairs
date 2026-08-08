@@ -55,9 +55,10 @@ export class PersistedAnimationManager {
 
         let effectFile = "";
         let widthPx = 100;
-        let heightPx = 100;
-        let anchor = { x: 0.5, y: 0.5 };
-        const rotation = doc.direction ?? doc.rotation ?? 0;
+        const supportsRotation = crosshairAdapter.supportsShapeRotation(shapeType);
+        const rawRotation = supportsRotation ? (doc.direction ?? doc.rotation ?? 0) : 0;
+        // Invert rotation so clockwise template direction (e.g. +60°) aligns with Sequencer effect orientation
+        const sequencerRotation = -rawRotation;
         const location = { x: doc.x ?? 0, y: doc.y ?? 0 };
 
         switch (shapeType) {
@@ -123,7 +124,7 @@ export class PersistedAnimationManager {
         }
 
         effect
-            .rotate(rotation)
+            .rotate(sequencerRotation)
             .anchor(anchor)
             .size({ width: widthPx * factor, height: heightPx * factor }, { gridUnits: Boolean(gridUnits) })
             .opacity(0.8)
