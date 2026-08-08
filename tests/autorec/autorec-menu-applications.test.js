@@ -110,8 +110,60 @@ test("ItemCrosshairConfigApplication lifecycle and item normalization", async (t
         assert.equal(context.itemName, "Fireball");
         assert.equal(context.itemImg, "icons/fireball.png");
         assert.equal(context.selectedScope, "item");
+        assert.ok(Array.isArray(context.scopes));
+        assert.equal(context.scopes.length, 1);
+        assert.equal(context.scopes[0].id, "item");
+        assert.equal(context.scopes[0].hasCustom, false);
+        assert.equal(context.config.enableAnimation, false);
+        assert.equal(context.config.enablePrePlacement, false);
+        assert.equal(context.config.enablePlacedStyling, false);
+        assert.equal(context.config.enablePostPlacement, false);
         assert.ok(context.config);
         assert.equal(typeof context.config.borderColorPicker, "string");
         assert.equal(typeof context.config.fillColorPicker, "string");
+    });
+
+    await t.test("_prepareContext identifies active activity overrides and sidebar scopes", async () => {
+        const flags = {
+            activityConfigs: {
+                "act-save": {
+                    enableAnimation: true,
+                    circleFile: "custom.circle.effect"
+                }
+            }
+        };
+        const mockActivities = new Map([
+            ["act-save", { id: "act-save", name: "Saving Throw", type: "save" }],
+            ["act-damage", { id: "act-damage", name: "Damage Roll", type: "damage" }]
+        ]);
+        const mockItem = {
+            id: "spell-item",
+            name: "Custom Spell",
+            system: { activities: mockActivities },
+            getFlag: (scope, key) => flags[key] ?? null,
+            setFlag: async (scope, key, val) => { flags[key] = val; },
+            unsetFlag: async (scope, key) => { delete flags[key]; }
+        };
+
+        const app = new ItemCrosshairConfigApplication({ item: mockItem, selectedScope: "act-save" });
+        const context = await app._prepareContext({});
+
+        assert.equal(context.scopes.length, 3);
+        assert.equal(context.scopes[0].id, "item");
+        assert.equal(context.scopes[0].hasCustom, false);
+
+        const saveScope = context.scopes.find(s => s.id === "act-save");
+        assert.ok(saveScope);
+        assert.equal(saveScope.hasCustom, true);
+        assert.equal(saveScope.overrideCount, 1);
+        assert.equal(saveScope.isSelected, true);
+
+        const damageScope = context.scopes.find(s => s.id === "act-damage");
+        assert.ok(damageScope);
+        assert.equal(damageScope.hasCustom, false);
+
+        assert.equal(context.currentScope.id, "act-save");
+        assert.equal(context.config.enableAnimation, true);
+        assert.equal(context.config.circleFile, "custom.circle.effect");
     });
 });

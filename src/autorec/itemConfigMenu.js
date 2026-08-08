@@ -6,6 +6,70 @@ import { systemAdapter } from "../adapter/system/index.js";
 import { BaseCrosshairMenuApplication, normalizeHexColor } from "./BaseCrosshairMenuApplication.js";
 
 /**
+ * Inspect a custom configuration object to determine active override flags and override count.
+ * Disabled by default for all sections when configuration is empty or fresh.
+ * @param {object|null} customConfig - Stored custom configuration object or null
+ * @returns {{hasCustom: boolean, enablePrePlacement: boolean, enableAnimation: boolean, enablePlacedStyling: boolean, enablePostPlacement: boolean, overrideCount: number}} Inspected override state
+ */
+function inspectScopeCustomState(customConfig) {
+    if (!customConfig || typeof customConfig !== "object") {
+        return {
+            hasCustom: false,
+            enablePrePlacement: false,
+            enableAnimation: false,
+            enablePlacedStyling: false,
+            enablePostPlacement: false,
+            overrideCount: 0
+        };
+    }
+
+    const hasGranularFlags = Boolean(
+        "enableAnimation" in customConfig ||
+        "enablePrePlacement" in customConfig ||
+        "enablePlacedStyling" in customConfig ||
+        "enablePostPlacement" in customConfig
+    );
+
+    const enablePrePlacement = hasGranularFlags
+        ? Boolean(customConfig.enablePrePlacement)
+        : Boolean(customConfig.concurrentCode);
+
+    const enableAnimation = hasGranularFlags
+        ? Boolean(customConfig.enableAnimation)
+        : Boolean(
+            customConfig.enabled &&
+            (customConfig.circleFile ||
+                customConfig.coneFile ||
+                customConfig.rayFile ||
+                customConfig.squareFile ||
+                customConfig.showLine !== undefined ||
+                customConfig.stickToToken !== undefined)
+        );
+
+    const enablePlacedStyling = hasGranularFlags
+        ? Boolean(customConfig.enablePlacedStyling)
+        : Boolean(customConfig.placedFillColor || customConfig.placedBorderColor || customConfig.persist);
+
+    const enablePostPlacement = hasGranularFlags
+        ? Boolean(customConfig.enablePostPlacement)
+        : Boolean(customConfig.postPlacementCode);
+
+    const overrideCount = (enablePrePlacement ? 1 : 0) +
+        (enableAnimation ? 1 : 0) +
+        (enablePlacedStyling ? 1 : 0) +
+        (enablePostPlacement ? 1 : 0);
+
+    return {
+        hasCustom: overrideCount > 0,
+        enablePrePlacement,
+        enableAnimation,
+        enablePlacedStyling,
+        enablePostPlacement,
+        overrideCount
+    };
+}
+
+/**
  * Form application for configuring item-specific Better Crosshairs (BBC) settings stored on item flags.
  * Allows any item owner to view badge status (CUSTOM vs AUTOREC vs DEFAULT) and modify or delete custom item overrides.
  * Extends BaseCrosshairMenuApplication for ApplicationV2 and template method compliance.
@@ -29,7 +93,7 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             resizable: true
         },
         position: {
-            width: 760,
+            width: 820,
             height: 640
         },
         classes: ["bbc-app", "bbc-autorec-form", "bbc-item-config-form"]
@@ -85,85 +149,88 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
         const itemImg = item?.img ?? null;
         const isEditMode = this.isEditMode;
 
-        const selectedScope = this.selectedScope ?? "item";
         const itemCustomConfig = item?.getFlag(MODULE_ID, "customConfig") ?? null;
         const activityConfigs = item?.getFlag(MODULE_ID, "activityConfigs") ?? {};
+        const autorecMatch = autorecManager.getEntryByName(itemName);
+        const isGlobalAutorec = Boolean(autorecMatch) && !autorecMatch.isDefault && autorecMatch.enabled;
 
-        const activities = [];
+        const itemCustomState = inspectScopeCustomState(itemCustomConfig);
+        const itemScope = {
+            id: "item",
+            name: itemName,
+            type: "item",
+            subLabel: localize("BBC.itemConfigMenu.itemLevelScope", "Item Level"),
+            icon: "fa-solid fa-cube",
+            hasCustom: itemCustomState.hasCustom,
+            isAutorec: !itemCustomState.hasCustom && isGlobalAutorec,
+            isDefault: !itemCustomState.hasCustom && !isGlobalAutorec,
+            overrideCount: itemCustomState.overrideCount,
+            isSelected: this.selectedScope === "item"
+        };
+
+        const scopes = [itemScope];
         if (systemAdapter.supportsActivities && item?.system?.activities) {
             for (const act of item.system.activities.values()) {
                 if (!act?.id) continue;
-                activities.push({
+                const actCustomConfig = activityConfigs[act.id] ?? null;
+                const actCustomState = inspectScopeCustomState(actCustomConfig);
+                const actType = act.type ? `${act.type.charAt(0).toUpperCase() + act.type.slice(1)} Activity` : "Activity";
+                scopes.push({
                     id: act.id,
                     name: act.name ?? act.id,
-                    hasCustom: Boolean(activityConfigs[act.id])
+                    type: "activity",
+                    subLabel: actType,
+                    icon: "fa-solid fa-bolt",
+                    hasCustom: actCustomState.hasCustom,
+                    isAutorec: !actCustomState.hasCustom && isGlobalAutorec,
+                    isDefault: !actCustomState.hasCustom && !isGlobalAutorec,
+                    overrideCount: actCustomState.overrideCount,
+                    isSelected: this.selectedScope === act.id
                 });
             }
         }
-        const showActivityDropdown = systemAdapter.supportsActivities && activities.length > 0;
 
-        const hasItemCustom = Boolean(itemCustomConfig);
-        const overrideScopes = [
-            {
-                value: "item",
-                label: `Item-Level Overrides${hasItemCustom ? " [CUSTOM]" : ""}`,
-                selected: selectedScope === "item"
-            }
-        ];
-        for (const act of activities) {
-            overrideScopes.push({
-                value: act.id,
-                label: `Activity: ${act.name}${act.hasCustom ? " [CUSTOM]" : ""}`,
-                selected: selectedScope === act.id
-            });
+        let currentScope = scopes.find(s => s.id === this.selectedScope);
+        if (!currentScope) {
+            this.selectedScope = "item";
+            currentScope = itemScope;
+            itemScope.isSelected = true;
         }
 
-        const customConfig = selectedScope === "item"
+        const hasAnyCustom = scopes.some(s => s.hasCustom);
+        const isAutorec = !hasAnyCustom && isGlobalAutorec;
+
+        const currentCustomConfig = currentScope.id === "item"
             ? itemCustomConfig
-            : (activityConfigs[selectedScope] ?? null);
-        const hasCustom = Boolean(customConfig);
-        this.hasCustom = hasCustom;
-        const isCustom = Boolean(customConfig?.enabled ?? true);
+            : (activityConfigs[currentScope.id] ?? null);
+        const currentCustomState = inspectScopeCustomState(currentCustomConfig);
+        this.hasCustom = currentCustomState.hasCustom;
 
-        const autorecMatch = autorecManager.getEntryByName(itemName);
-        const isAutorec = !hasCustom && Boolean(autorecMatch) && !autorecMatch.isDefault && autorecMatch.enabled;
-
-        const baseFallback = selectedScope === "item"
+        const baseFallback = currentScope.id === "item"
             ? (autorecMatch ?? DEFAULT_AUTOREC_ENTRY)
             : { ...(autorecMatch ?? DEFAULT_AUTOREC_ENTRY), ...(itemCustomConfig ?? {}) };
 
-        const scopeHint = selectedScope === "item"
+        const scopeHint = currentScope.id === "item"
             ? localize("BBC.itemConfigMenu.scopeHintItem", "Configuring default overrides for this entire item.")
-            : localize("BBC.itemConfigMenu.scopeHintActivity", "Configuring granular overrides specific to this activity (takes priority over item overrides).");
-
-        const hasGranularFlags = Boolean(
-            customConfig &&
-            ("enableAnimation" in customConfig ||
-                "enablePrePlacement" in customConfig ||
-                "enablePlacedStyling" in customConfig ||
-                "enablePostPlacement" in customConfig)
-        );
-        const enablePrePlacement = hasGranularFlags ? Boolean(customConfig.enablePrePlacement) : Boolean(customConfig?.concurrentCode);
-        const enableAnimation = hasGranularFlags ? Boolean(customConfig.enableAnimation) : Boolean(customConfig?.enabled ?? true);
-        const enablePlacedStyling = hasGranularFlags ? Boolean(customConfig.enablePlacedStyling) : (Boolean(customConfig?.placedFillColor) || Boolean(customConfig?.placedBorderColor));
-        const enablePostPlacement = hasGranularFlags ? Boolean(customConfig.enablePostPlacement) : Boolean(customConfig?.postPlacementCode);
+            : localize("BBC.itemConfigMenu.scopeHintActivity", `Configuring granular overrides specific to "${currentScope.name}" (takes priority over item overrides).`);
 
         const source = {
             ...DEFAULT_AUTOREC_ENTRY,
             ...baseFallback,
-            ...(customConfig ?? {})
+            ...(currentCustomConfig ?? {})
         };
 
         const stickToTokenValue = source.stickToToken ?? "default";
 
         const mergedConfig = {
             ...source,
-            enablePrePlacement,
-            enableAnimation,
-            enablePlacedStyling,
-            enablePostPlacement,
+            enablePrePlacement: currentCustomState.enablePrePlacement,
+            enableAnimation: currentCustomState.enableAnimation,
+            enablePlacedStyling: currentCustomState.enablePlacedStyling,
+            enablePostPlacement: currentCustomState.enablePostPlacement,
 
             concurrentCode: (source.concurrentCode ?? "").trim(),
+            postPlacementCode: (source.postPlacementCode ?? "").trim(),
 
             enabled: Boolean(source.enabled ?? true),
             circleFile: source.circleFile ?? DEFAULT_AUTOREC_ENTRY.circleFile,
@@ -179,13 +246,12 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             borderAlpha: source.borderAlpha ?? 0,
             fillColor: source.fillColor ?? "#000000",
             fillAlpha: source.fillAlpha ?? 0,
+
             placedFillColor: source.placedFillColor ?? "#000000",
             placedFillAlpha: source.placedFillAlpha ?? 0.25,
             placedBorderColor: source.placedBorderColor ?? "#ffffff",
             placedBorderAlpha: source.placedBorderAlpha ?? 0.25,
             persist: Boolean(source.persist),
-
-            postPlacementCode: (source.postPlacementCode ?? "").trim(),
 
             borderColorPicker: normalizeHexColor(source.borderColor, "#ffffff"),
             fillColorPicker: normalizeHexColor(source.fillColor, "#000000"),
@@ -216,7 +282,8 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             badgeCustom: localize("BBC.itemConfigMenu.badges.custom", "CUSTOM"),
             badgeAutorec: localize("BBC.itemConfigMenu.badges.autorec", "AUTOREC"),
             badgeDefault: localize("BBC.itemConfigMenu.badges.default", "DEFAULT"),
-            deleteCustomBtn: localize("BBC.itemConfigMenu.deleteCustomBtn", "Delete"),
+            badgeInherited: localize("BBC.itemConfigMenu.badgeInherited", "INHERITED"),
+            deleteCustomBtn: localize("BBC.itemConfigMenu.deleteCustomBtn", "Delete Custom Override"),
             saveCustomBtn: localize("BBC.itemConfigMenu.saveCustomBtn", "Save"),
             editMode: localize("BBC.autorecMenu.labels.editMode", "Edit Mode"),
 
@@ -227,7 +294,6 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             overrideCheckboxLabel: localize("BBC.itemConfigMenu.overrideCheckboxLabel", "Override Global Autorec Settings"),
 
             badgeCustomOverride: localize("BBC.itemConfigMenu.badgeCustomOverride", "CUSTOM OVERRIDE"),
-            badgeInherited: localize("BBC.itemConfigMenu.badgeInherited", "INHERITED"),
 
             preSectionDesc: localize("BBC.itemConfigMenu.preSectionDesc", `Executes custom Javascript code before starting ${docTerm} placement selection.`),
             animationDesc: localize("BBC.itemConfigMenu.animationDesc", "Sequencer crosshair graphic asset and interactive rendering properties."),
@@ -237,9 +303,9 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             noPostScript: localize("BBC.itemConfigMenu.noPostScript", "No custom post-placement script configured"),
 
             inheritingAutorecTitle: localize("BBC.itemConfigMenu.inheritingAutorecTitle", "Inheriting Global Autorec"),
-            inheritingAutorecDesc: localize("BBC.itemConfigMenu.inheritingAutorecDesc", `This ${selectedScope === "item" ? "item" : "activity"} is currently inheriting configuration from the registered Global Autorec workflow "${autorecMatch?.itemName ?? "Unknown"}". Toggle Edit Mode above to customize overrides.`),
+            inheritingAutorecDesc: localize("BBC.itemConfigMenu.inheritingAutorecDesc", `This ${currentScope.type === "item" ? "item" : "activity"} is currently inheriting configuration from the registered Global Autorec workflow "${autorecMatch?.itemName ?? "Unknown"}". Toggle Edit Mode above to customize overrides.`),
             noCustomOverridesTitle: localize("BBC.itemConfigMenu.noCustomOverridesTitle", "No Custom Overrides Set"),
-            noCustomOverridesDesc: localize("BBC.itemConfigMenu.noCustomOverridesDesc", `This ${selectedScope === "item" ? "item" : "activity"} is currently using default crosshair placement settings. Toggle Edit Mode above to configure custom overrides.`),
+            noCustomOverridesDesc: localize("BBC.itemConfigMenu.noCustomOverridesDesc", `This ${currentScope.type === "item" ? "item" : "activity"} is currently using default crosshair placement settings. Toggle Edit Mode above to configure custom overrides.`),
 
             animationTitle: localize("BBC.autorecMenu.labels.animationTitle", "Animation Configuration"),
             workflowDetails: localize("BBC.autorecMenu.labels.workflowDetails", "Workflow Details"),
@@ -274,16 +340,15 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             item,
             itemName,
             itemImg,
-            hasCustom,
-            isCustom,
+            hasAnyCustom,
             isAutorec,
             isEditMode,
+            scopes,
+            currentScope,
             autorecMatchName: autorecMatch?.itemName ?? "",
             config: mergedConfig,
-            showActivityDropdown,
-            overrideScopes,
             scopeHint,
-            selectedScope,
+            selectedScope: this.selectedScope,
             showOverrides: true,
             showActivityIdentification: false,
 
@@ -295,7 +360,7 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
     }
 
     /**
-     * Attach form controls and delete custom override handlers to application DOM root.
+     * Attach form controls, sidebar scope selection, and delete override handlers to application DOM root.
      * Extends template method workflow from BaseCrosshairMenuApplication.
      * @protected
      * @param {HTMLElement} root - Rendered form root element
@@ -322,7 +387,7 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             const syncEditModeControls = (turningOn) => {
                 this.isEditMode = turningOn;
                 container.classList.toggle("edit-mode", turningOn);
-                rootEl.querySelectorAll("input:not(#bbc-item-edit-mode-toggle), select:not([name='overrideScope']), textarea, button[type='submit']").forEach(el => {
+                rootEl.querySelectorAll("input:not(#bbc-item-edit-mode-toggle), textarea, button[type='submit']").forEach(el => {
                     el.disabled = !turningOn;
                 });
             };
@@ -330,32 +395,23 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             syncEditModeControls(this.isEditMode);
 
             editToggle.addEventListener("change", (ev) => {
-                const turningOn = Boolean(ev.currentTarget.checked);
-                this.isEditMode = turningOn;
-                const hasEmptyCard = Boolean(rootEl.querySelector(".bbc-inspector-empty"));
-                if (!turningOn || hasEmptyCard || !this.hasCustom) {
-                    this.render(false);
-                } else {
-                    syncEditModeControls(true);
-                }
+                this.isEditMode = Boolean(ev.currentTarget.checked);
+                this.render(false);
             });
         }
 
-        // Handle Target Scope Dropdown Change
-        const scopeSelect = rootEl.querySelector("select[name='overrideScope']");
-        if (scopeSelect) {
-            const onScopeChange = (ev) => {
+        // Handle Sidebar Scope Card Selection Click
+        rootEl.querySelectorAll(".bbc-item-card[data-scope]").forEach(card => {
+            card.addEventListener("click", (ev) => {
                 ev.preventDefault();
                 ev.stopPropagation();
-                const newVal = ev.currentTarget.value ?? "item";
-                if (this.selectedScope !== newVal) {
-                    this.selectedScope = newVal;
+                const scope = card.getAttribute("data-scope");
+                if (scope && scope !== this.selectedScope) {
+                    this.selectedScope = scope;
                     this.render(false);
                 }
-            };
-            scopeSelect.addEventListener("change", onScopeChange);
-            scopeSelect.addEventListener("input", onScopeChange);
-        }
+            });
+        });
 
         // Handle Delete CUSTOM Configuration action button
         const deleteBtn = rootEl.querySelector("button[data-action='delete-custom']");
@@ -413,11 +469,17 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
         }
 
         const formData = new FormData(form);
+        const enablePrePlacement = formData.get("enablePrePlacement") === "on";
+        const enableAnimation = formData.get("enableAnimation") === "on";
+        const enablePlacedStyling = formData.get("enablePlacedStyling") === "on";
+        const enablePostPlacement = formData.get("enablePostPlacement") === "on";
+        const hasAnyOverride = enablePrePlacement || enableAnimation || enablePlacedStyling || enablePostPlacement;
+
         const config = {
-            enablePrePlacement: formData.get("enablePrePlacement") === "on",
-            enableAnimation: formData.get("enableAnimation") === "on",
-            enablePlacedStyling: formData.get("enablePlacedStyling") === "on",
-            enablePostPlacement: formData.get("enablePostPlacement") === "on",
+            enablePrePlacement,
+            enableAnimation,
+            enablePlacedStyling,
+            enablePostPlacement,
             enabled: true,
 
             circleFile: String(formData.get("circleFile") ?? "").trim(),
@@ -444,14 +506,29 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
         const scope = this.selectedScope ?? "item";
         try {
             if (scope === "item") {
-                log.debug(`ItemCrosshairConfigApplication | Saving custom item-level configuration for "${this.item.name}":`, config);
-                await this.item.setFlag(MODULE_ID, "customConfig", config);
+                if (!hasAnyOverride) {
+                    log.debug(`ItemCrosshairConfigApplication | All overrides disabled for "${this.item.name}", removing custom item-level flag.`);
+                    await this.item.unsetFlag(MODULE_ID, "customConfig");
+                } else {
+                    log.debug(`ItemCrosshairConfigApplication | Saving custom item-level configuration for "${this.item.name}":`, config);
+                    await this.item.setFlag(MODULE_ID, "customConfig", config);
+                }
                 notify.info(localize("BBC.itemConfigMenu.savedItemCustom", `Saved custom Item-level crosshair configuration for "${this.item.name}".`));
             } else {
-                log.debug(`ItemCrosshairConfigApplication | Saving custom activity-level configuration (${scope}) for "${this.item.name}":`, config);
                 const existingMap = foundry.utils.deepClone(this.item.getFlag(MODULE_ID, "activityConfigs") ?? {});
-                existingMap[scope] = config;
-                await this.item.setFlag(MODULE_ID, "activityConfigs", existingMap);
+                if (!hasAnyOverride) {
+                    log.debug(`ItemCrosshairConfigApplication | All overrides disabled for activity "${scope}" on "${this.item.name}", removing custom activity flag.`);
+                    delete existingMap[scope];
+                    if (Object.keys(existingMap).length === 0) {
+                        await this.item.unsetFlag(MODULE_ID, "activityConfigs");
+                    } else {
+                        await this.item.setFlag(MODULE_ID, "activityConfigs", existingMap);
+                    }
+                } else {
+                    log.debug(`ItemCrosshairConfigApplication | Saving custom activity-level configuration (${scope}) for "${this.item.name}":`, config);
+                    existingMap[scope] = config;
+                    await this.item.setFlag(MODULE_ID, "activityConfigs", existingMap);
+                }
                 notify.info(localize("BBC.itemConfigMenu.savedActivityCustom", `Saved custom Activity-level crosshair configuration for "${this.item.name}".`));
             }
         } catch (e) {

@@ -41,20 +41,34 @@
         },
         "itemConfigMenu": {
             "title": "Bakana's Better Crosshairs Custom Item Configuration",
-            "deleteCustomBtn": "Delete",
+            "deleteCustomBtn": "Delete Custom Override",
             "saveCustomBtn": "Save",
+            "itemLevelScope": "Item Level",
             "overridePrePlacement": "Override Pre-Placement Script",
             "overrideAnimation": "Override Animation Configuration",
             "overridePlacedStyling": "Override Placed Document Styling",
             "overridePostPlacement": "Override Post-Placement Script",
+            "badgeCustomOverride": "CUSTOM OVERRIDE",
+            "badgeInherited": "INHERITED",
             "preSectionDesc": "Executes custom Javascript code before starting placement selection.",
             "animationDesc": "Sequencer crosshair graphic asset and interactive rendering properties.",
             "placedSectionDesc": "Configure fill and border highlight colors applied to the created document.",
             "postSectionDesc": "Executes custom Javascript code immediately after the document is created on the canvas.",
+            "scopeHintItem": "Configuring default overrides for this entire item.",
+            "scopeHintActivity": "Configuring granular overrides specific to this activity (takes priority over item overrides).",
+            "inheritingAutorecTitle": "Inheriting Global Autorec",
+            "inheritingAutorecDesc": "This scope is currently inheriting configuration from Global Autorec. Toggle Edit Mode above to customize overrides.",
+            "noCustomOverridesTitle": "No Custom Overrides Set",
+            "noCustomOverridesDesc": "This scope is currently using default crosshair placement settings. Toggle Edit Mode above to configure custom overrides.",
+            "savedItemCustom": "Saved custom Item-level crosshair configuration.",
+            "savedActivityCustom": "Saved custom Activity-level crosshair configuration.",
+            "removedItemCustom": "Removed custom Item-level crosshair configuration.",
+            "removedActivityCustom": "Removed custom Activity-level crosshair configuration.",
             "badges": {
                 "custom": "CUSTOM",
                 "autorec": "AUTOREC",
-                "default": "DEFAULT"
+                "default": "DEFAULT",
+                "inherited": "INHERITED"
             }
         },
         "autorecMenu": {
