@@ -167,7 +167,25 @@ export class BaseSystemAdapter {
             }
         }
 
-        // 3. Fallback only to known supported language packages bundled with the module
+        // 3. Dynamically discover existing language directories via FilePicker if available
+        if (candidatePaths.size === 0 && typeof FilePicker !== "undefined" && typeof FilePicker.browse === "function") {
+            try {
+                const browseResult = await FilePicker.browse("data", `modules/${MODULE_ID}/lang`);
+                if (Array.isArray(browseResult?.dirs)) {
+                    for (const dir of browseResult.dirs) {
+                        const cleanDir = String(dir ?? "").replace(/\/$/, "");
+                        if (cleanDir) {
+                            candidatePaths.add(`${cleanDir}/${this.systemId}.json`);
+                        }
+                    }
+                }
+            } catch (err) {
+                // Non-GM players or restricted environments safely fall back to bundled languages
+                log.debug("BaseSystemAdapter.loadAllSystemLanguages | Dynamic directory discovery fallback:", err);
+            }
+        }
+
+        // 4. Fallback only to known supported language packages bundled with the module
         if (candidatePaths.size === 0) {
             for (const lang of ["en", "es", "ja"]) {
                 candidatePaths.add(`modules/${MODULE_ID}/lang/${lang}/${this.systemId}.json`);
