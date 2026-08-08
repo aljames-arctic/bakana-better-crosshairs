@@ -55,6 +55,8 @@ export class PersistedAnimationManager {
 
         let effectFile = "";
         let widthPx = 100;
+        let heightPx = 100;
+        let anchor = { x: 0.5, y: 0.5 };
         const supportsRotation = crosshairAdapter.supportsShapeRotation(shapeType);
         const location = { x: detected.x ?? doc.x ?? 0, y: detected.y ?? doc.y ?? 0 };
         const rotation = supportsRotation ? (detected.direction ?? detected.rotation ?? doc.direction ?? doc.rotation ?? 0) : 0;
@@ -114,7 +116,7 @@ export class PersistedAnimationManager {
             .name(effectName)
             .file(resolvedFile)
             .atLocation(location)
-            .rotate(rotation)
+            .rotate(-rotation)
             .anchor(anchor)
             .size({ width: widthPx * factor, height: heightPx * factor }, { gridUnits: Boolean(gridUnits) })
             .opacity(0.8)

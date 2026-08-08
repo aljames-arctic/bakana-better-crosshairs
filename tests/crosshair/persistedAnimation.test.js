@@ -105,18 +105,18 @@ test('PersistedAnimationManager creates, updates, and ends persistent Sequencer 
         }
     };
 
-    // 1. Sync / Play persistent animation (direction 45 -> Sequencer rotation 45)
+    // 1. Sync / Play persistent animation (direction 45 -> Sequencer rotation -45)
     await PersistedAnimationManager.syncPersistedAnimation(mockDoc);
     assert.equal(playedEffects.length, 1);
     assert.equal(playedEffects[0]._name, 'bbc-persisted-tmpl-12345');
     assert.equal(playedEffects[0]._persist, true);
-    assert.equal(playedEffects[0]._rotation, 45);
+    assert.equal(playedEffects[0]._rotation, -45);
 
-    // 2. Update document rotation and sync (direction 90 -> Sequencer rotation 90)
+    // 2. Update document rotation and sync (direction 90 -> Sequencer rotation -90)
     mockDoc.direction = 90;
     await PersistedAnimationManager.syncPersistedAnimation(mockDoc);
     assert.equal(playedEffects.length, 2);
-    assert.equal(playedEffects[1]._rotation, 90);
+    assert.equal(playedEffects[1]._rotation, -90);
 
     // 3. End persistent animation
     PersistedAnimationManager.endPersistedAnimation(mockDoc);
