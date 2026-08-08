@@ -2,8 +2,6 @@ import { systemAdapter, initializeSystemAdapter } from "./system/index.js";
 import { crosshairAdapter, initializeFoundryAdapter } from "./foundry/index.js";
 import { autorecManager } from "../autorec/autorecManager.js";
 
-import { PersistedAnimationManager } from "../crosshair/persistedAnimationManager.js";
-
 let hooksInitialized = false;
 let onRegisterConnected = false;
 
@@ -38,20 +36,10 @@ export function initializeHooks(options = {}) {
 
     registerPlacementHooks({}, options);
 
-    if (typeof Hooks !== "undefined" && typeof Hooks.on === "function") {
-        Hooks.on("canvasReady", () => {
-            PersistedAnimationManager.syncAllCanvasPersistedAnimations();
-        });
-    }
-
     if (typeof game !== "undefined" && game.ready) {
         autorecManager.initializeReadySync();
-        PersistedAnimationManager.syncAllCanvasPersistedAnimations();
     } else if (typeof Hooks !== "undefined" && typeof Hooks.once === "function") {
-        Hooks.once("ready", () => {
-            autorecManager.initializeReadySync();
-            PersistedAnimationManager.syncAllCanvasPersistedAnimations();
-        });
+        Hooks.once("ready", () => autorecManager.initializeReadySync());
     }
 }
 

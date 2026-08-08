@@ -939,8 +939,10 @@ export class BaseFoundryVTTAdapter {
         if (!target) return;
         const doc = target.document ?? target;
 
-        // Synchronize persistent Sequencer animation if enabled
-        await PersistedAnimationManager.syncPersistedAnimation(doc);
+        // Synchronize persistent Sequencer animation if enabled (for creating user)
+        if (!userId || userId === game?.user?.id) {
+            await PersistedAnimationManager.syncPersistedAnimation(doc);
+        }
 
         if (userId !== game?.user?.id) return;
 
@@ -985,7 +987,9 @@ export class BaseFoundryVTTAdapter {
     async handleUpdateDocument(target, changed = {}, _options = {}, userId) {
         if (!target) return;
         const doc = target.document ?? target;
-        await PersistedAnimationManager.syncPersistedAnimation(doc);
+        if (!userId || userId === game?.user?.id) {
+            await PersistedAnimationManager.syncPersistedAnimation(doc);
+        }
     }
 
     /**
@@ -999,6 +1003,8 @@ export class BaseFoundryVTTAdapter {
     handleDeleteDocument(target, _options = {}, userId) {
         if (!target) return;
         const doc = target.document ?? target;
-        PersistedAnimationManager.endPersistedAnimation(doc);
+        if (!userId || userId === game?.user?.id) {
+            PersistedAnimationManager.endPersistedAnimation(doc);
+        }
     }
 }

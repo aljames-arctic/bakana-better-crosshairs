@@ -180,18 +180,4 @@ export class PersistedAnimationManager {
             }
         }
     }
-
-    /**
-     * Scan and synchronize persistent animations across all active templates and regions on the canvas.
-     * @returns {Promise<void>}
-     */
-    static async syncAllCanvasPersistedAnimations() {
-        const templates = canvas?.templates?.placeables ?? [];
-        const regions = canvas?.regions?.placeables ?? [];
-        for (const tmpl of [...templates, ...regions]) {
-            if (tmpl?.document?.flags?.bbc?.persist) {
-                await this.syncPersistedAnimation(tmpl.document);
-            }
-        }
-    }
 }
