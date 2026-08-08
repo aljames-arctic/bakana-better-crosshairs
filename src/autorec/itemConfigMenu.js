@@ -179,8 +179,6 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             borderAlpha: source.borderAlpha ?? 0,
             fillColor: source.fillColor ?? "#000000",
             fillAlpha: source.fillAlpha ?? 0,
-            icon: source.icon ?? "",
-
             placedFillColor: source.placedFillColor ?? "#000000",
             placedFillAlpha: source.placedFillAlpha ?? 0.25,
             placedBorderColor: source.placedBorderColor ?? "#ffffff",
@@ -244,7 +242,9 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             noCustomOverridesDesc: localize("BBC.itemConfigMenu.noCustomOverridesDesc", `This ${selectedScope === "item" ? "item" : "activity"} is currently using default crosshair placement settings. Toggle Edit Mode above to configure custom overrides.`),
 
             animationTitle: localize("BBC.autorecMenu.labels.animationTitle", "Animation Configuration"),
+            workflowDetails: localize("BBC.autorecMenu.labels.workflowDetails", "Workflow Details"),
             workflowEnabled: localize("BBC.autorecMenu.labels.workflowEnabled", "Workflow Enabled"),
+            enableBtn: localize("BBC.autorecMenu.labels.enableBtn", "Enable"),
             circleFile: localize("BBC.autorecMenu.labels.circleFile", "Circle Sequencer Filepath"),
             coneFile: localize("BBC.autorecMenu.labels.coneFile", "Cone Sequencer Filepath"),
             rayFile: localize("BBC.autorecMenu.labels.rayFile", "Ray Sequencer Filepath"),
@@ -258,11 +258,9 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             limitRangeLabel: localize("BBC.autorecMenu.labels.limitRangeLabel", "Restrict crosshair placement within calling item's maximum range"),
             borderStyling: localize("BBC.autorecMenu.labels.borderStyling", "Border Styling (Tile Highlight)"),
             fillStyling: localize("BBC.autorecMenu.labels.fillStyling", "Fill Styling (Tile Highlight)"),
-            customIcon: localize("BBC.autorecMenu.labels.customIcon", "Custom Cursor Icon"),
             placedFill: localize("BBC.autorecMenu.labels.placedFill", "Placed Fill Color"),
             placedBorder: localize("BBC.autorecMenu.labels.placedBorder", "Placed Border Color"),
-            persistEffect: localize("BBC.autorecMenu.labels.persistEffect", "Persistent Sequencer Effect"),
-            persistEffectLabel: localize("BBC.autorecMenu.labels.persistEffectLabel", "Keep Sequencer animation active on placed template"),
+            persistEffect: localize("BBC.autorecMenu.labels.persistEffect", "Persistent Animation"),
             alphaLabel: localize("BBC.autorecMenu.labels.alpha", "Alpha:"),
             enabledPill: localize("BBC.autorecMenu.pills.enabled", "Enabled"),
             disabledPill: localize("BBC.autorecMenu.pills.disabled", "Disabled"),
@@ -440,8 +438,7 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             placedBorderAlpha: parseFloat(String(formData.get("placedBorderAlpha") ?? "0.25")),
             persist: formData.get("persist") === "on",
             concurrentCode: String(formData.get("concurrentCode") ?? "").trim(),
-            postPlacementCode: String(formData.get("postPlacementCode") ?? "").trim(),
-            icon: String(formData.get("icon") ?? "").trim()
+            postPlacementCode: String(formData.get("postPlacementCode") ?? "").trim()
         };
 
         const scope = this.selectedScope ?? "item";

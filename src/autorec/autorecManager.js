@@ -45,8 +45,7 @@ export const DEFAULT_AUTOREC_ENTRY = {
     enablePostPlacement: false,
 
     concurrentCode: "",
-    postPlacementCode: "",
-    icon: "eskie.crosshair.reticle.generic_02.white"
+    postPlacementCode: ""
 };
 
 /**
@@ -237,7 +236,6 @@ export class AutorecManager {
         const rayFile = String(baseConfig.rayFile ?? fileRaw.ray ?? DEFAULT_AUTOREC_ENTRY.rayFile).trim();
         const squareFile = String(baseConfig.squareFile ?? fileRaw.square ?? DEFAULT_AUTOREC_ENTRY.squareFile).trim();
         const lineFile = String(baseConfig.lineFile ?? fileRaw.line ?? DEFAULT_AUTOREC_ENTRY.lineFile).trim();
-        const icon = String(baseConfig.icon ?? fileRaw.reticle ?? DEFAULT_AUTOREC_ENTRY.icon).trim();
 
         const stickToToken = String(baseConfig.stickToToken ?? optionsRaw.attachMode ?? DEFAULT_AUTOREC_ENTRY.stickToToken);
         const showLine = Boolean(baseConfig.showLine ?? optionsRaw.showLine ?? DEFAULT_AUTOREC_ENTRY.showLine);
@@ -281,7 +279,6 @@ export class AutorecManager {
             rayFile,
             squareFile,
             lineFile,
-            icon,
             stickToToken,
             showLine,
             showRange,
@@ -884,7 +881,6 @@ export class AutorecManager {
                 || (config.borderAlpha !== undefined && config.borderAlpha !== 0)
                 || Boolean(config.fillColor)
                 || (config.fillAlpha !== undefined && config.fillAlpha !== 0);
-            const icon = config.icon ?? null;
 
             const placedFillColor = config.placedFillColor ?? DEFAULT_AUTOREC_ENTRY.placedFillColor;
             const placedFillAlpha = config.placedFillAlpha ?? DEFAULT_AUTOREC_ENTRY.placedFillAlpha;
@@ -960,8 +956,7 @@ export class AutorecManager {
                 persist,
                 hasPlacedStyling,
                 concurrentCode,
-                postPlacementCode,
-                icon,
+                postPlacementCode
             });
         }
         return results.sort((a, b) => {

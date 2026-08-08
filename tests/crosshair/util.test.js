@@ -2,17 +2,11 @@ import '../setup.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { initializeFoundryAdapter } from '../../src/adapter/foundry/index.js';
-import { resolveCrosshairIcon, shouldStickToToken, getTokenEdgePoint, snapCoordinates } from '../../src/crosshair/util.js';
+import { shouldStickToToken, getTokenEdgePoint, snapCoordinates } from '../../src/crosshair/util.js';
 import { BaseSystemAdapter } from '../../src/adapter/system/base-system-adapter.js';
 import { Dnd5eSystemAdapter } from '../../src/adapter/system/dnd5e-adapter.js';
 
 initializeFoundryAdapter();
-
-test('crosshair.util.resolveCrosshairIcon normalizes and fallbacks icon paths', () => {
-    assert.equal(resolveCrosshairIcon('icons/svg/target.svg'), 'icons/svg/target.svg');
-    assert.equal(resolveCrosshairIcon(null), '');
-    assert.equal(resolveCrosshairIcon({ img: 'path/to/token.png' }), '');
-});
 
 test('crosshair.util.shouldStickToToken evaluates configuration flags and delegates defaults to system adapters', () => {
     assert.equal(shouldStickToToken({ stickToToken: true }), true);

@@ -187,7 +187,6 @@ export class CrosshairController {
             try {
                 await Sequencer.EffectManager.endEffects({ name: effectId, object: token });
                 await Sequencer.EffectManager.endEffects({ name: `${effectId}-line`, object: token });
-                await Sequencer.EffectManager.endEffects({ name: `${effectId}-icon`, object: token });
             } catch (e) {
                 log.debug("CrosshairController.hide | Exception ending Sequencer effects:", e);
             }
@@ -330,7 +329,6 @@ export async function attachCrosshairToToken(sourceToken, shape, size, getCursor
                 try {
                     await Sequencer.EffectManager.endEffects({ name: effectId, object: token });
                     await Sequencer.EffectManager.endEffects({ name: `${effectId}-line`, object: token });
-                    await Sequencer.EffectManager.endEffects({ name: `${effectId}-icon`, object: token });
                 } catch (e) {
                     log.debug("attachCrosshairToToken.stop | Exception ending Sequencer effects:", e);
                 }

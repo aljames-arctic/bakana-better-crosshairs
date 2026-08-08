@@ -102,8 +102,7 @@ export function sanitizeEntryForExchange(entry) {
             cone: String(fileRaw.cone ?? raw.coneFile ?? DEFAULT_AUTOREC_ENTRY.coneFile),
             ray: String(fileRaw.ray ?? raw.rayFile ?? DEFAULT_AUTOREC_ENTRY.rayFile),
             square: String(fileRaw.square ?? raw.squareFile ?? DEFAULT_AUTOREC_ENTRY.squareFile),
-            line: String(fileRaw.line ?? raw.lineFile ?? DEFAULT_AUTOREC_ENTRY.lineFile),
-            reticle: String(fileRaw.reticle ?? raw.icon ?? DEFAULT_AUTOREC_ENTRY.icon)
+            line: String(fileRaw.line ?? raw.lineFile ?? DEFAULT_AUTOREC_ENTRY.lineFile)
         },
         preview: {
             fill: {

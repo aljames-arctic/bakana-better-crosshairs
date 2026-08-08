@@ -83,35 +83,6 @@ export function shouldStickToToken(config, shapeType = "circle", sysAdapter = sy
 }
 
 /**
- * Resolve an icon string into a direct asset path if it points to a Sequencer Database entry.
- * @param {string} iconPath - Raw icon string (file path or Sequencer database dot path)
- * @returns {string} Fully resolved icon file path
- */
-export function resolveCrosshairIcon(iconPath) {
-    if (!iconPath || typeof iconPath !== "string") return "";
-    const trimmed = iconPath.trim();
-    if (!trimmed) return "";
-    const resolvedPath = closest(trimmed) ?? trimmed;
-    try {
-        if (typeof Sequencer !== "undefined" && Sequencer.Database && typeof Sequencer.Database.entryExists === "function") {
-            if (Sequencer.Database.entryExists(resolvedPath)) {
-                const entry = Sequencer.Database.getEntry(resolvedPath);
-                const resolved = Array.isArray(entry) ? entry[0] : entry;
-                if (typeof resolved === "string") return resolved;
-                if (resolved && typeof resolved === "object") {
-                    const file = Array.isArray(resolved.file) ? resolved.file[0] : resolved.file;
-                    if (typeof file === "string") return file;
-                    if (file && typeof file === "object" && typeof file.file === "string") return file.file;
-                }
-            }
-        }
-    } catch (e) {
-        log.warn(`Could not resolve Sequencer Database entry for icon "${resolvedPath}":`, e);
-    }
-    return resolvedPath;
-}
-
-/**
  * Refresh the shape and grid highlights of a measured template overlay.
  * @param {object} tmpl - Template placeable or overlay object to refresh
  * @param {number} newDirDeg - New direction angle in degrees
@@ -244,32 +215,6 @@ export function alignCrosshairAndEffects(crosshair, config = {}, rad = 0) {
                     eff.container.pivot.set(0, 0);
                     if (eff.sprite) eff.sprite.position.set(0, 0);
                     if (eff.spriteContainer) eff.spriteContainer.position.set(0, 0);
-                }
-            }
-
-            const iconEffects = Sequencer.EffectManager.getEffects({ name: `${effectId}-icon` });
-            for (const eff of iconEffects) {
-                if (effects.includes(eff)) continue;
-                eff.x = targetX;
-                eff.y = targetY;
-                if (eff.worldPosition) {
-                    eff.worldPosition.x = targetX;
-                    eff.worldPosition.y = targetY;
-                }
-                if (eff.position) {
-                    eff.position.x = targetX;
-                    eff.position.y = targetY;
-                }
-                if (eff.container?.position?.set) {
-                    eff.container.position.set(targetX, targetY);
-                } else if (eff.container) {
-                    eff.container.x = targetX;
-                    eff.container.y = targetY;
-                }
-                if (typeof eff.update === "function") {
-                    try {
-                        eff.update({ position: { x: targetX, y: targetY } });
-                    } catch (e) {}
                 }
             }
         } catch (e) {

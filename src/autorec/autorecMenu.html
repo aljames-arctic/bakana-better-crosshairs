@@ -110,13 +110,13 @@
                 </header>
 
                 <div class="bbc-sections-scroll">
-                    <!-- Top Section: Workflow Status -->
+                    <!-- Top Section: Workflow Details -->
                     <section class="bbc-section-card">
                         <div class="bbc-section-header">
                             <div class="bbc-section-title">
                                 <i class="fa-solid fa-chevron-down bbc-chevron"></i>
-                                <i class="fa-solid fa-power-off bbc-section-icon"></i>
-                                <h3>Workflow Status</h3>
+                                <i class="fa-solid fa-circle-info bbc-section-icon"></i>
+                                <h3>{{../labels.workflowDetails}}</h3>
                             </div>
                         </div>
                         <div class="bbc-section-body">
@@ -134,6 +134,16 @@
                                             </label>
                                         </td>
                                     </tr>
+                                    <tr>
+                                        <th>{{../labels.registrationScope}}</th>
+                                        <td>
+                                            <span class="view-only">{{#if isLocal}}<span class="bbc-pill">{{../labels.localOnlyPill}}</span>{{else}}<span class="bbc-pill">{{../labels.worldSyncedPill}}</span>{{/if}}</span>
+                                            <label class="bbc-edit-checkbox-label edit-only">
+                                                <input type="checkbox" class="bbc-edit-checkbox" name="local" data-field="local" {{#if isLocal}}checked{{/if}} />
+                                                <span>{{../labels.localOnlyPill}}</span>
+                                            </label>
+                                        </td>
+                                    </tr>
                                     {{#unless isDefault}}
                                     <tr>
                                         <th>Source Module</th>
@@ -147,7 +157,7 @@
                         </div>
                     </section>
 
-                    {{> "modules/bakana-better-crosshairs/src/autorec/configFieldsPartial.html" labels=../labels prePlacementTitle=../prePlacementTitle placementSectionTitle=../placementSectionTitle postPlacementTitle=../postPlacementTitle showOverrides=false showActivityIdentification=true isEditMode=../isEditMode supportsActivities=../supportsActivities}}
+                    {{> "modules/bakana-better-crosshairs/src/autorec/configFieldsPartial.html" labels=../labels prePlacementTitle=../prePlacementTitle placementSectionTitle=../placementSectionTitle postPlacementTitle=../postPlacementTitle showOverrides=false showActivityIdentification=false isEditMode=../isEditMode supportsActivities=../supportsActivities}}
                 </div>
             </div>
             {{/each}}

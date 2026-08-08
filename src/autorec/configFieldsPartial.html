@@ -9,22 +9,9 @@
     </div>
     <div class="bbc-section-body">
         <p class="bbc-section-desc">{{labels.preSectionDesc}}</p>
+        {{#if showOverrides}}
         <table class="bbc-config-table" style="margin-bottom: 10px;">
             <tbody>
-                {{#if showActivityIdentification}}
-                <tr>
-                    <th>{{labels.registrationScope}}</th>
-                    <td>
-                        <span class="view-only">{{#if isLocal}}<span class="bbc-pill">{{labels.localOnlyPill}}</span>{{else}}<span class="bbc-pill">{{labels.worldSyncedPill}}</span>{{/if}}</span>
-                        <label class="bbc-edit-checkbox-label edit-only">
-                            <input type="checkbox" class="bbc-edit-checkbox" name="local" data-field="local" {{#if isLocal}}checked{{/if}} />
-                            <span>{{labels.localOnlyPill}}</span>
-                        </label>
-                    </td>
-                </tr>
-                {{/if}}
-
-                {{#if showOverrides}}
                 <tr>
                     <th>{{labels.overridePrePlacement}}</th>
                     <td>
@@ -37,9 +24,9 @@
                         </div>
                     </td>
                 </tr>
-                {{/if}}
             </tbody>
         </table>
+        {{/if}}
         <div class="bbc-code-container" data-override-child="enablePrePlacement" {{#if (and showOverrides (not enablePrePlacement))}}style="display: none;"{{/if}}>
             <div class="view-only">
                 {{#if concurrentCode}}
@@ -134,7 +121,7 @@
                         <div class="bbc-edit-row edit-only">
                             <label class="bbc-edit-checkbox-label">
                                 <input type="checkbox" class="bbc-edit-checkbox" name="showLine" data-field="showLine" {{#if showLine}}checked{{/if}} />
-                                <span>{{labels.showLineLabel}}</span>
+                                <span>{{labels.enableBtn}}</span>
                             </label>
                             <input type="text" class="bbc-edit-input" name="lineFile" data-field="lineFile" value="{{lineFile}}" placeholder="eskie.crosshair.line.generic_01.white" />
                         </div>
@@ -147,30 +134,9 @@
                         <div class="bbc-edit-row edit-only">
                             <label class="bbc-edit-checkbox-label">
                                 <input type="checkbox" class="bbc-edit-checkbox" name="showRange" data-field="showRange" {{#if showRange}}checked{{/if}} />
-                                <span>{{labels.showRangeLabel}}</span>
+                                <span>{{labels.enableBtn}}</span>
                             </label>
                         </div>
-                    </td>
-                </tr>
-                <!-- Sequencer range limitation option is temporarily disabled pending upstream stabilization
-                <tr data-override-child="enableAnimation" {{#if (and showOverrides (not enableAnimation))}}style="display: none;"{{/if}}>
-                    <th>{{labels.limitRange}}</th>
-                    <td>
-                        <span class="view-only">{{#if limitRange}}<span class="bbc-pill enabled">{{labels.enabledPill}}</span>{{else}}<span class="bbc-pill disabled">{{labels.disabledPill}}</span>{{/if}}</span>
-                        <div class="bbc-edit-row edit-only">
-                            <label class="bbc-edit-checkbox-label">
-                                <input type="checkbox" class="bbc-edit-checkbox" name="limitRange" data-field="limitRange" {{#if limitRange}}checked{{/if}} />
-                                <span>{{labels.limitRangeLabel}}</span>
-                            </label>
-                        </div>
-                    </td>
-                </tr>
-                -->
-                <tr class="{{#if (and (not showOverrides) (not icon))}}edit-only{{/if}}" data-override-child="enableAnimation" {{#if (and showOverrides (not enableAnimation))}}style="display: none;"{{/if}}>
-                    <th>{{labels.customIcon}}</th>
-                    <td>
-                        <span class="view-only">{{#if icon}}<code class="bbc-code-pill">{{icon}}</code>{{else}}<span class="bbc-pill none">{{labels.nonePill}}</span>{{/if}}</span>
-                        <input type="text" class="bbc-edit-input edit-only" name="icon" data-field="icon" value="{{icon}}" placeholder="eskie.crosshair.reticle.generic_02.white" />
                     </td>
                 </tr>
             </tbody>
@@ -214,6 +180,18 @@
                 {{/if}}
 
                 <tr class="{{#if (and (not showOverrides) (not hasPlacedStyling))}}edit-only{{/if}}" data-override-child="enablePlacedStyling" {{#if (and showOverrides (not enablePlacedStyling))}}style="display: none;"{{/if}}>
+                    <th>{{labels.persistEffect}}</th>
+                    <td>
+                        <span class="view-only">{{#if persist}}<span class="bbc-pill enabled">{{labels.enabledPill}}</span>{{else}}<span class="bbc-pill disabled">{{labels.disabledPill}}</span>{{/if}}</span>
+                        <div class="bbc-edit-row edit-only">
+                            <label class="bbc-edit-checkbox-label">
+                                <input type="checkbox" class="bbc-edit-checkbox" name="persist" data-field="persist" {{#if persist}}checked{{/if}} />
+                                <span>{{labels.enableBtn}}</span>
+                            </label>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="{{#if (and (not showOverrides) (not hasPlacedStyling))}}edit-only{{/if}}" data-override-child="enablePlacedStyling" {{#if (and showOverrides (not enablePlacedStyling))}}style="display: none;"{{/if}}>
                     <th>{{labels.placedFill}}</th>
                     <td>
                         <span class="view-only">
@@ -238,18 +216,6 @@
                             <input type="color" class="bbc-edit-color" data-color-target="bbc-item-placedborder" data-field="placedBorderColor" value="{{placedBorderColorPicker}}" />
                             <input type="text" id="bbc-item-placedborder" class="bbc-edit-input" name="placedBorderColor" data-field="placedBorderColor" value="{{placedBorderColor}}" placeholder="#ffffff" />
                             <label>{{labels.alphaLabel}} <input type="number" step="0.05" min="0" max="1" class="bbc-edit-input small" name="placedBorderAlpha" data-field="placedBorderAlpha" value="{{placedBorderAlpha}}" /></label>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="{{#if (and (not showOverrides) (not hasPlacedStyling))}}edit-only{{/if}}" data-override-child="enablePlacedStyling" {{#if (and showOverrides (not enablePlacedStyling))}}style="display: none;"{{/if}}>
-                    <th>{{labels.persistEffect}}</th>
-                    <td>
-                        <span class="view-only">{{#if persist}}<span class="bbc-pill enabled">{{labels.enabledPill}}</span>{{else}}<span class="bbc-pill disabled">{{labels.disabledPill}}</span>{{/if}}</span>
-                        <div class="bbc-edit-row edit-only">
-                            <label class="bbc-edit-checkbox-label">
-                                <input type="checkbox" class="bbc-edit-checkbox" name="persist" data-field="persist" {{#if persist}}checked{{/if}} />
-                                <span>{{labels.persistEffectLabel}}</span>
-                            </label>
                         </div>
                     </td>
                 </tr>

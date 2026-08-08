@@ -30,7 +30,6 @@ export function migrateV1ToV2Entry(legacyEntry) {
     const ray = String(fileObj.ray ?? legacyEntry.rayFile ?? DEFAULT_AUTOREC_ENTRY.rayFile);
     const square = String(fileObj.square ?? legacyEntry.squareFile ?? DEFAULT_AUTOREC_ENTRY.squareFile);
     const line = String(fileObj.line ?? legacyEntry.lineFile ?? DEFAULT_AUTOREC_ENTRY.lineFile);
-    const reticle = String(fileObj.reticle ?? legacyEntry.icon ?? DEFAULT_AUTOREC_ENTRY.icon);
 
     // Options mapping: stickToToken -> options.attachMode, etc.
     const optionsObj = legacyEntry.options ?? {};
@@ -97,8 +96,7 @@ export function migrateV1ToV2Entry(legacyEntry) {
             cone,
             ray,
             square,
-            line,
-            reticle
+            line
         },
         preview: {
             fill: { color: previewFillColor, alpha: previewFillAlpha },

@@ -1,7 +1,6 @@
 import { log } from "../lib/logger.js";
 import { crosshairAdapter } from "../adapter/foundry/index.js";
 import { resolveCircleAsset } from "./circle.js";
-import { resolveCrosshairIcon } from "./util.js";
 import { closest } from "../lib/filemanager.js";
 
 /**
@@ -63,7 +62,6 @@ export class PersistedAnimationManager {
                 for (const name of new Set(previewIds)) {
                     Sequencer.EffectManager.endEffects({ name });
                     Sequencer.EffectManager.endEffects({ name: `${name}-line` });
-                    Sequencer.EffectManager.endEffects({ name: `${name}-icon` });
                 }
             } catch (e) {
                 log.debug("PersistedAnimationManager.syncPersistedAnimation | Error ending preview effects:", e);
@@ -145,19 +143,6 @@ export class PersistedAnimationManager {
             .belowTokens()
             .persist();
 
-        if (bbcFlags.icon) {
-            const iconPath = resolveCrosshairIcon(bbcFlags.icon);
-            if (iconPath) {
-                seq.effect()
-                    .name(`${effectName}-icon`)
-                    .file(iconPath)
-                    .atLocation(location)
-                    .size(50, { gridUnits: false })
-                    .opacity(0.9)
-                    .persist();
-            }
-        }
-
         return seq.play();
     }
 
@@ -174,7 +159,6 @@ export class PersistedAnimationManager {
         if (typeof Sequencer !== "undefined" && Sequencer?.EffectManager?.endEffects) {
             try {
                 Sequencer.EffectManager.endEffects({ name: effectName });
-                Sequencer.EffectManager.endEffects({ name: `${effectName}-icon` });
             } catch (e) {
                 log.debug("PersistedAnimationManager.endPersistedAnimation | Error ending effect:", e);
             }

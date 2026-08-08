@@ -390,7 +390,6 @@ export class BaseFoundryVTTAdapter {
                 for (const name of previewIds) {
                     Sequencer.EffectManager.endEffects({ name });
                     Sequencer.EffectManager.endEffects({ name: `${name}-line` });
-                    Sequencer.EffectManager.endEffects({ name: `${name}-icon` });
                 }
             } catch (e) {}
         }
@@ -434,8 +433,7 @@ export class BaseFoundryVTTAdapter {
                 circleFile: config.circleFile,
                 coneFile: config.coneFile,
                 rayFile: config.rayFile,
-                squareFile: config.squareFile,
-                icon: config.icon
+                squareFile: config.squareFile
             }
         };
 

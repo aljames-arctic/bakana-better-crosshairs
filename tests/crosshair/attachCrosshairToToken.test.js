@@ -105,9 +105,8 @@ test("CrosshairController.hide terminates Sequencer effects on sourceToken", asy
     const dummyToken = { id: "tok-3", x: 0, y: 0 };
     await CrosshairController.hide(dummyToken, { id: "custom-effect" });
 
-    assert.equal(endedEffects.length, 3);
+    assert.equal(endedEffects.length, 2);
     assert.equal(endedEffects[0].name, "custom-effect");
     assert.equal(endedEffects[0].object.id, "tok-3");
     assert.equal(endedEffects[1].name, "custom-effect-line");
-    assert.equal(endedEffects[2].name, "custom-effect-icon");
 });

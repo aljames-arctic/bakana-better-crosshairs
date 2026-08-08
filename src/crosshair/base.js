@@ -2,7 +2,7 @@ import { MODULE_ID, BROADCAST_INTERVAL_MS } from "../lib/constants.js";
 import { closest } from "../lib/filemanager.js";
 import { log } from "../lib/logger.js";
 import { crosshairAdapter, systemAdapter } from "../adapter/index.js";
-import { resolveCrosshairPlacement, attachWheelRotation, detachWheelRotation, shouldStickToToken, resolveCrosshairIcon, alignCrosshairAndEffects, getGridSnapMode, snapCoordinates, activePlacementTracker } from "./util.js";
+import { resolveCrosshairPlacement, attachWheelRotation, detachWheelRotation, shouldStickToToken, alignCrosshairAndEffects, getGridSnapMode, snapCoordinates, activePlacementTracker } from "./util.js";
 import { CrosshairController } from "./crosshairController.js";
 import { getPeerCursorPosition } from "./remoteCrosshairManager.js";
 import { CrosshairRangeOverlay } from "./rangeOverlay.js";
@@ -67,7 +67,6 @@ export class BaseCrosshairShape {
         this.type = (rawType === "square") ? "rect" : rawType;
         this.stickToToken = shouldStickToToken(config, this.type);
         this.context = config.context ?? null;
-        this.icon = config.icon ?? "";
         this.borderColor = config.borderColor ?? "#ffffff";
         this.borderAlpha = config.borderAlpha ?? 0;
         this.fillColor = config.fillColor ?? "#000000";
@@ -279,27 +278,6 @@ export class BaseCrosshairShape {
             .locally()
             .persist();
 
-        if (this.icon) {
-            const iconPath = resolveCrosshairIcon(this.icon);
-            if (iconPath) {
-                const iconEffect = seq.effect()
-                    .name(`${this.id}-icon`)
-                    .file(iconPath);
-
-                if (isCircleAttached) {
-                    iconEffect.attachTo(this.token);
-                } else {
-                    iconEffect.atLocation(initLoc);
-                }
-
-                iconEffect
-                    .size(50, { gridUnits: false })
-                    .opacity(0.9)
-                    .locally()
-                    .persist();
-            }
-        }
-
         return seq.play();
     }
 
@@ -364,10 +342,6 @@ export class BaseCrosshairShape {
             }
             const snapMode = getGridSnapMode(this.config);
             if (snapMode !== 0) crosshairSeq.snapPosition(snapMode);
-        }
-
-        if (this.icon) {
-            crosshairSeq.icon(resolveCrosshairIcon(this.icon));
         }
 
         crosshairSeq
@@ -511,11 +485,9 @@ export class BaseCrosshairShape {
                     for (const name of idsToEnd) {
                         Sequencer.EffectManager.endEffects({ name });
                         Sequencer.EffectManager.endEffects({ name: `${name}-line` });
-                        Sequencer.EffectManager.endEffects({ name: `${name}-icon` });
                         if (this.token) {
                             Sequencer.EffectManager.endEffects({ name, object: this.token });
                             Sequencer.EffectManager.endEffects({ name: `${name}-line`, object: this.token });
-                            Sequencer.EffectManager.endEffects({ name: `${name}-icon`, object: this.token });
                         }
                     }
                 }
@@ -553,11 +525,9 @@ export class BaseCrosshairShape {
                     for (const name of idsToEnd) {
                         Sequencer.EffectManager.endEffects({ name });
                         Sequencer.EffectManager.endEffects({ name: `${name}-line` });
-                        Sequencer.EffectManager.endEffects({ name: `${name}-icon` });
                         if (this.token) {
                             Sequencer.EffectManager.endEffects({ name, object: this.token });
                             Sequencer.EffectManager.endEffects({ name: `${name}-line`, object: this.token });
-                            Sequencer.EffectManager.endEffects({ name: `${name}-icon`, object: this.token });
                         }
                     }
                 }

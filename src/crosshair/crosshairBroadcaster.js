@@ -80,7 +80,6 @@ export class CrosshairBroadcaster {
             shapeType: shape.type,
             file: shape.getGraphicFile(),
             lineFile: shape.lineFile,
-            icon: shape.icon,
             fillColor: shape.fillColor,
             fillAlpha: shape.fillAlpha,
             borderColor: shape.borderColor,

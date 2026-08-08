@@ -48,7 +48,6 @@ export class CrosshairConfiguration {
         this.fillColor = String(source.fillColor ?? previewFill.color ?? defaults.fillColor).trim();
         const fillAlphaVal = Number(source.fillAlpha ?? previewFill.alpha ?? defaults.fillAlpha);
         this.fillAlpha = Number.isFinite(fillAlphaVal) ? fillAlphaVal : defaults.fillAlpha;
-        this.icon = String(source.icon ?? file.reticle ?? defaults.icon).trim();
 
         // Placed document styling options
         this.placedFillColor = String(source.placedFillColor ?? placedFill.color ?? defaults.placedFillColor).trim();
@@ -153,7 +152,6 @@ export class CrosshairConfiguration {
             merged.borderAlpha = customSource.borderAlpha ?? this.borderAlpha;
             merged.fillColor = customSource.fillColor ?? this.fillColor;
             merged.fillAlpha = customSource.fillAlpha ?? this.fillAlpha;
-            merged.icon = customSource.icon ?? this.icon;
         }
 
         if (isPlacedOverride) {
@@ -197,7 +195,6 @@ export class CrosshairConfiguration {
             borderAlpha: this.borderAlpha,
             fillColor: this.fillColor,
             fillAlpha: this.fillAlpha,
-            icon: this.icon,
             placedFillColor: this.placedFillColor,
             placedFillAlpha: this.placedFillAlpha,
             placedBorderColor: this.placedBorderColor,
