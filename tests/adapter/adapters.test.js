@@ -560,6 +560,37 @@ test('FoundryVTTV14Adapter and Pf2eSystemAdapter handle Collection shapes via .c
     assert.equal(coneProps.type, 'cone');
     assert.equal(coneProps.angle, 60);
 
+    // Verify square/rect MeasuredTemplate direction normalization (45 deg diagonal -> 0 deg orientation)
+    const mockSquareTemplateDoc = {
+        t: 'rect',
+        distance: 42.426,
+        width: 30,
+        direction: 45,
+        x: 0,
+        y: 0
+    };
+    const squareTemplateProps = adapterV14.detectProperties(mockSquareTemplateDoc);
+    assert.equal(squareTemplateProps.type, 'square');
+    assert.equal(squareTemplateProps.direction, 0, 'MeasuredTemplate square direction should normalize to 0 degrees');
+
+    // Verify square/rect Region shape direction normalization
+    const mockSquareRegionDoc = {
+        shapes: {
+            contents: [{
+                type: 'rectangle',
+                width: 600,
+                height: 600,
+                rotation: 0,
+                x: 0,
+                y: 0,
+                toObject: () => ({ type: 'rectangle', width: 600, height: 600, rotation: 0, x: 0, y: 0 })
+            }]
+        }
+    };
+    const squareRegionProps = adapterV14.detectProperties(mockSquareRegionDoc);
+    assert.equal(squareRegionProps.type, 'square');
+    assert.equal(squareRegionProps.direction, 0, 'Region square direction should be 0 degrees');
+
     // Region behaviors item origin check in PF2e
     globalThis.foundry.utils.fromUuidSync = (uuid) => {
         if (uuid === 'Item.RegionBehaviorOrigin') return { id: '999', name: 'Aura of Protection' };

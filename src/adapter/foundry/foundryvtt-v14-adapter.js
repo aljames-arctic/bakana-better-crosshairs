@@ -155,14 +155,21 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 const isSquareDiagonal = distance <= width * 1.6;
                 distance = isSquareDiagonal ? width : Math.round(Math.sqrt(Math.max(0, distance * distance - width * width)));
             }
+            let rawDir = targetDoc.direction ?? 0;
+            if (targetDoc.t === "rect") {
+                const w = width > 0 ? width : distance;
+                const h = distance > 0 ? distance : w;
+                const diagAngle = Math.atan2(h, w) * (180 / Math.PI);
+                rawDir = (rawDir - diagAngle + 360) % 360;
+            }
             const result = {
                 type: shapeMap[targetDoc.t] ?? "circle",
                 distance,
                 radius: distance,
                 width,
                 angle: targetDoc.angle ?? 53.13,
-                direction: targetDoc.direction ?? 0,
-                rotation: targetDoc.direction ?? 0,
+                direction: rawDir,
+                rotation: rawDir,
                 x: targetDoc.x ?? 0,
                 y: targetDoc.y ?? 0
             };
@@ -238,14 +245,24 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             width = distance;
         }
 
+        let rawDir = shape.rotation ?? targetDoc.direction ?? 0;
+        if (shape.type === "rectangle" || shape.type === "box") {
+            if (shape.rotation === undefined && targetDoc.direction !== undefined) {
+                const w = width > 0 ? width : distance;
+                const h = distance > 0 ? distance : w;
+                const diagAngle = Math.atan2(h, w) * (180 / Math.PI);
+                rawDir = (rawDir - diagAngle + 360) % 360;
+            }
+        }
+
         const result = {
             type: shapeType,
             distance,
             radius: distance,
             width,
             angle: shape.angle ?? 53.13,
-            direction: shape.rotation ?? targetDoc.direction ?? 0,
-            rotation: shape.rotation ?? targetDoc.direction ?? 0,
+            direction: rawDir,
+            rotation: rawDir,
             x: shape.x ?? targetDoc.x ?? 0,
             y: shape.y ?? targetDoc.y ?? 0
         };
