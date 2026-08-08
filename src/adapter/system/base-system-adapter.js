@@ -121,7 +121,7 @@ export class BaseSystemAdapter {
             if (response.ok) {
                 const data = await response.json();
                 this.setDefaultsData(data ?? {});
-                await this.loadAllSystemLanguages(data ?? {});
+                this.refreshLocalizedDefaults("loadSystemDefaultsData");
                 log.debug(`BaseSystemAdapter.loadSystemDefaultsData | Successfully loaded ${this.defaultsMap.size} system default definitions for "${this.systemId}".`);
             } else {
                 log.debug(`BaseSystemAdapter.loadSystemDefaultsData | Fetch for "${bundlePath}" returned HTTP status: ${response.status}`);
@@ -223,7 +223,10 @@ export class BaseSystemAdapter {
                     : (Array.isArray(entry) ? entry[1] : null);
                 const p = pathObj?.path;
                 if (typeof p === "string" && p.endsWith(targetSuffix)) {
-                    candidatePaths.add(`modules/${MODULE_ID}/${p}`);
+                    const normalized = (p.startsWith("modules/") || p.startsWith("/"))
+                        ? p.replace(/^\//, "")
+                        : `modules/${MODULE_ID}/${p}`;
+                    candidatePaths.add(normalized);
                 }
             }
         }
