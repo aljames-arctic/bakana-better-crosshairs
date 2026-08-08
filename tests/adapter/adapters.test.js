@@ -525,6 +525,25 @@ test('FoundryVTTV14Adapter and Pf2eSystemAdapter handle Collection shapes via .c
     const rayProps = adapterV14.detectProperties(mockRayRegionDoc);
     assert.equal(rayProps.type, 'ray');
 
+    // Test _formatRegionShapeUpdate with 60ft by 5ft ray
+    const rayCoords = adapterV14.formatPlacementCoordinates(100, 200, 45, {
+        type: 'ray',
+        distance: 60,
+        width: 5,
+        gridUnits: true
+    });
+    const updatedRayShape = adapterV14._formatRegionShapeUpdate({ type: 'line' }, rayCoords);
+    assert.equal(updatedRayShape.distance, 1200, 'Ray length in px (60ft * 20px/ft) must be 1200');
+    assert.equal(updatedRayShape.length, 1200, 'Ray length in px (60ft * 20px/ft) must be 1200');
+    assert.equal(updatedRayShape.width, 100, 'Ray width in px (5ft * 20px/ft) must be 100');
+    assert.equal(updatedRayShape.thickness, 100, 'Ray thickness in px (5ft * 20px/ft) must be 100');
+
+    const detectedUpdatedRay = adapterV14.detectProperties({
+        shapes: { contents: [updatedRayShape] }
+    });
+    assert.equal(detectedUpdatedRay.distance, 60, 'Detected distance should be 60ft');
+    assert.equal(detectedUpdatedRay.width, 5, 'Detected width should be 5ft');
+
     const mockConeRegionDoc = {
         shapes: {
             contents: [{

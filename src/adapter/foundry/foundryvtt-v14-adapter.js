@@ -221,18 +221,17 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             distance = Math.round(rawLengthPx / pxPerFoot);
             width = Math.round(rawWidthPx / pxPerFoot);
         } else if (shape.type === "line" || shape.type === "ray" || shape.type === "segment") {
-            const rawLengthPx = shape.distance ?? shape.length ?? shape.height ?? shape.width ?? shape.radius ?? 0;
-            const rawWidthPx = shape.width ?? shape.thickness ?? 5;
-            distance = Math.round(rawLengthPx / pxPerFoot);
-            width = (typeof rawWidthPx === "number" && rawWidthPx !== rawLengthPx && rawWidthPx > 0)
-                ? Math.round(rawWidthPx / pxPerFoot)
-                : 5;
+            const rawLengthPx = shape.distance ?? shape.length ?? shape.height ?? shape.radius ?? 0;
+            const rawWidthPx = shape.width ?? shape.thickness ?? (pxPerFoot * 5);
+            distance = rawLengthPx >= pxPerFoot ? Math.round(rawLengthPx / pxPerFoot) : Math.round(rawLengthPx);
+            width = rawWidthPx >= pxPerFoot ? Math.round(rawWidthPx / pxPerFoot) : Math.round(rawWidthPx);
             if (!distance && shape.points && Array.isArray(shape.points) && shape.points.length >= 4) {
                 const dx = shape.points[2] - shape.points[0];
                 const dy = shape.points[3] - shape.points[1];
                 const lengthPx = Math.sqrt(dx * dx + dy * dy);
                 distance = Math.round(lengthPx / pxPerFoot);
             }
+            if (!width) width = 5;
         } else {
             const rawRadius = shape.radius ?? 0;
             distance = Math.round(rawRadius / pxPerFoot);
@@ -517,7 +516,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         else if (coords.direction !== undefined) shape.rotation = coords.direction;
 
         if (shape.type === "rectangle") {
-            const isSquare = coords.type === "square" || coords.originalType === "square" || coords.t === "rect" || (originalShape.type === "rectangle" && (originalShape.width === originalShape.height || !originalShape.height));
+            const isSquare = coords.type === "square" || coords.originalType === "square" || coords.t === "rect";
             const origW = originalShape.width ?? 400;
             const origH = originalShape.height ?? origW;
 
@@ -567,15 +566,17 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             }
             shape.angle = coords.angle ?? originalShape.angle ?? 53.13;
         } else if (shape.type === "line" || shape.type === "ray" || shape.type === "segment") {
-            const distFoot = coords.distance ?? coords.radius ?? coords.width;
+            const distFoot = coords.distance ?? coords.radius;
+            const widthFoot = coords.width ?? 5;
             if (distFoot !== undefined) {
                 const distPx = isGridUnits ? Math.round(distFoot * pxPerFoot) : distFoot;
                 shape.distance = distPx;
                 shape.length = distPx;
-                shape.width = distPx;
             }
-            if (coords.width !== undefined) {
-                shape.thickness = isGridUnits ? Math.round(coords.width * pxPerFoot) : coords.width;
+            if (widthFoot !== undefined) {
+                const widthPx = isGridUnits ? Math.round(widthFoot * pxPerFoot) : widthFoot;
+                shape.width = widthPx;
+                shape.thickness = widthPx;
             }
         } else {
             if (coords.radius !== undefined) {
