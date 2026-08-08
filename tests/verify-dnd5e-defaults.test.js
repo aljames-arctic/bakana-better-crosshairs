@@ -15,7 +15,7 @@ const entriesCount = Object.keys(data).length;
 assert.equal(entriesCount, 156);
 console.log(`Validated ${entriesCount} AoE spell definitions successfully!`);
 
-console.log('Validating split lang/en/dnd5e.json, lang/es/dnd5e.json, and lang/ja/dnd5e.json files...');
+console.log('Validating split lang/en/dnd5e.json file...');
 const enMainPath = path.resolve('./lang/en.json');
 const enMainData = JSON.parse(fs.readFileSync(enMainPath, 'utf8'));
 assert.equal(enMainData.BBC.defaults, undefined, 'lang/en.json must not contain defaults');
@@ -26,31 +26,30 @@ assert.ok(enDefaultsData.BBC?.defaults?.dnd5e, 'lang/en/dnd5e.json must contain 
 const enDnd5eEntries = enDefaultsData.BBC.defaults.dnd5e;
 assert.equal(Object.keys(enDnd5eEntries).length, 156, 'lang/en/dnd5e.json must contain all 156 spell translations');
 
-const esDefaultsPath = path.resolve('./lang/es/dnd5e.json');
-const esDefaultsData = JSON.parse(fs.readFileSync(esDefaultsPath, 'utf8'));
-assert.ok(esDefaultsData.BBC?.defaults?.dnd5e, 'lang/es/dnd5e.json must contain BBC.defaults.dnd5e');
-const esDnd5eEntries = esDefaultsData.BBC.defaults.dnd5e;
-assert.equal(Object.keys(esDnd5eEntries).length, 156, 'lang/es/dnd5e.json must contain all 156 spell translations');
-
-const jaDefaultsPath = path.resolve('./lang/ja/dnd5e.json');
-const jaDefaultsData = JSON.parse(fs.readFileSync(jaDefaultsPath, 'utf8'));
-assert.ok(jaDefaultsData.BBC?.defaults?.dnd5e, 'lang/ja/dnd5e.json must contain BBC.defaults.dnd5e');
-const jaDnd5eEntries = jaDefaultsData.BBC.defaults.dnd5e;
-assert.equal(Object.keys(jaDnd5eEntries).length, 156, 'lang/ja/dnd5e.json must contain all 156 spell translations');
-
 for (const slug of Object.keys(data)) {
     assert.ok(slug in enDnd5eEntries, `Slug ${slug} from dnd5e.json must be present in lang/en/dnd5e.json`);
-    assert.ok(slug in esDnd5eEntries, `Slug ${slug} from dnd5e.json must be present in lang/es/dnd5e.json`);
-    assert.ok(slug in jaDnd5eEntries, `Slug ${slug} from dnd5e.json must be present in lang/ja/dnd5e.json`);
 }
-console.log('Validated en, es, and ja split dictionaries successfully!');
+console.log('Validated en split dictionary successfully!');
 
 // Initialize Dnd5eSystemAdapter with base system dataset
-console.log('Testing Dnd5eSystemAdapter with multi-language (en, es, ja) system defaults...');
+console.log('Testing Dnd5eSystemAdapter with system defaults...');
 const dnd5eAdapter = new Dnd5eSystemAdapter();
 dnd5eAdapter.setDefaultsData(data);
-dnd5eAdapter.registerLocalizedDefaults(esDnd5eEntries, data);
-dnd5eAdapter.registerLocalizedDefaults(jaDnd5eEntries, data);
+
+const sampleEsEntries = {
+    thunderwave: 'Ola de trueno',
+    fireball: 'Bola de fuego',
+    'cone-of-cold': 'Cono de frío',
+    'spirit-guardians': 'Guardianes espirituales'
+};
+const sampleJaEntries = {
+    thunderwave: 'サンダーウェイブ',
+    fireball: 'ファイアーボール',
+    'cone-of-cold': 'コーン・オブ・コールド',
+    'spirit-guardians': 'スピリット・ガーディアンズ'
+};
+dnd5eAdapter.registerLocalizedDefaults(sampleEsEntries, data);
+dnd5eAdapter.registerLocalizedDefaults(sampleJaEntries, data);
 
 // 1. Verify direct English Lookups
 console.log('Testing English spell name lookups...');

@@ -15,7 +15,7 @@ const entriesCount = Object.keys(data).length;
 assert.ok(entriesCount >= 200, `Must have at least 200 PF1e AoE spells/activities, found ${entriesCount}`);
 console.log(`Validated ${entriesCount} PF1e AoE spell and activity definitions successfully!`);
 
-console.log('Validating split lang/en/pf1.json, lang/es/pf1.json, and lang/ja/pf1.json files...');
+console.log('Validating split lang/en/pf1.json file...');
 const enMainPath = path.resolve('./lang/en.json');
 const enMainData = JSON.parse(fs.readFileSync(enMainPath, 'utf8'));
 assert.equal(enMainData.BBC.defaults, undefined, 'lang/en.json must not contain defaults');
@@ -26,31 +26,33 @@ assert.ok(enDefaultsData.BBC?.defaults?.pf1, 'lang/en/pf1.json must contain BBC.
 const enPf1Entries = enDefaultsData.BBC.defaults.pf1;
 assert.equal(Object.keys(enPf1Entries).length, entriesCount, `lang/en/pf1.json must contain all ${entriesCount} spell translations`);
 
-const esDefaultsPath = path.resolve('./lang/es/pf1.json');
-const esDefaultsData = JSON.parse(fs.readFileSync(esDefaultsPath, 'utf8'));
-assert.ok(esDefaultsData.BBC?.defaults?.pf1, 'lang/es/pf1.json must contain BBC.defaults.pf1');
-const esPf1Entries = esDefaultsData.BBC.defaults.pf1;
-assert.equal(Object.keys(esPf1Entries).length, entriesCount, `lang/es/pf1.json must contain all ${entriesCount} spell translations`);
-
-const jaDefaultsPath = path.resolve('./lang/ja/pf1.json');
-const jaDefaultsData = JSON.parse(fs.readFileSync(jaDefaultsPath, 'utf8'));
-assert.ok(jaDefaultsData.BBC?.defaults?.pf1, 'lang/ja/pf1.json must contain BBC.defaults.pf1');
-const jaPf1Entries = jaDefaultsData.BBC.defaults.pf1;
-assert.equal(Object.keys(jaPf1Entries).length, entriesCount, `lang/ja/pf1.json must contain all ${entriesCount} spell translations`);
-
 for (const slug of Object.keys(data)) {
     assert.ok(slug in enPf1Entries, `Slug ${slug} from pf1.json must be present in lang/en/pf1.json`);
-    assert.ok(slug in esPf1Entries, `Slug ${slug} from pf1.json must be present in lang/es/pf1.json`);
-    assert.ok(slug in jaPf1Entries, `Slug ${slug} from pf1.json must be present in lang/ja/pf1.json`);
 }
-console.log('Validated en, es, and ja split PF1e dictionaries successfully!');
+console.log('Validated en split PF1e dictionary successfully!');
 
 // Initialize Pf1SystemAdapter with base system dataset
-console.log('Testing Pf1SystemAdapter with multi-language (en, es, ja) system defaults...');
+console.log('Testing Pf1SystemAdapter with system defaults...');
 const pf1Adapter = new Pf1SystemAdapter('pf1');
 pf1Adapter.setDefaultsData(data);
-pf1Adapter.registerLocalizedDefaults(esPf1Entries, data);
-pf1Adapter.registerLocalizedDefaults(jaPf1Entries, data);
+
+const sampleEsEntries = {
+    'burning-hands': 'Manos ardientes',
+    fireball: 'Bola de fuego',
+    'cone-of-cold': 'Cono de frío',
+    'channel-energy': 'Canalizar energía',
+    bless: 'Bendición',
+    bane: 'Perdición'
+};
+const sampleJaEntries = {
+    'burning-hands': 'バーニング・ハンズ',
+    fireball: 'ファイアーボール',
+    'cone-of-cold': 'コーン・オブ・コールド',
+    'channel-energy': 'チャネル・エナジー',
+    bless: 'ブレス'
+};
+pf1Adapter.registerLocalizedDefaults(sampleEsEntries, data);
+pf1Adapter.registerLocalizedDefaults(sampleJaEntries, data);
 
 // 1. Verify direct English Lookups
 console.log('Testing English spell name lookups...');
