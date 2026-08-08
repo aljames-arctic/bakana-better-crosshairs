@@ -161,6 +161,8 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 radius: distance,
                 width,
                 angle: targetDoc.angle ?? 53.13,
+                direction: targetDoc.direction ?? 0,
+                rotation: targetDoc.direction ?? 0,
                 x: targetDoc.x ?? 0,
                 y: targetDoc.y ?? 0
             };
@@ -176,6 +178,8 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 radius: fallbackDistance,
                 width: targetDoc.width ?? 5,
                 angle: targetDoc.angle ?? 360,
+                direction: targetDoc.direction ?? 0,
+                rotation: targetDoc.direction ?? 0,
                 x: targetDoc.x ?? 0,
                 y: targetDoc.y ?? 0
             };
@@ -212,8 +216,10 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             radius: distance,
             width,
             angle: shape.angle ?? 53.13,
-            x: shape.x ?? 0,
-            y: shape.y ?? 0
+            direction: shape.rotation ?? targetDoc.direction ?? 0,
+            rotation: shape.rotation ?? targetDoc.direction ?? 0,
+            x: shape.x ?? targetDoc.x ?? 0,
+            y: shape.y ?? targetDoc.y ?? 0
         };
         return result;
     }

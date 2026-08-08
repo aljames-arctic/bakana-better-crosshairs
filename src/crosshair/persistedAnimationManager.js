@@ -56,10 +56,8 @@ export class PersistedAnimationManager {
         let effectFile = "";
         let widthPx = 100;
         const supportsRotation = crosshairAdapter.supportsShapeRotation(shapeType);
-        const rawRotation = supportsRotation ? (doc.direction ?? doc.rotation ?? 0) : 0;
-        // Invert rotation so clockwise template direction (e.g. +60°) aligns with Sequencer effect orientation
-        const sequencerRotation = -rawRotation;
-        const location = { x: doc.x ?? 0, y: doc.y ?? 0 };
+        const location = { x: detected.x ?? doc.x ?? 0, y: detected.y ?? doc.y ?? 0 };
+        const rotation = supportsRotation ? (detected.direction ?? detected.rotation ?? doc.direction ?? doc.rotation ?? 0) : 0;
 
         switch (shapeType) {
             case "cone": {
@@ -111,20 +109,12 @@ export class PersistedAnimationManager {
             return;
         }
 
-        const placeable = canvas?.templates?.get(docId) ?? canvas?.regions?.get(docId);
         const seq = new Sequence();
         const effect = seq.effect()
             .name(effectName)
-            .file(resolvedFile);
-
-        if (placeable) {
-            effect.atLocation(placeable);
-        } else {
-            effect.atLocation(location);
-        }
-
-        effect
-            .rotate(sequencerRotation)
+            .file(resolvedFile)
+            .atLocation(location)
+            .rotate(rotation)
             .anchor(anchor)
             .size({ width: widthPx * factor, height: heightPx * factor }, { gridUnits: Boolean(gridUnits) })
             .opacity(0.8)
@@ -134,17 +124,10 @@ export class PersistedAnimationManager {
         if (bbcFlags.icon) {
             const iconPath = resolveCrosshairIcon(bbcFlags.icon);
             if (iconPath) {
-                const iconEffect = seq.effect()
+                seq.effect()
                     .name(`${effectName}-icon`)
-                    .file(iconPath);
-
-                if (placeable) {
-                    iconEffect.atLocation(placeable);
-                } else {
-                    iconEffect.atLocation(location);
-                }
-
-                iconEffect
+                    .file(iconPath)
+                    .atLocation(location)
                     .size(50, { gridUnits: false })
                     .opacity(0.9)
                     .persist();
