@@ -76,6 +76,8 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         const onDrawPreview = callbacks?.onDrawPreview ?? ((placeable) => this.handleDrawPreview(placeable));
         const onPreCreate = callbacks?.onPreCreate ?? ((doc, _data, _options, userId) => this.handlePreCreate(doc, _data, _options, userId));
         const onCreate = callbacks?.onCreate ?? ((doc, _options, userId) => this.handleCreateDocument(doc, _options, userId));
+        const onUpdate = callbacks?.onUpdate ?? ((doc, changed, _options, userId) => this.handleUpdateDocument(doc, changed, _options, userId));
+        const onDelete = callbacks?.onDelete ?? ((doc, _options, userId) => this.handleDeleteDocument(doc, _options, userId));
         const basePlaceables = this.supportedBasePlaceables;
         const customPlaceables = targetSysAdapter?.getCustomPlaceableClassNames?.() ?? [];
         const dynamicPlaceables = [];
@@ -111,7 +113,9 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         const createDocumentTypes = new Set([...baseDocumentTypes, ...customDocumentTypes, ...dynamicDocumentTypes]);
         const documentHooks = Array.from(createDocumentTypes).flatMap((docType) => [
             { event: `preCreate${docType}`, handler: onPreCreate, category: "preCreate", targetName: docType },
-            { event: `create${docType}`, handler: onCreate, category: "create", targetName: docType }
+            { event: `create${docType}`, handler: onCreate, category: "create", targetName: docType },
+            { event: `update${docType}`, handler: onUpdate, category: "update", targetName: docType },
+            { event: `delete${docType}`, handler: onDelete, category: "delete", targetName: docType }
         ]);
 
         const generatedHooks = [...drawHooks, ...documentHooks];

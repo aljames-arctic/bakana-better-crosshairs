@@ -10,6 +10,7 @@ import { runConcurrentScript, activePlacementTracker, shouldStickToToken } from 
 import { PendingPlacementSession } from "./pendingPlacementSession.js";
 import { PixiGraphicsStyler } from "./pixiGraphicsStyler.js";
 import { ScriptRunner } from "../../lib/scriptRunner.js";
+import { PersistedAnimationManager } from "../../crosshair/persistedAnimationManager.js";
 /**
  * Base abstract class for Foundry VTT version-specific adapters.
  */
@@ -417,7 +418,13 @@ export class BaseFoundryVTTAdapter {
                 placedFillColor,
                 placedFillAlpha,
                 placedBorderColor,
-                placedBorderAlpha
+                placedBorderAlpha,
+                persist: Boolean(config.persist),
+                circleFile: config.circleFile,
+                coneFile: config.coneFile,
+                rayFile: config.rayFile,
+                squareFile: config.squareFile,
+                icon: config.icon
             }
         };
 
@@ -918,8 +925,13 @@ export class BaseFoundryVTTAdapter {
      * @returns {Promise<void>} Resolves when post-placement execution completes
      */
     async handleCreateDocument(target, _options, userId) {
-        if (!target || userId !== game?.user?.id) return;
+        if (!target) return;
         const doc = target.document ?? target;
+
+        // Synchronize persistent Sequencer animation if enabled
+        await PersistedAnimationManager.syncPersistedAnimation(doc);
+
+        if (userId !== game?.user?.id) return;
 
         const flagsConfig = doc.flags?.bbc;
         const entry = autorecManager.getEntryForDocument(doc);
@@ -948,5 +960,34 @@ export class BaseFoundryVTTAdapter {
             canvas: typeof canvas !== "undefined" ? canvas : undefined,
             game: typeof game !== "undefined" ? game : undefined
         }, `BaseFoundryVTTAdapter.handleCreateDocument (${doc.documentName})`);
+    }
+
+    /**
+     * Handle document update hook (v13 updateMeasuredTemplate / v14 updateRegion).
+     * Synchronizes persistent Sequencer animation position, dimensions, rotation, and lifecycle.
+     * @param {Document|PlaceableObject} target - Template or Region document or placeable that was updated
+     * @param {Object} [changed={}] - Document diff payload
+     * @param {Object} [_options={}] - Document update options
+     * @param {string} [userId] - User ID triggering update
+     * @returns {Promise<void>}
+     */
+    async handleUpdateDocument(target, changed = {}, _options = {}, userId) {
+        if (!target) return;
+        const doc = target.document ?? target;
+        await PersistedAnimationManager.syncPersistedAnimation(doc);
+    }
+
+    /**
+     * Handle document deletion hook (v13 deleteMeasuredTemplate / v14 deleteRegion).
+     * Cleans up persistent Sequencer effects bound to the deleted template.
+     * @param {Document|PlaceableObject} target - Template or Region document or placeable that was deleted
+     * @param {Object} [_options={}] - Document deletion options
+     * @param {string} [userId] - User ID triggering deletion
+     * @returns {void}
+     */
+    handleDeleteDocument(target, _options = {}, userId) {
+        if (!target) return;
+        const doc = target.document ?? target;
+        PersistedAnimationManager.endPersistedAnimation(doc);
     }
 }

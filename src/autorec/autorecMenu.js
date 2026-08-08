@@ -56,6 +56,7 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
             rayFile: e.rayFile ?? DEFAULT_AUTOREC_ENTRY.rayFile,
             squareFile: e.squareFile ?? DEFAULT_AUTOREC_ENTRY.squareFile,
             lineFile: e.lineFile ?? DEFAULT_AUTOREC_ENTRY.lineFile,
+            persist: Boolean(e.persist),
             borderColorPicker: normalizeHexColor(e.borderColor, "#ffffff"),
             fillColorPicker: normalizeHexColor(e.fillColor, "#000000"),
             placedFillColorPicker: normalizeHexColor(e.placedFillColor, "#000000"),
@@ -64,7 +65,8 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
                 (e.placedFillColor && e.placedFillColor !== "#000000") ||
                 (e.placedFillAlpha !== undefined && e.placedFillAlpha !== 0.25) ||
                 (e.placedBorderColor && e.placedBorderColor !== "#ffffff") ||
-                (e.placedBorderAlpha !== undefined && e.placedBorderAlpha !== 0.25)
+                (e.placedBorderAlpha !== undefined && e.placedBorderAlpha !== 0.25) ||
+                Boolean(e.persist)
             )
         }));
 
@@ -111,6 +113,8 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
             placedSectionDesc: localize("BBC.autorecMenu.labels.placedSectionDesc", `Configures the fill color, border color, and alpha opacities of the final placed ${docTerm} document on the canvas.`),
             placedFill: localize("BBC.autorecMenu.labels.placedFill", "Placed Fill Styling"),
             placedBorder: localize("BBC.autorecMenu.labels.placedBorder", "Placed Border Styling"),
+            persistEffect: localize("BBC.autorecMenu.labels.persistEffect", "Persistent Sequencer Effect"),
+            persistEffectLabel: localize("BBC.autorecMenu.labels.persistEffectLabel", "Keep Sequencer animation active on placed template"),
             defaultPlacementNote: localize("BBC.autorecMenu.labels.defaultPlacementNote", "Using default Foundry / Game System placement colors (Enable Edit Mode to customize)."),
             postSectionDesc: localize("BBC.autorecMenu.labels.postSectionDesc", `Executes custom Javascript code after final ${docTerm} document creation.`),
             noPreScript: localize("BBC.autorecMenu.labels.noPreScript", "No custom pre-placement script configured"),

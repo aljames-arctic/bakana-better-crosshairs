@@ -57,6 +57,7 @@ export class CrosshairConfiguration {
         this.placedBorderColor = String(source.placedBorderColor ?? placedBorder.color ?? defaults.placedBorderColor).trim();
         const placedBorderAlphaVal = Number(source.placedBorderAlpha ?? placedBorder.alpha ?? defaults.placedBorderAlpha);
         this.placedBorderAlpha = Number.isFinite(placedBorderAlphaVal) ? placedBorderAlphaVal : defaults.placedBorderAlpha;
+        this.persist = Boolean(source.persist ?? options.persist ?? defaults.persist ?? false);
 
         // Custom script hooks
         this.concurrentCode = String(source.concurrentCode ?? macro.pre ?? "").trim();
@@ -157,6 +158,7 @@ export class CrosshairConfiguration {
 
         if (isPlacedOverride) {
             merged.enablePlacedStyling = true;
+            merged.persist = customSource.persist !== undefined ? Boolean(customSource.persist) : this.persist;
             merged.placedFillColor = customSource.placedFillColor ?? this.placedFillColor;
             merged.placedFillAlpha = customSource.placedFillAlpha ?? this.placedFillAlpha;
             merged.placedBorderColor = customSource.placedBorderColor ?? this.placedBorderColor;
@@ -200,6 +202,7 @@ export class CrosshairConfiguration {
             placedFillAlpha: this.placedFillAlpha,
             placedBorderColor: this.placedBorderColor,
             placedBorderAlpha: this.placedBorderAlpha,
+            persist: this.persist,
             concurrentCode: this.concurrentCode,
             postPlacementCode: this.postPlacementCode,
             enablePrePlacement: this.enablePrePlacement,

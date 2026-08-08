@@ -37,6 +37,7 @@ export const DEFAULT_AUTOREC_ENTRY = {
     placedFillAlpha: 0.25,
     placedBorderColor: "#ffffff",
     placedBorderAlpha: 0.25,
+    persist: false,
 
     enablePrePlacement: false,
     enableAnimation: false,

@@ -185,6 +185,7 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             placedFillAlpha: source.placedFillAlpha ?? 0.25,
             placedBorderColor: source.placedBorderColor ?? "#ffffff",
             placedBorderAlpha: source.placedBorderAlpha ?? 0.25,
+            persist: Boolean(source.persist),
 
             postPlacementCode: (source.postPlacementCode ?? "").trim(),
 
@@ -206,7 +207,8 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
                 (source.placedFillColor && source.placedFillColor !== "#000000") ||
                 (source.placedFillAlpha !== undefined && source.placedFillAlpha !== 0.25) ||
                 (source.placedBorderColor && source.placedBorderColor !== "#ffffff") ||
-                (source.placedBorderAlpha !== undefined && source.placedBorderAlpha !== 0.25)
+                (source.placedBorderAlpha !== undefined && source.placedBorderAlpha !== 0.25) ||
+                Boolean(source.persist)
             )
         };
 
@@ -259,6 +261,8 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             customIcon: localize("BBC.autorecMenu.labels.customIcon", "Custom Cursor Icon"),
             placedFill: localize("BBC.autorecMenu.labels.placedFill", "Placed Fill Color"),
             placedBorder: localize("BBC.autorecMenu.labels.placedBorder", "Placed Border Color"),
+            persistEffect: localize("BBC.autorecMenu.labels.persistEffect", "Persistent Sequencer Effect"),
+            persistEffectLabel: localize("BBC.autorecMenu.labels.persistEffectLabel", "Keep Sequencer animation active on placed template"),
             alphaLabel: localize("BBC.autorecMenu.labels.alpha", "Alpha:"),
             enabledPill: localize("BBC.autorecMenu.pills.enabled", "Enabled"),
             disabledPill: localize("BBC.autorecMenu.pills.disabled", "Disabled"),
@@ -434,6 +438,7 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             placedFillAlpha: parseFloat(String(formData.get("placedFillAlpha") ?? "0.25")),
             placedBorderColor: String(formData.get("placedBorderColor") ?? "").trim(),
             placedBorderAlpha: parseFloat(String(formData.get("placedBorderAlpha") ?? "0.25")),
+            persist: formData.get("persist") === "on",
             concurrentCode: String(formData.get("concurrentCode") ?? "").trim(),
             postPlacementCode: String(formData.get("postPlacementCode") ?? "").trim(),
             icon: String(formData.get("icon") ?? "").trim()
