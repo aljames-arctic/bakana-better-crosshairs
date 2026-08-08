@@ -134,24 +134,42 @@ export class BaseSystemAdapter {
      */
     async loadAllSystemLanguages(baseDefaults) {
         if (!baseDefaults || typeof baseDefaults !== "object") return;
+
+        // 1. Immediately register active language translations from game.i18n if available
+        if (typeof game !== "undefined" && game?.i18n?.translations) {
+            const activeTranslations = game.i18n.translations?.BBC?.defaults?.[this.systemId];
+            if (activeTranslations && typeof activeTranslations === "object") {
+                this.registerLocalizedDefaults(activeTranslations, baseDefaults);
+            }
+        }
+
         const targetSuffix = `/${this.systemId}.json`;
         const candidatePaths = new Set();
 
-        // 1. Check registered language paths in module manifest/metadata if available
+        // 2. Discover registered language bundle paths from module metadata
         if (typeof game !== "undefined" && game?.modules) {
             const mod = game.modules.get(MODULE_ID);
-            const languages = mod?.languages ?? mod?.manifest?.languages ?? [];
-            for (const entry of languages) {
-                const p = entry?.path;
+            const rawLanguages = mod?.languages ?? mod?.manifest?.languages ?? [];
+            const languagesList = Array.isArray(rawLanguages)
+                ? rawLanguages
+                : (Array.isArray(rawLanguages.contents)
+                    ? rawLanguages.contents
+                    : (typeof rawLanguages.values === "function" ? Array.from(rawLanguages.values()) : []));
+
+            for (const entry of languagesList) {
+                const pathObj = (typeof entry === "object" && entry !== null && !Array.isArray(entry))
+                    ? entry
+                    : (Array.isArray(entry) ? entry[1] : null);
+                const p = pathObj?.path;
                 if (typeof p === "string" && p.endsWith(targetSuffix)) {
                     candidatePaths.add(`modules/${MODULE_ID}/${p}`);
                 }
             }
         }
 
-        // 2. Fallback check for common language directories if module manifest is unpopulated
+        // 3. Fallback only to known supported language packages bundled with the module
         if (candidatePaths.size === 0) {
-            for (const lang of ["en", "es", "ja", "de", "fr", "pt-BR", "it", "pl", "ko", "zh-tw", "zh-cn"]) {
+            for (const lang of ["en", "es", "ja"]) {
                 candidatePaths.add(`modules/${MODULE_ID}/lang/${lang}/${this.systemId}.json`);
             }
         }
