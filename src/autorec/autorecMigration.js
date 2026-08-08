@@ -48,6 +48,9 @@ export function migrateV1ToV2Entry(legacyEntry) {
     const enableAnimation = Boolean(optionsObj.enableAnimation ?? legacyEntry.enableAnimation);
     const enablePlacedStyling = Boolean(optionsObj.enablePlacedStyling ?? legacyEntry.enablePlacedStyling);
     const enablePostPlacement = Boolean(optionsObj.enablePostPlacement ?? legacyEntry.enablePostPlacement);
+    const persist = optionsObj.persist !== undefined
+        ? Boolean(optionsObj.persist)
+        : Boolean(placedObj.persist ?? legacyEntry.persist ?? DEFAULT_AUTOREC_ENTRY.persist);
 
     // Preview preview.fill.* and preview.border.*
     const previewObj = legacyEntry.preview ?? {};
@@ -86,7 +89,8 @@ export function migrateV1ToV2Entry(legacyEntry) {
             enablePrePlacement,
             enableAnimation,
             enablePlacedStyling,
-            enablePostPlacement
+            enablePostPlacement,
+            persist
         },
         file: {
             circle,
@@ -102,7 +106,8 @@ export function migrateV1ToV2Entry(legacyEntry) {
         },
         placed: {
             fill: { color: placedFillColor, alpha: placedFillAlpha },
-            border: { color: placedBorderColor, alpha: placedBorderAlpha }
+            border: { color: placedBorderColor, alpha: placedBorderAlpha },
+            persist
         },
         macro: {
             pre: preMacro,
@@ -110,6 +115,7 @@ export function migrateV1ToV2Entry(legacyEntry) {
         }
     };
 
+    if (legacyEntry.persist !== undefined || optionsObj.persist !== undefined || placedObj.persist !== undefined) migrated.persist = persist;
     if (legacyEntry.distance !== undefined && legacyEntry.distance !== null) migrated.distance = Number(legacyEntry.distance);
     if (legacyEntry.width !== undefined && legacyEntry.width !== null) migrated.width = Number(legacyEntry.width);
     if (legacyEntry.angle !== undefined && legacyEntry.angle !== null) migrated.angle = Number(legacyEntry.angle);

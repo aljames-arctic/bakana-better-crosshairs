@@ -253,6 +253,7 @@ export class AutorecManager {
         const placedFillAlpha = Number(baseConfig.placedFillAlpha ?? placedFill.alpha ?? DEFAULT_AUTOREC_ENTRY.placedFillAlpha);
         const placedBorderColor = String(baseConfig.placedBorderColor ?? placedBorder.color ?? DEFAULT_AUTOREC_ENTRY.placedBorderColor).trim();
         const placedBorderAlpha = Number(baseConfig.placedBorderAlpha ?? placedBorder.alpha ?? DEFAULT_AUTOREC_ENTRY.placedBorderAlpha);
+        const persist = Boolean(baseConfig.persist ?? optionsRaw.persist ?? placedRaw.persist ?? DEFAULT_AUTOREC_ENTRY.persist);
 
         const concurrentCode = String(baseConfig.concurrentCode ?? macroRaw.pre ?? "").trim();
         const postPlacementCode = String(baseConfig.postPlacementCode ?? macroRaw.post ?? "").trim();
@@ -293,6 +294,7 @@ export class AutorecManager {
             placedFillAlpha,
             placedBorderColor,
             placedBorderAlpha,
+            persist,
             concurrentCode,
             postPlacementCode,
             enablePrePlacement,
@@ -888,10 +890,12 @@ export class AutorecManager {
             const placedFillAlpha = config.placedFillAlpha ?? DEFAULT_AUTOREC_ENTRY.placedFillAlpha;
             const placedBorderColor = config.placedBorderColor ?? DEFAULT_AUTOREC_ENTRY.placedBorderColor;
             const placedBorderAlpha = config.placedBorderAlpha ?? DEFAULT_AUTOREC_ENTRY.placedBorderAlpha;
-            const hasPlacedStyling = Boolean(config.placedFillColor)
+            const persist = Boolean(config.persist ?? config.options?.persist ?? config.placed?.persist);
+            const hasPlacedStyling = Boolean(config.placedFillColor && config.placedFillColor !== "#000000")
                 || (config.placedFillAlpha !== undefined && config.placedFillAlpha !== 0.25)
-                || Boolean(config.placedBorderColor)
-                || (config.placedBorderAlpha !== undefined && config.placedBorderAlpha !== 0.25);
+                || Boolean(config.placedBorderColor && config.placedBorderColor !== "#ffffff")
+                || (config.placedBorderAlpha !== undefined && config.placedBorderAlpha !== 0.25)
+                || persist;
 
             const concurrentCode = (config.concurrentCode ?? "").trim();
             const postPlacementCode = (config.postPlacementCode ?? "").trim();
@@ -953,6 +957,7 @@ export class AutorecManager {
                 placedFillAlpha,
                 placedBorderColor,
                 placedBorderAlpha,
+                persist,
                 hasPlacedStyling,
                 concurrentCode,
                 postPlacementCode,

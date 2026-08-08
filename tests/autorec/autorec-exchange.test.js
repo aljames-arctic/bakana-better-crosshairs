@@ -208,3 +208,36 @@ test('REGRESSION: modifying local scope property triggers conflict difference du
 
     autorecManager.unregister('Bless', { local: true });
 });
+
+test('REGRESSION: persist property is preserved across v1 to v2 migration and exchange export', () => {
+    const v1Package = {
+        version: '1.0.0',
+        entries: [
+            {
+                itemName: 'Flaming Sphere',
+                circleFile: 'flame.png',
+                persist: true
+            }
+        ]
+    };
+
+    const validated = validateImportPackage(v1Package);
+    assert.equal(validated.entries[0].persist, true);
+    assert.equal(validated.entries[0].options.persist, true);
+    assert.equal(validated.entries[0].placed.persist, true);
+
+    autorecManager.register('Flaming Sphere', {
+        itemName: 'Flaming Sphere',
+        circleFile: 'flame.png',
+        persist: true
+    }, { local: true });
+
+    const exported = autorecManager.exportAutorecs({ sourceModule: 'world' });
+    const sphere = exported.entries.find(e => e.itemName === 'Flaming Sphere');
+    assert.ok(sphere);
+    assert.equal(sphere.persist, true);
+    assert.equal(sphere.options.persist, true);
+    assert.equal(sphere.placed.persist, true);
+
+    autorecManager.unregister('Flaming Sphere', { local: true });
+});

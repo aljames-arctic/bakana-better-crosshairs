@@ -78,6 +78,7 @@ export function sanitizeEntryForExchange(entry) {
     const enableAnimation = Boolean(optionsRaw.enableAnimation ?? raw.enableAnimation);
     const enablePlacedStyling = Boolean(optionsRaw.enablePlacedStyling ?? raw.enablePlacedStyling);
     const enablePostPlacement = Boolean(optionsRaw.enablePostPlacement ?? raw.enablePostPlacement);
+    const persist = Boolean(raw.persist ?? optionsRaw.persist ?? placedRaw.persist ?? DEFAULT_AUTOREC_ENTRY.persist);
 
     const sanitized = {
         itemName,
@@ -93,7 +94,8 @@ export function sanitizeEntryForExchange(entry) {
             enablePrePlacement,
             enableAnimation,
             enablePlacedStyling,
-            enablePostPlacement
+            enablePostPlacement,
+            persist
         },
         file: {
             circle: String(fileRaw.circle ?? raw.circleFile ?? DEFAULT_AUTOREC_ENTRY.circleFile),
@@ -121,7 +123,8 @@ export function sanitizeEntryForExchange(entry) {
             border: {
                 color: String(placedBorder.color ?? raw.placedBorderColor ?? DEFAULT_AUTOREC_ENTRY.placedBorderColor),
                 alpha: Number(placedBorder.alpha ?? raw.placedBorderAlpha ?? DEFAULT_AUTOREC_ENTRY.placedBorderAlpha)
-            }
+            },
+            persist
         },
         macro: {
             pre: String(macroRaw.pre ?? raw.concurrentCode ?? "").trim(),
@@ -129,6 +132,7 @@ export function sanitizeEntryForExchange(entry) {
         }
     };
 
+    if (raw.persist !== undefined || optionsRaw.persist !== undefined || placedRaw.persist !== undefined) sanitized.persist = persist;
     if (raw.distance !== undefined && raw.distance !== null) sanitized.distance = Number(raw.distance);
     if (raw.width !== undefined && raw.width !== null) sanitized.width = Number(raw.width);
     if (raw.angle !== undefined && raw.angle !== null) sanitized.angle = Number(raw.angle);

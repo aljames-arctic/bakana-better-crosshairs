@@ -60,6 +60,22 @@ test("AutorecMenuApplication lifecycle and context preparation", async (t) => {
         assert.equal(AutorecMenuApplication.DEFAULT_OPTIONS.tag, "form");
         assert.ok(AutorecMenuApplication.PARTS.main.template.includes("autorecMenu.html"));
     });
+
+    await t.test("_prepareContext includes persist and hasPlacedStyling for persisted entries", async () => {
+        autorecManager.register("Persisted Web", {
+            itemName: "Persisted Web",
+            persist: true
+        }, { local: true });
+
+        const app = new AutorecMenuApplication();
+        const context = await app._prepareContext({});
+        const webEntry = context.entries.find(e => e.itemName === "Persisted Web");
+        assert.ok(webEntry);
+        assert.equal(webEntry.persist, true);
+        assert.equal(webEntry.hasPlacedStyling, true);
+
+        autorecManager.unregister("Persisted Web", { local: true });
+    });
 });
 
 test("ItemCrosshairConfigApplication lifecycle and item normalization", async (t) => {

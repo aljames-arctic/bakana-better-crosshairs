@@ -43,3 +43,39 @@ test('autorecManager.registerMany and unregisterMany handle batch operations cle
     assert.equal(autorecManager.has('Spell A'), false);
     assert.equal(autorecManager.has('Spell B'), false);
 });
+
+test('autorecManager preserves persist flag across registration, getAllEntries, and loadSavedRegistrations', () => {
+    autorecManager.register('Persist Spell', {
+        itemName: 'Persist Spell',
+        persist: true,
+        placedFillColor: '#ff0000'
+    }, { local: true });
+
+    const entry = autorecManager.get('Persist Spell');
+    assert.equal(entry.persist, true);
+
+    const allEntries = autorecManager.getAllEntries();
+    const found = allEntries.find(e => e.itemName === 'Persist Spell');
+    assert.ok(found);
+    assert.equal(found.persist, true);
+    assert.equal(found.hasPlacedStyling, true);
+
+    // Verify loadSavedRegistrations hydration preserves persist
+    const savedDict = {
+        'Persist Spell': {
+            itemName: 'Persist Spell',
+            persist: true,
+            circleFile: 'circle.png'
+        }
+    };
+    autorecManager.loadSavedRegistrations(savedDict);
+    const loaded = autorecManager.get('Persist Spell');
+    assert.equal(loaded.persist, true);
+
+    const loadedAll = autorecManager.getAllEntries();
+    const loadedFound = loadedAll.find(e => e.itemName === 'Persist Spell');
+    assert.ok(loadedFound);
+    assert.equal(loadedFound.persist, true);
+
+    autorecManager.unregister('Persist Spell', { local: true });
+});
