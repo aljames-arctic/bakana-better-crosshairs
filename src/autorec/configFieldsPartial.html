@@ -13,28 +13,6 @@
             <tbody>
                 {{#if showActivityIdentification}}
                 <tr>
-                    <th>{{labels.callingItemName}}</th>
-                    <td>
-                        {{#if isDefault}}
-                        <span><code>DEFAULT</code> <span class="bbc-type-badge default" style="margin-left:6px;">{{labels.globalFallbackBadge}}</span></span>
-                        {{else}}
-                        <span><code>{{itemName}}</code></span>
-                        {{/if}}
-                    </td>
-                </tr>
-                {{#if supportsActivities}}
-                {{#unless isDefault}}
-                <tr>
-                    <th>{{labels.callingActivity}}</th>
-                    <td>
-                        <span>
-                            {{#if activityDisplay}}<code>{{activityDisplay}}</code>{{else}}<span class="bbc-pill">{{labels.allActivitiesPill}}</span>{{/if}}
-                        </span>
-                    </td>
-                </tr>
-                {{/unless}}
-                {{/if}}
-                <tr>
                     <th>{{labels.registrationScope}}</th>
                     <td>
                         <span class="view-only">{{#if isLocal}}<span class="bbc-pill">{{labels.localOnlyPill}}</span>{{else}}<span class="bbc-pill">{{labels.worldSyncedPill}}</span>{{/if}}</span>
