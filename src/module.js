@@ -89,7 +89,7 @@ Hooks.once('init', () => {
  */
 Hooks.once('i18nInit', () => {
     if (typeof systemAdapter?.refreshLocalizedDefaults === 'function') {
-        systemAdapter.refreshLocalizedDefaults();
+        systemAdapter.refreshLocalizedDefaults('i18nInit');
     }
 });
 
@@ -100,7 +100,7 @@ Hooks.once('i18nInit', () => {
  */
 Hooks.once('ready', () => {
     if (typeof systemAdapter?.refreshLocalizedDefaults === 'function') {
-        systemAdapter.refreshLocalizedDefaults();
+        systemAdapter.refreshLocalizedDefaults('ready');
     }
     autorecManager.initializeReadySync();
     socketlib.on(handleSocketMessage);

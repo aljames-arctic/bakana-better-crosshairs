@@ -110,34 +110,50 @@ export class BaseSystemAdapter {
      * @returns {Promise<void>}
      */
     async loadSystemDefaultsData() {
-        if (this.defaultsMap.size > 0) return;
+        if (this.defaultsMap.size > 0) {
+            log.debug(`BaseSystemAdapter.loadSystemDefaultsData | Defaults map already initialized (${this.defaultsMap.size} entries) for "${this.systemId}".`);
+            return;
+        }
         try {
             const bundlePath = `modules/${MODULE_ID}/src/autorec/system-defaults/${this.systemId}.json`;
+            log.debug(`BaseSystemAdapter.loadSystemDefaultsData | Fetching system defaults definition bundle: "${bundlePath}"`);
             const response = await fetch(bundlePath);
             if (response.ok) {
                 const data = await response.json();
                 this.setDefaultsData(data ?? {});
                 await this.loadAllSystemLanguages(data ?? {});
-                log.debug(`BaseSystemAdapter | Loaded ${this.defaultsMap.size} system default definitions for "${this.systemId}".`);
+                log.debug(`BaseSystemAdapter.loadSystemDefaultsData | Successfully loaded ${this.defaultsMap.size} system default definitions for "${this.systemId}".`);
+            } else {
+                log.debug(`BaseSystemAdapter.loadSystemDefaultsData | Fetch for "${bundlePath}" returned HTTP status: ${response.status}`);
             }
         } catch (e) {
-            log.debug(`BaseSystemAdapter | No system defaults bundle found for "${this.systemId}":`, e);
+            log.debug(`BaseSystemAdapter.loadSystemDefaultsData | No system defaults bundle found for "${this.systemId}":`, e);
         }
     }
 
     /**
      * Refresh localized translations from game.i18n into system defaults map.
      * Called on i18nInit and ready hooks when Foundry core localization is fully initialized.
+     * @param {string} [trigger="manual"] - Originating lifecycle hook or trigger name for debug logging
      * @returns {void}
      */
-    refreshLocalizedDefaults() {
+    refreshLocalizedDefaults(trigger = "manual") {
         const baseDefaults = this._rawBaseDefaults;
-        if (!baseDefaults || typeof baseDefaults !== "object") return;
+        if (!baseDefaults || typeof baseDefaults !== "object") {
+            log.debug(`BaseSystemAdapter.refreshLocalizedDefaults | [Trigger: ${trigger}] No raw base defaults available to localize.`);
+            return;
+        }
+
+        log.debug(`BaseSystemAdapter.refreshLocalizedDefaults | [Trigger: ${trigger}] Refreshing localized defaults from game.i18n for "${this.systemId}"...`);
 
         if (typeof game !== "undefined" && game?.i18n?.translations) {
             const activeTranslations = game.i18n.translations?.BBC?.defaults?.[this.systemId];
             if (activeTranslations && typeof activeTranslations === "object") {
+                const countBefore = this.defaultsMap.size;
                 this.registerLocalizedDefaults(activeTranslations, baseDefaults);
+                log.debug(`BaseSystemAdapter.refreshLocalizedDefaults | Registered ${Object.keys(activeTranslations).length} active translation keys from game.i18n.translations (map size: ${countBefore} -> ${this.defaultsMap.size}).`);
+            } else {
+                log.debug(`BaseSystemAdapter.refreshLocalizedDefaults | No translations found at game.i18n.translations.BBC.defaults.${this.systemId}.`);
             }
         }
 
@@ -146,6 +162,7 @@ export class BaseSystemAdapter {
                 ? baseDefaults.map(entry => [entry.itemName, Boolean(entry.options?.attachMode === "true" || entry.stickToToken === "true" || entry.stickToToken === true)])
                 : Object.entries(baseDefaults);
 
+            let registeredCount = 0;
             for (const [nameOrSlug, stick] of entries) {
                 if (!nameOrSlug) continue;
                 const slug = slugify(nameOrSlug);
@@ -160,9 +177,11 @@ export class BaseSystemAdapter {
                         if (localizedSlug && localizedSlug !== rawLocalized) {
                             this._setDefaultsEntry(localizedSlug, boolStick, slug);
                         }
+                        registeredCount++;
                     }
                 }
             }
+            log.debug(`BaseSystemAdapter.refreshLocalizedDefaults | Localized ${registeredCount} keys via game.i18n.localize.`);
         }
     }
 
@@ -181,6 +200,7 @@ export class BaseSystemAdapter {
             const activeTranslations = game.i18n.translations?.BBC?.defaults?.[this.systemId];
             if (activeTranslations && typeof activeTranslations === "object") {
                 this.registerLocalizedDefaults(activeTranslations, baseDefaults);
+                log.debug(`BaseSystemAdapter.loadAllSystemLanguages | Registered ${Object.keys(activeTranslations).length} translations directly from active game.i18n.`);
             }
         }
 
@@ -208,18 +228,23 @@ export class BaseSystemAdapter {
             }
         }
 
+        log.debug(`BaseSystemAdapter.loadAllSystemLanguages | Discovered ${candidatePaths.size} candidate language bundle paths:`, Array.from(candidatePaths));
+
         for (const langPath of candidatePaths) {
             try {
+                log.debug(`BaseSystemAdapter.loadAllSystemLanguages | Fetching language bundle from: "${langPath}"`);
                 const res = await fetch(langPath);
+                log.debug(`BaseSystemAdapter.loadAllSystemLanguages | Fetch status for "${langPath}": ${res.status} (${res.ok ? "OK" : "FAILED"})`);
                 if (res.ok) {
                     const langData = await res.json();
                     const translations = langData?.BBC?.defaults?.[this.systemId];
                     if (translations && typeof translations === "object") {
                         this.registerLocalizedDefaults(translations, baseDefaults);
+                        log.debug(`BaseSystemAdapter.loadAllSystemLanguages | Registered ${Object.keys(translations).length} translations from "${langPath}".`);
                     }
                 }
-            } catch {
-                // Silently skip non-existent language bundles
+            } catch (err) {
+                log.debug(`BaseSystemAdapter.loadAllSystemLanguages | Exception fetching "${langPath}":`, err);
             }
         }
     }
