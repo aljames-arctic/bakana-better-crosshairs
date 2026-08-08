@@ -188,22 +188,51 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         const shape = typeof shapesList[0]?.toObject === "function" ? shapesList[0].toObject() : (shapesList[0] ?? {});
         let shapeType = undefined;
         switch (shape.type) {
-            case "circle":      shapeType = "circle";   break;
-            case "cone":        shapeType = "cone";     break;
+            case "circle":
+            case "ellipse":
+                shapeType = "circle";
+                break;
+            case "cone":
+            case "sector":
+                shapeType = "cone";
+                break;
             case "rectangle":
-            case "polygon":     shapeType = "square";   break;
+            case "polygon":
+            case "box":
+                shapeType = "square";
+                break;
+            case "line":
+            case "ray":
+            case "segment":
+                shapeType = "ray";
+                break;
             default:
-                throw new Error(`FoundryVTTV14Adapter.detectProperties | Unrecognized Region shape type: ${shape.type}`);
+                shapeType = "circle";
+                log.warn(`FoundryVTTV14Adapter.detectProperties | Unrecognized Region shape type "${shape.type}", defaulting to "circle".`);
+                break;
         }
 
-        const pxPerFoot = (canvas.dimensions?.size ?? 100) / (canvas.dimensions?.distance ?? 5);
+        const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
         let distance = 0;
         let width = 5;
-        if (shape.type === "rectangle") {
+        if (shape.type === "rectangle" || shape.type === "box") {
             const rawLengthPx = shape.width ?? 0;
             const rawWidthPx = shape.height ?? shape.width ?? 0;
             distance = Math.round(rawLengthPx / pxPerFoot);
             width = Math.round(rawWidthPx / pxPerFoot);
+        } else if (shape.type === "line" || shape.type === "ray" || shape.type === "segment") {
+            const rawLengthPx = shape.distance ?? shape.length ?? shape.height ?? shape.width ?? shape.radius ?? 0;
+            const rawWidthPx = shape.width ?? shape.thickness ?? 5;
+            distance = Math.round(rawLengthPx / pxPerFoot);
+            width = (typeof rawWidthPx === "number" && rawWidthPx !== rawLengthPx && rawWidthPx > 0)
+                ? Math.round(rawWidthPx / pxPerFoot)
+                : 5;
+            if (!distance && shape.points && Array.isArray(shape.points) && shape.points.length >= 4) {
+                const dx = shape.points[2] - shape.points[0];
+                const dy = shape.points[3] - shape.points[1];
+                const lengthPx = Math.sqrt(dx * dx + dy * dy);
+                distance = Math.round(lengthPx / pxPerFoot);
+            }
         } else {
             const rawRadius = shape.radius ?? 0;
             distance = Math.round(rawRadius / pxPerFoot);
@@ -470,13 +499,15 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         const isGridUnits = Boolean(coords.gridUnits ?? true);
 
         const rawType = coords.originalType ?? coords.type ?? coords.t ?? shape.type;
-        const shapeType = rawType === "cone"
+        const shapeType = (rawType === "cone" || rawType === "sector")
             ? "cone"
-            : (rawType === "circle"
+            : ((rawType === "circle" || rawType === "ellipse")
                 ? "circle"
-                : ((rawType === "square" || rawType === "rect" || coords.t === "rect")
+                : ((rawType === "square" || rawType === "rect" || coords.t === "rect" || rawType === "box" || rawType === "polygon")
                     ? "rectangle"
-                    : (shape.type ?? "rectangle")));
+                    : ((rawType === "ray" || rawType === "line" || rawType === "segment")
+                        ? (shape.type === "ray" || shape.type === "line" || shape.type === "segment" ? shape.type : "line")
+                        : (shape.type ?? "rectangle"))));
         shape.type = shapeType;
 
         // Apply placement origin coordinates and rotation directly
@@ -524,17 +555,28 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                     shape.y = Math.round(coords.y);
                 }
             }
-        } else if (shape.type === "circle") {
+        } else if (shape.type === "circle" || shape.type === "ellipse") {
             const radFoot = coords.radius ?? coords.distance;
             if (radFoot !== undefined) {
                 shape.radius = isGridUnits ? Math.round(radFoot * pxPerFoot) : radFoot;
             }
-        } else if (shape.type === "cone") {
+        } else if (shape.type === "cone" || shape.type === "sector") {
             const radFoot = coords.radius ?? coords.distance;
             if (radFoot !== undefined) {
                 shape.radius = isGridUnits ? Math.round(radFoot * pxPerFoot) : radFoot;
             }
             shape.angle = coords.angle ?? originalShape.angle ?? 53.13;
+        } else if (shape.type === "line" || shape.type === "ray" || shape.type === "segment") {
+            const distFoot = coords.distance ?? coords.radius ?? coords.width;
+            if (distFoot !== undefined) {
+                const distPx = isGridUnits ? Math.round(distFoot * pxPerFoot) : distFoot;
+                shape.distance = distPx;
+                shape.length = distPx;
+                shape.width = distPx;
+            }
+            if (coords.width !== undefined) {
+                shape.thickness = isGridUnits ? Math.round(coords.width * pxPerFoot) : coords.width;
+            }
         } else {
             if (coords.radius !== undefined) {
                 shape.radius = isGridUnits ? Math.round(coords.radius * pxPerFoot) : coords.radius;

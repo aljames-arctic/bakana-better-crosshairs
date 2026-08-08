@@ -492,6 +492,55 @@ test('FoundryVTTV14Adapter and Pf2eSystemAdapter handle Collection shapes via .c
     assert.equal(props.type, 'circle');
     assert.ok(props.radius > 0);
 
+    // Verify Region shape types: line, ray, segment, rectangle, cone
+    const mockLineRegionDoc = {
+        shapes: {
+            contents: [{
+                type: 'line',
+                distance: 60,
+                width: 5,
+                x: 100,
+                y: 200,
+                toObject: () => ({ type: 'line', distance: 60, width: 5, x: 100, y: 200 })
+            }]
+        }
+    };
+    const lineProps = adapterV14.detectProperties(mockLineRegionDoc);
+    assert.equal(lineProps.type, 'ray');
+    assert.equal(lineProps.x, 100);
+    assert.equal(lineProps.y, 200);
+
+    const mockRayRegionDoc = {
+        shapes: {
+            contents: [{
+                type: 'ray',
+                distance: 100,
+                width: 10,
+                x: 0,
+                y: 0,
+                toObject: () => ({ type: 'ray', distance: 100, width: 10, x: 0, y: 0 })
+            }]
+        }
+    };
+    const rayProps = adapterV14.detectProperties(mockRayRegionDoc);
+    assert.equal(rayProps.type, 'ray');
+
+    const mockConeRegionDoc = {
+        shapes: {
+            contents: [{
+                type: 'cone',
+                radius: 30,
+                angle: 60,
+                x: 0,
+                y: 0,
+                toObject: () => ({ type: 'cone', radius: 30, angle: 60, x: 0, y: 0 })
+            }]
+        }
+    };
+    const coneProps = adapterV14.detectProperties(mockConeRegionDoc);
+    assert.equal(coneProps.type, 'cone');
+    assert.equal(coneProps.angle, 60);
+
     // Region behaviors item origin check in PF2e
     globalThis.foundry.utils.fromUuidSync = (uuid) => {
         if (uuid === 'Item.RegionBehaviorOrigin') return { id: '999', name: 'Aura of Protection' };
