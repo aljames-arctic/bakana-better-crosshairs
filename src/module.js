@@ -83,11 +83,25 @@ Hooks.once('init', () => {
 });
 
 /**
+ * Handles localization readiness tasks during the Foundry VTT 'i18nInit' hook.
+ *
+ * @returns {void}
+ */
+Hooks.once('i18nInit', () => {
+    if (typeof systemAdapter?.refreshLocalizedDefaults === 'function') {
+        systemAdapter.refreshLocalizedDefaults();
+    }
+});
+
+/**
  * Handles module readiness tasks during the Foundry VTT 'ready' hook.
  *
  * @returns {void}
  */
 Hooks.once('ready', () => {
+    if (typeof systemAdapter?.refreshLocalizedDefaults === 'function') {
+        systemAdapter.refreshLocalizedDefaults();
+    }
     autorecManager.initializeReadySync();
     socketlib.on(handleSocketMessage);
     Hooks.on('canvasReady', () => {

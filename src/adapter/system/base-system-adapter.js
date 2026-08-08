@@ -106,7 +106,7 @@ export class BaseSystemAdapter {
     /**
      * Load built-in system defaults dataset for this game system into memory.
      * Fetches `modules/${MODULE_ID}/src/autorec/system-defaults/${this.systemId}.json`
-     * and discovers all available multi-lingual translation bundles (`lang/<lang>/${this.systemId}.json`).
+     * and registers active multi-lingual translation bundles from `game.i18n`.
      * @returns {Promise<void>}
      */
     async loadSystemDefaultsData() {
@@ -126,8 +126,49 @@ export class BaseSystemAdapter {
     }
 
     /**
+     * Refresh localized translations from game.i18n into system defaults map.
+     * Called on i18nInit and ready hooks when Foundry core localization is fully initialized.
+     * @returns {void}
+     */
+    refreshLocalizedDefaults() {
+        const baseDefaults = this._rawBaseDefaults;
+        if (!baseDefaults || typeof baseDefaults !== "object") return;
+
+        if (typeof game !== "undefined" && game?.i18n?.translations) {
+            const activeTranslations = game.i18n.translations?.BBC?.defaults?.[this.systemId];
+            if (activeTranslations && typeof activeTranslations === "object") {
+                this.registerLocalizedDefaults(activeTranslations, baseDefaults);
+            }
+        }
+
+        if (typeof game !== "undefined" && game?.i18n?.has) {
+            const entries = Array.isArray(baseDefaults)
+                ? baseDefaults.map(entry => [entry.itemName, Boolean(entry.options?.attachMode === "true" || entry.stickToToken === "true" || entry.stickToToken === true)])
+                : Object.entries(baseDefaults);
+
+            for (const [nameOrSlug, stick] of entries) {
+                if (!nameOrSlug) continue;
+                const slug = slugify(nameOrSlug);
+                const i18nKey = `BBC.defaults.${this.systemId}.${slug}`;
+                if (game.i18n.has(i18nKey)) {
+                    const localized = game.i18n.localize(i18nKey);
+                    if (localized) {
+                        const boolStick = Boolean(stick);
+                        const rawLocalized = localized.trim().toLowerCase();
+                        const localizedSlug = slugify(localized);
+                        this._setDefaultsEntry(rawLocalized, boolStick, slug);
+                        if (localizedSlug && localizedSlug !== rawLocalized) {
+                            this._setDefaultsEntry(localizedSlug, boolStick, slug);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Discover and load all registered language translation bundles for this game system.
-     * Indexes translated names across all configured languages (e.g. en, es, ja) simultaneously,
+     * Indexes translated names across all configured languages simultaneously,
      * enabling mixed-language item recognition within the same game world.
      * @param {Object<string, boolean>} baseDefaults - Canonical slug to boolean stickiness map
      * @returns {Promise<void>}
@@ -146,7 +187,7 @@ export class BaseSystemAdapter {
         const targetSuffix = `/${this.systemId}.json`;
         const candidatePaths = new Set();
 
-        // 2. Discover registered language bundle paths from module metadata
+        // 2. Discover registered language bundle paths explicitly declared in module metadata
         if (typeof game !== "undefined" && game?.modules) {
             const mod = game.modules.get(MODULE_ID);
             const rawLanguages = mod?.languages ?? mod?.manifest?.languages ?? [];
@@ -164,31 +205,6 @@ export class BaseSystemAdapter {
                 if (typeof p === "string" && p.endsWith(targetSuffix)) {
                     candidatePaths.add(`modules/${MODULE_ID}/${p}`);
                 }
-            }
-        }
-
-        // 3. Dynamically discover existing language directories via FilePicker if available
-        if (candidatePaths.size === 0 && typeof FilePicker !== "undefined" && typeof FilePicker.browse === "function") {
-            try {
-                const browseResult = await FilePicker.browse("data", `modules/${MODULE_ID}/lang`);
-                if (Array.isArray(browseResult?.dirs)) {
-                    for (const dir of browseResult.dirs) {
-                        const cleanDir = String(dir ?? "").replace(/\/$/, "");
-                        if (cleanDir) {
-                            candidatePaths.add(`${cleanDir}/${this.systemId}.json`);
-                        }
-                    }
-                }
-            } catch (err) {
-                // Non-GM players or restricted environments safely fall back to bundled languages
-                log.debug("BaseSystemAdapter.loadAllSystemLanguages | Dynamic directory discovery fallback:", err);
-            }
-        }
-
-        // 4. Fallback only to known supported language packages bundled with the module
-        if (candidatePaths.size === 0) {
-            for (const lang of ["en", "es", "ja"]) {
-                candidatePaths.add(`modules/${MODULE_ID}/lang/${lang}/${this.systemId}.json`);
             }
         }
 
@@ -260,6 +276,7 @@ export class BaseSystemAdapter {
      */
     setDefaultsData(data) {
         if (!data || typeof data !== "object") return;
+        this._rawBaseDefaults = data;
         const entries = Array.isArray(data)
             ? data.map(entry => [entry.itemName, Boolean(entry.options?.attachMode === "true" || entry.stickToToken === "true" || entry.stickToToken === true)])
             : Object.entries(data);
