@@ -496,13 +496,27 @@ export class BaseCrosshairShape {
         if (typeof Sequencer !== "undefined" && Sequencer.EffectManager) {
             try {
                 if (typeof Sequencer.EffectManager.endEffects === "function") {
-                    Sequencer.EffectManager.endEffects({ name: this.id });
-                    Sequencer.EffectManager.endEffects({ name: `${this.id}-line` });
-                    Sequencer.EffectManager.endEffects({ name: `${this.id}-icon` });
-                    if (this.token) {
-                        Sequencer.EffectManager.endEffects({ name: this.id, object: this.token });
-                        Sequencer.EffectManager.endEffects({ name: `${this.id}-line`, object: this.token });
-                        Sequencer.EffectManager.endEffects({ name: `${this.id}-icon`, object: this.token });
+                    const idsToEnd = new Set([
+                        this.id,
+                        this.getDefaultId?.(),
+                        this.config?.id,
+                        this.config?.itemName,
+                        "Crosshair",
+                        "Cone Crosshair",
+                        "Ray Crosshair",
+                        "Square Crosshair",
+                        "Circle Crosshair"
+                    ].filter(Boolean));
+
+                    for (const name of idsToEnd) {
+                        Sequencer.EffectManager.endEffects({ name });
+                        Sequencer.EffectManager.endEffects({ name: `${name}-line` });
+                        Sequencer.EffectManager.endEffects({ name: `${name}-icon` });
+                        if (this.token) {
+                            Sequencer.EffectManager.endEffects({ name, object: this.token });
+                            Sequencer.EffectManager.endEffects({ name: `${name}-line`, object: this.token });
+                            Sequencer.EffectManager.endEffects({ name: `${name}-icon`, object: this.token });
+                        }
                     }
                 }
             } catch (e) {
@@ -524,13 +538,27 @@ export class BaseCrosshairShape {
         if (typeof Sequencer !== "undefined" && Sequencer.EffectManager) {
             try {
                 if (typeof Sequencer.EffectManager.endEffects === "function") {
-                    Sequencer.EffectManager.endEffects({ name: this.id });
-                    Sequencer.EffectManager.endEffects({ name: `${this.id}-line` });
-                    Sequencer.EffectManager.endEffects({ name: `${this.id}-icon` });
-                    if (this.token) {
-                        Sequencer.EffectManager.endEffects({ name: this.id, object: this.token });
-                        Sequencer.EffectManager.endEffects({ name: `${this.id}-line`, object: this.token });
-                        Sequencer.EffectManager.endEffects({ name: `${this.id}-icon`, object: this.token });
+                    const idsToEnd = new Set([
+                        this.id,
+                        this.getDefaultId?.(),
+                        this.config?.id,
+                        this.config?.itemName,
+                        "Crosshair",
+                        "Cone Crosshair",
+                        "Ray Crosshair",
+                        "Square Crosshair",
+                        "Circle Crosshair"
+                    ].filter(Boolean));
+
+                    for (const name of idsToEnd) {
+                        Sequencer.EffectManager.endEffects({ name });
+                        Sequencer.EffectManager.endEffects({ name: `${name}-line` });
+                        Sequencer.EffectManager.endEffects({ name: `${name}-icon` });
+                        if (this.token) {
+                            Sequencer.EffectManager.endEffects({ name, object: this.token });
+                            Sequencer.EffectManager.endEffects({ name: `${name}-line`, object: this.token });
+                            Sequencer.EffectManager.endEffects({ name: `${name}-icon`, object: this.token });
+                        }
                     }
                 }
             } catch (e) {

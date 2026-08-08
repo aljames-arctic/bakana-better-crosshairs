@@ -48,6 +48,28 @@ export class PersistedAnimationManager {
         // End any existing effect with this name before recreating to guarantee clean state
         this.endPersistedAnimation(docId);
 
+        // Clean up any remaining interactive preview crosshair effects on canvas
+        if (typeof Sequencer !== "undefined" && Sequencer?.EffectManager?.endEffects) {
+            try {
+                const previewIds = [
+                    "Crosshair",
+                    "Cone Crosshair",
+                    "Ray Crosshair",
+                    "Square Crosshair",
+                    "Circle Crosshair",
+                    bbcFlags.itemName,
+                    bbcFlags.id
+                ].filter(Boolean);
+                for (const name of new Set(previewIds)) {
+                    Sequencer.EffectManager.endEffects({ name });
+                    Sequencer.EffectManager.endEffects({ name: `${name}-line` });
+                    Sequencer.EffectManager.endEffects({ name: `${name}-icon` });
+                }
+            } catch (e) {
+                log.debug("PersistedAnimationManager.syncPersistedAnimation | Error ending preview effects:", e);
+            }
+        }
+
         const detected = crosshairAdapter.detectProperties(doc);
         const shapeType = detected.type ?? "circle";
         const { factor, gridUnits } = crosshairAdapter.getTemplatePixelFactor();

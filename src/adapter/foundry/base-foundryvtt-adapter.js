@@ -383,6 +383,17 @@ export class BaseFoundryVTTAdapter {
         try { placeable.shape = dummyContainer; } catch (e) {}
         try { placeable.border = dummyContainer; } catch (e) {}
         try { if (!placeable.position) placeable.position = dummyContainer.position; } catch (e) {}
+
+        if (typeof Sequencer !== "undefined" && Sequencer?.EffectManager?.endEffects) {
+            try {
+                const previewIds = ["Crosshair", "Cone Crosshair", "Ray Crosshair", "Square Crosshair", "Circle Crosshair"];
+                for (const name of previewIds) {
+                    Sequencer.EffectManager.endEffects({ name });
+                    Sequencer.EffectManager.endEffects({ name: `${name}-line` });
+                    Sequencer.EffectManager.endEffects({ name: `${name}-icon` });
+                }
+            } catch (e) {}
+        }
     }
 
     /**
