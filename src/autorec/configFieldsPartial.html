@@ -18,8 +18,7 @@
                         {{#if isDefault}}
                         <span><code>DEFAULT</code> <span class="bbc-type-badge default" style="margin-left:6px;">{{labels.globalFallbackBadge}}</span></span>
                         {{else}}
-                        <span class="view-only"><code>{{itemName}}</code></span>
-                        <input type="text" class="bbc-edit-input edit-only" name="itemName" data-field="itemName" value="{{itemName}}" placeholder="e.g. Longbow" />
+                        <span><code>{{itemName}}</code></span>
                         {{/if}}
                     </td>
                 </tr>
@@ -28,10 +27,9 @@
                 <tr>
                     <th>{{labels.callingActivity}}</th>
                     <td>
-                        <span class="view-only">
+                        <span>
                             {{#if activityDisplay}}<code>{{activityDisplay}}</code>{{else}}<span class="bbc-pill">{{labels.allActivitiesPill}}</span>{{/if}}
                         </span>
-                        <input type="text" class="bbc-edit-input edit-only" name="activityId" data-field="activityId" value="{{activityId}}" placeholder="e.g. Attack or Activity ID" />
                     </td>
                 </tr>
                 {{/unless}}
