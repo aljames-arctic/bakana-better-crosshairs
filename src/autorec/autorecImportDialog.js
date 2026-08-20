@@ -150,11 +150,10 @@ export class AutorecImportDialog extends HandlebarsApplicationMixin(ApplicationV
      * @returns {void}
      */
     _attachCustomEventListeners(root, context, options) {
-        const rootEl = root instanceof HTMLElement ? root : (root?.element ?? null);
-        if (!rootEl) return;
+        if (!root || typeof root.querySelectorAll !== "function") return;
 
         // Checkbox modification
-        rootEl.querySelectorAll(".bbc-entry-checkbox").forEach(chk => {
+        root.querySelectorAll(".bbc-entry-checkbox").forEach(chk => {
             chk.addEventListener("change", (ev) => {
                 const idxStr = ev.currentTarget.dataset.importIndex;
                 const idx = parseInt(idxStr, 10);

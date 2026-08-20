@@ -143,26 +143,20 @@ export function sanitizeEntryForExchange(entry) {
 
 /**
  * Construct a standardized export JSON package object from current registered autorec entries.
- * Normalizes caller map or array parameter before formatting (Rule 5).
- * @param {Array<Object>|Map<string, Object>} entriesInput - List or Map of registration objects
+ * @param {Array<Object>} entries - List of registration objects
  * @param {Object} [options={}] - Export configuration options
  * @param {string} [options.sourceModule="world"] - Default source module name attributed to the export
  * @param {boolean} [options.includeDefault=false] - Whether to include the CANONICAL DEFAULT fallback registration
  * @param {string} [options.description=""] - Optional human readable tag or description
  * @returns {Object} Explicit schema structure of the full exported package
  */
-export function buildExportPackage(entriesInput, { sourceModule = "world", includeDefault = false, description = "" } = {}) {
-    const list = Array.isArray(entriesInput)
-        ? entriesInput
-        : (entriesInput instanceof Map ? Array.from(entriesInput.values()) : []);
-
+export function buildExportPackage(entries, { sourceModule = "world", includeDefault = false, description = "" } = {}) {
     const exportedEntries = [];
-    for (const rawEntry of list) {
+    for (const rawEntry of entries ?? []) {
         if (!rawEntry || typeof rawEntry === "function") {
             continue;
         }
-        const isDefaultEntry = Boolean(rawEntry.isDefault);
-        if (isDefaultEntry && !includeDefault) {
+        if (rawEntry.isDefault && !includeDefault) {
             continue;
         }
 

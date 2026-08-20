@@ -734,9 +734,7 @@ export class BaseFoundryVTTAdapter {
      */
     toToken(target) {
         if (!target) return null;
-        if (target instanceof Token) return target;
-        if (target.object instanceof Token) return target.object;
-        return target;
+        return target.object ?? target;
     }
 
     /**

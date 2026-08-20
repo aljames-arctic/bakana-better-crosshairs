@@ -4,7 +4,6 @@ import { ray, RayCrosshairShape } from "./ray.js";
 import { square, SquareCrosshairShape } from "./square.js";
 import { BaseCrosshairShape } from "./base.js";
 import { CrosshairController, attachCrosshairToToken } from "./crosshairController.js";
-import { Token } from "../lib/compat.js";
 
 /**
  * Normalizes polymorphic arguments passed to the play entry point into a standard builder, target, and configuration object.
@@ -14,7 +13,7 @@ import { Token } from "../lib/compat.js";
  * @returns {{builder: object, target: Token|object, options: object}} The normalized crosshair builder, target token, and configuration object.
  */
 function normalizePlayArguments(typeOrToken, tokenOrConfig, config) {
-    const isTokenFirst = typeOrToken instanceof Token || (typeof typeOrToken === "object" && typeOrToken !== null);
+    const isTokenFirst = typeof typeOrToken === "object" && typeOrToken !== null;
     if (isTokenFirst) {
         return {
             builder: circle,
