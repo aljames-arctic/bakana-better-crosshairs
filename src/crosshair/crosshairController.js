@@ -183,7 +183,7 @@ export class CrosshairController {
     static async hide(sourceToken, options = {}) {
         const token = crosshairAdapter.toToken(sourceToken);
         const effectId = options.id ?? "Crosshair";
-        if (globalThis.Sequencer?.EffectManager) {
+        if (game.modules.get("sequencer")?.active) {
             try {
                 await Sequencer.EffectManager.endEffects({ name: effectId, object: token });
                 await Sequencer.EffectManager.endEffects({ name: `${effectId}-line`, object: token });
@@ -324,7 +324,7 @@ export async function attachCrosshairToToken(sourceToken, shape, size, getCursor
             controller.stop();
             shapeInstance?.stopBroadcasting?.(reason);
             const effectId = shapeInstance?.id ?? options.id ?? "Crosshair";
-            if (globalThis.Sequencer?.EffectManager) {
+            if (game.modules.get("sequencer")?.active) {
                 try {
                     await Sequencer.EffectManager.endEffects({ name: effectId, object: token });
                     await Sequencer.EffectManager.endEffects({ name: `${effectId}-line`, object: token });

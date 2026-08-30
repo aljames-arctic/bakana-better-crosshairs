@@ -7,34 +7,34 @@ import { log } from "./logger.js";
  * Reference to the Foundry VTT Token placeable class.
  * @type {typeof foundry.canvas.placeables.Token}
  */
-export const Token = foundry?.canvas?.placeables?.Token ?? globalThis.Token;
+export const Token = foundry?.canvas?.placeables?.Token;
 
 /**
  * Reference to the Foundry VTT MeasuredTemplate placeable class.
  * @type {typeof foundry.canvas.placeables.MeasuredTemplate}
  */
-export const MeasuredTemplate = foundry?.canvas?.placeables?.MeasuredTemplate ?? globalThis.MeasuredTemplate;
+export const MeasuredTemplate = foundry?.canvas?.placeables?.MeasuredTemplate;
 
 /**
  * Reference to the Foundry VTT Region placeable class.
  * @type {typeof foundry.canvas.placeables.Region}
  */
-export const Region = foundry?.canvas?.placeables?.Region ?? globalThis.Region;
+export const Region = foundry?.canvas?.placeables?.Region;
 
 /**
  * Reference to the Foundry VTT Ray geometry class.
  */
-export const Ray = foundry?.canvas?.geometry?.Ray ?? globalThis.Ray;
+export const Ray = foundry?.canvas?.geometry?.Ray;
 
 /**
  * Reference to Foundry's mergeObject utility.
  */
-export const mergeObject = foundry?.utils?.mergeObject ?? globalThis.mergeObject;
+export const mergeObject = foundry?.utils?.mergeObject;
 
 /**
  * Reference to Foundry's deepClone utility.
  */
-export const deepClone = foundry?.utils?.deepClone ?? globalThis.deepClone;
+export const deepClone = foundry?.utils?.deepClone;
 
 /**
  * Clears the specified grid highlight layer across Foundry canvas versions.
@@ -78,24 +78,13 @@ export function saveDataToFile(data, type, filename) {
 
     try {
         const utilsFn = foundry?.utils?.saveDataToFile;
-        if (typeof utilsFn === "function") {
+        if (utilsFn) {
             utilsFn(cleanData, cleanType, cleanFilename);
             log.debug(`compat.saveDataToFile | File "${cleanFilename}" saved via foundry.utils.saveDataToFile.`);
             return true;
         }
     } catch (err) {
-        log.warn(`compat.saveDataToFile | Error calling foundry.utils.saveDataToFile for "${cleanFilename}". Falling back.`, err);
-    }
-
-    try {
-        const globalFn = globalThis.saveDataToFile;
-        if (typeof globalFn === "function") {
-            globalFn(cleanData, cleanType, cleanFilename);
-            log.debug(`compat.saveDataToFile | File "${cleanFilename}" saved via globalThis.saveDataToFile.`);
-            return true;
-        }
-    } catch (err) {
-        log.warn(`compat.saveDataToFile | Error calling globalThis.saveDataToFile for "${cleanFilename}".`, err);
+        log.warn(`compat.saveDataToFile | Error calling foundry.utils.saveDataToFile for "${cleanFilename}".`, err);
     }
 
     log.error(`compat.saveDataToFile | Failed to save file "${cleanFilename}": zero valid file writers available.`);

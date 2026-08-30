@@ -83,7 +83,7 @@ export class BaseCrosshairShape {
             if (document?.item?.img) return document.item.img;
             const origin = document?.flags?.dnd5e?.origin ?? document?.flags?.["midi-qol"]?.origin;
             if (origin) {
-                const fromUuid = globalThis.fromUuidSync?.(origin);
+                const fromUuid = foundry.utils.fromUuidSync?.(origin);
                 if (fromUuid?.img) return fromUuid.img;
             }
             return null;
