@@ -40,6 +40,9 @@ export function migrateV1ToV2Entry(legacyEntry) {
     const showRange = optionsObj.showRange !== undefined
         ? Boolean(optionsObj.showRange)
         : Boolean(legacyEntry.showRange ?? DEFAULT_AUTOREC_ENTRY.showRange);
+    const showItemIcon = optionsObj.showItemIcon !== undefined
+        ? Boolean(optionsObj.showItemIcon)
+        : Boolean(legacyEntry.showItemIcon ?? DEFAULT_AUTOREC_ENTRY.showItemIcon ?? true);
     const limitRange = optionsObj.limitRange !== undefined
         ? Boolean(optionsObj.limitRange)
         : Boolean(legacyEntry.limitRange ?? DEFAULT_AUTOREC_ENTRY.limitRange);
@@ -47,6 +50,9 @@ export function migrateV1ToV2Entry(legacyEntry) {
     const enableAnimation = Boolean(optionsObj.enableAnimation ?? legacyEntry.enableAnimation);
     const enablePlacedStyling = Boolean(optionsObj.enablePlacedStyling ?? legacyEntry.enablePlacedStyling);
     const enablePostPlacement = Boolean(optionsObj.enablePostPlacement ?? legacyEntry.enablePostPlacement);
+
+    // Placed placed.fill.* and placed.border.*
+    const placedObj = legacyEntry.placed ?? {};
     const persist = optionsObj.persist !== undefined
         ? Boolean(optionsObj.persist)
         : Boolean(placedObj.persist ?? legacyEntry.persist ?? DEFAULT_AUTOREC_ENTRY.persist);
@@ -60,8 +66,6 @@ export function migrateV1ToV2Entry(legacyEntry) {
     const previewBorderColor = String(previewBorderObj.color ?? legacyEntry.borderColor ?? DEFAULT_AUTOREC_ENTRY.borderColor);
     const previewBorderAlpha = Number(previewBorderObj.alpha ?? legacyEntry.borderAlpha ?? DEFAULT_AUTOREC_ENTRY.borderAlpha);
 
-    // Placed placed.fill.* and placed.border.*
-    const placedObj = legacyEntry.placed ?? {};
     const placedFillObj = placedObj.fill ?? {};
     const placedBorderObj = placedObj.border ?? {};
     const placedFillColor = String(placedFillObj.color ?? legacyEntry.placedFillColor ?? DEFAULT_AUTOREC_ENTRY.placedFillColor);
@@ -84,6 +88,7 @@ export function migrateV1ToV2Entry(legacyEntry) {
             attachMode,
             showLine,
             showRange,
+            showItemIcon,
             limitRange,
             enablePrePlacement,
             enableAnimation,
@@ -114,7 +119,8 @@ export function migrateV1ToV2Entry(legacyEntry) {
         }
     };
 
-    if (legacyEntry.persist !== undefined || optionsObj.persist !== undefined || placedObj.persist !== undefined) migrated.persist = persist;
+    migrated.persist = persist;
+    migrated.showItemIcon = showItemIcon;
     if (legacyEntry.distance !== undefined && legacyEntry.distance !== null) migrated.distance = Number(legacyEntry.distance);
     if (legacyEntry.width !== undefined && legacyEntry.width !== null) migrated.width = Number(legacyEntry.width);
     if (legacyEntry.angle !== undefined && legacyEntry.angle !== null) migrated.angle = Number(legacyEntry.angle);

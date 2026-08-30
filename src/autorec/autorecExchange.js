@@ -73,6 +73,7 @@ export function sanitizeEntryForExchange(entry) {
     const attachMode = String(optionsRaw.attachMode ?? raw.stickToToken ?? DEFAULT_AUTOREC_ENTRY.stickToToken);
     const showLine = optionsRaw.showLine !== undefined ? Boolean(optionsRaw.showLine) : Boolean(raw.showLine ?? DEFAULT_AUTOREC_ENTRY.showLine);
     const showRange = optionsRaw.showRange !== undefined ? Boolean(optionsRaw.showRange) : Boolean(raw.showRange ?? DEFAULT_AUTOREC_ENTRY.showRange);
+    const showItemIcon = optionsRaw.showItemIcon !== undefined ? Boolean(optionsRaw.showItemIcon) : Boolean(raw.showItemIcon ?? DEFAULT_AUTOREC_ENTRY.showItemIcon ?? true);
     const limitRange = optionsRaw.limitRange !== undefined ? Boolean(optionsRaw.limitRange) : Boolean(raw.limitRange ?? DEFAULT_AUTOREC_ENTRY.limitRange);
     const enablePrePlacement = Boolean(optionsRaw.enablePrePlacement ?? raw.enablePrePlacement);
     const enableAnimation = Boolean(optionsRaw.enableAnimation ?? raw.enableAnimation);
@@ -90,6 +91,7 @@ export function sanitizeEntryForExchange(entry) {
             attachMode,
             showLine,
             showRange,
+            showItemIcon,
             limitRange,
             enablePrePlacement,
             enableAnimation,
@@ -132,7 +134,8 @@ export function sanitizeEntryForExchange(entry) {
         }
     };
 
-    if (raw.persist !== undefined || optionsRaw.persist !== undefined || placedRaw.persist !== undefined) sanitized.persist = persist;
+    sanitized.persist = persist;
+    sanitized.showItemIcon = showItemIcon;
     if (raw.distance !== undefined && raw.distance !== null) sanitized.distance = Number(raw.distance);
     if (raw.width !== undefined && raw.width !== null) sanitized.width = Number(raw.width);
     if (raw.angle !== undefined && raw.angle !== null) sanitized.angle = Number(raw.angle);

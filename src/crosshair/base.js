@@ -73,6 +73,22 @@ export class BaseCrosshairShape {
         this.fillAlpha = config.fillAlpha ?? 0;
         this.showLine = config.showLine !== false;
         this._rawLineFile = config.lineFile ?? "eskie.crosshair.line.generic_01.white";
+        this.showItemIcon = config.showItemIcon !== false;
+
+        const resolveItemIcon = (cfg, document) => {
+            if (cfg?.icon) return cfg.icon;
+            if (cfg?.item?.img) return cfg.item.img;
+            if (cfg?.activity?.img) return cfg.activity.img;
+            if (cfg?.scope?.item?.img) return cfg.scope.item.img;
+            if (document?.item?.img) return document.item.img;
+            const origin = document?.flags?.dnd5e?.origin ?? document?.flags?.["midi-qol"]?.origin;
+            if (typeof origin === "string") {
+                const fromUuid = typeof fromUuidSync === "function" ? fromUuidSync(origin) : null;
+                if (fromUuid?.img) return fromUuid.img;
+            }
+            return null;
+        };
+        this.icon = this.showItemIcon ? resolveItemIcon(config, doc) : null;
 
         // Keep a reference to Sequencer visual container
         this.sequencerCrosshair = null;
@@ -312,6 +328,10 @@ export class BaseCrosshairShape {
                 .fillColor(this.fillColor, { alpha: this.fillAlpha });
 
         this.configureCrosshairShape(crosshairSeq);
+
+        if (this.showItemIcon && this.icon) {
+            crosshairSeq.icon(this.icon);
+        }
 
         if (this.stickToToken && this.token && !this.config?.isRemote) {
             if (this.type === "circle") {
@@ -756,13 +776,8 @@ export class BaseCrosshairShape {
                 posY = center.y;
                 dir = 0;
             } else {
-                if (this.sequencerCrosshair && Number.isFinite(this.sequencerCrosshair.x) && Number.isFinite(this.sequencerCrosshair.y)) {
-                    posX = this.sequencerCrosshair.x;
-                    posY = this.sequencerCrosshair.y;
-                } else {
-                    posX = this.x;
-                    posY = this.y;
-                }
+                posX = this.x;
+                posY = this.y;
                 const mousePos = canvas?.mousePosition;
                 if (mousePos && Number.isFinite(mousePos.x) && Number.isFinite(mousePos.y)) {
                     const dx = mousePos.x - posX;

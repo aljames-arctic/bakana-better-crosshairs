@@ -23,6 +23,7 @@ export const DEFAULT_AUTOREC_ENTRY = {
     stickToToken: "default",
     showLine: true,
     showRange: true,
+    showItemIcon: true,
     limitRange: true,
     borderColor: "#ffffff",
     borderAlpha: 0,
@@ -240,6 +241,7 @@ export class AutorecManager {
         const stickToToken = String(baseConfig.stickToToken ?? optionsRaw.attachMode ?? DEFAULT_AUTOREC_ENTRY.stickToToken);
         const showLine = Boolean(baseConfig.showLine ?? optionsRaw.showLine ?? DEFAULT_AUTOREC_ENTRY.showLine);
         const showRange = Boolean(baseConfig.showRange ?? optionsRaw.showRange ?? DEFAULT_AUTOREC_ENTRY.showRange);
+        const showItemIcon = Boolean(baseConfig.showItemIcon ?? optionsRaw.showItemIcon ?? DEFAULT_AUTOREC_ENTRY.showItemIcon);
         const limitRange = Boolean(baseConfig.limitRange ?? optionsRaw.limitRange ?? DEFAULT_AUTOREC_ENTRY.limitRange);
 
         const borderColor = String(baseConfig.borderColor ?? previewBorder.color ?? DEFAULT_AUTOREC_ENTRY.borderColor).trim();
@@ -282,6 +284,7 @@ export class AutorecManager {
             stickToToken,
             showLine,
             showRange,
+            showItemIcon,
             limitRange,
             borderColor,
             borderAlpha,
@@ -864,6 +867,7 @@ export class AutorecManager {
             const stickToToken = isStickOn;
             const showLine = config.showLine !== false;
             const showRange = config.showRange !== false;
+            const showItemIcon = config.showItemIcon !== false;
             const limitRange = config.limitRange !== false;
             const enablePrePlacement = Boolean(config.enablePrePlacement);
             const enableAnimation = Boolean(config.enableAnimation);
@@ -938,6 +942,7 @@ export class AutorecManager {
                 isStickOff,
                 showLine,
                 showRange,
+                showItemIcon,
                 limitRange,
                 enablePrePlacement,
                 enableAnimation,

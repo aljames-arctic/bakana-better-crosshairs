@@ -139,6 +139,18 @@
                         </div>
                     </td>
                 </tr>
+                <tr data-override-child="enableAnimation" {{#if (and showOverrides (not enableAnimation))}}style="display: none;"{{/if}}>
+                    <th>{{labels.showItemIcon}}</th>
+                    <td>
+                        <span class="view-only">{{#if showItemIcon}}<span class="bbc-pill enabled">{{labels.enabledPill}}</span>{{else}}<span class="bbc-pill disabled">{{labels.disabledPill}}</span>{{/if}}</span>
+                        <div class="bbc-edit-row edit-only">
+                            <label class="bbc-edit-checkbox-label">
+                                <input type="checkbox" class="bbc-edit-checkbox" name="showItemIcon" data-field="showItemIcon" {{#if showItemIcon}}checked{{/if}} />
+                                <span>{{labels.enableBtn}}</span>
+                            </label>
+                        </div>
+                    </td>
+                </tr>
             </tbody>
         </table>
     </div>

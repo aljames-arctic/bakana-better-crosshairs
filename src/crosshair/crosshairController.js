@@ -86,7 +86,7 @@ export class CrosshairController {
      * @returns {void}
      */
     update(force = false) {
-        if (this.isDestroyed || !this.shape || this.config?.isRemote || typeof this.getCursorPositionFn !== "function") return;
+        if (this.isDestroyed || !this.shape || typeof this.getCursorPositionFn !== "function") return;
 
         const now = Date.now();
         if (!force && this.updateTrigger === "ticker" && (now - this.lastRenderTime < this.intervalMs)) {
@@ -187,6 +187,7 @@ export class CrosshairController {
             try {
                 await Sequencer.EffectManager.endEffects({ name: effectId, object: token });
                 await Sequencer.EffectManager.endEffects({ name: `${effectId}-line`, object: token });
+                await Sequencer.EffectManager.endEffects({ name: `${effectId}-icon`, object: token });
             } catch (e) {
                 log.debug("CrosshairController.hide | Exception ending Sequencer effects:", e);
             }

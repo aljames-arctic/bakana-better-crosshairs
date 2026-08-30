@@ -41,6 +41,7 @@ export class CrosshairConfiguration {
         // Core animation rendering options
         this.showLine = Boolean(source.showLine ?? options.showLine ?? defaults.showLine);
         this.showRange = Boolean(source.showRange ?? options.showRange ?? defaults.showRange);
+        this.showItemIcon = Boolean(source.showItemIcon ?? options.showItemIcon ?? defaults.showItemIcon ?? true);
         this.limitRange = Boolean(source.limitRange ?? options.limitRange ?? defaults.limitRange);
         this.borderColor = String(source.borderColor ?? previewBorder.color ?? defaults.borderColor).trim();
         const borderAlphaVal = Number(source.borderAlpha ?? previewBorder.alpha ?? defaults.borderAlpha);
@@ -157,6 +158,7 @@ export class CrosshairConfiguration {
 
             merged.showLine = Boolean(customSource.showLine ?? this.showLine);
             merged.showRange = Boolean(customSource.showRange ?? this.showRange);
+            merged.showItemIcon = Boolean(customSource.showItemIcon ?? this.showItemIcon);
             merged.limitRange = Boolean(customSource.limitRange ?? this.limitRange);
             merged.lineFile = customSource.lineFile ?? this.lineFile;
             merged.borderColor = customSource.borderColor ?? this.borderColor;
@@ -201,6 +203,7 @@ export class CrosshairConfiguration {
             stickToToken: this.stickToToken,
             showLine: this.showLine,
             showRange: this.showRange,
+            showItemIcon: this.showItemIcon,
             limitRange: this.limitRange,
             borderColor: this.borderColor,
             borderAlpha: this.borderAlpha,

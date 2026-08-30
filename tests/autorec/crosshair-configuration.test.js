@@ -9,6 +9,7 @@ test('CrosshairConfiguration.fromSource initializes with canonical schema defaul
     assert.equal(config.circleFile, 'jb2a.fireball.01');
     assert.equal(config.enabled, true);
     assert.equal(config.showLine, true);
+    assert.equal(config.showItemIcon, true);
 });
 
 test('CrosshairConfiguration.overrideWith merges activity or item overrides without mutating original', () => {
@@ -16,24 +17,29 @@ test('CrosshairConfiguration.overrideWith merges activity or item overrides with
         itemName: 'Fireball',
         circleFile: 'jb2a.fireball.01',
         borderColor: '#ff0000',
-        stickToToken: "false"
+        stickToToken: "false",
+        showItemIcon: true
     });
 
     const overridden = base.overrideWith({
         circleFile: 'jb2a.fireball.blue',
-        stickToToken: "true"
+        stickToToken: "true",
+        showItemIcon: false
     });
 
     assert.equal(base.circleFile, 'jb2a.fireball.01');
     assert.equal(base.stickToToken, "false");
+    assert.equal(base.showItemIcon, true);
     assert.equal(overridden.circleFile, 'jb2a.fireball.blue');
     assert.equal(overridden.stickToToken, "true");
+    assert.equal(overridden.showItemIcon, false);
 });
 
 test('CrosshairConfiguration.toJSON serializes properties cleanly for persistence', () => {
-    const config = CrosshairConfiguration.fromSource({ itemName: 'Test Item', id: 'test-item-id' });
+    const config = CrosshairConfiguration.fromSource({ itemName: 'Test Item', id: 'test-item-id', showItemIcon: false });
     const json = config.toJSON();
     assert.equal(json.itemName, 'Test Item');
     assert.equal(json.id, 'test-item-id');
+    assert.equal(json.showItemIcon, false);
     assert.equal(typeof json, 'object');
 });

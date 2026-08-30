@@ -136,6 +136,12 @@
                 "postSectionDesc": "Executes custom Javascript code after final document creation.",
                 "noPostScript": "No custom post-placement script configured",
                 "showLine": "Show Line",
+                "showRange": "Show Detached Distance",
+                "showRangeLabel": "Display live distance measurement at cursor",
+                "showItemIcon": "Show Item Icon",
+                "showItemIconLabel": "Display item icon on Sequencer crosshairs",
+                "limitRange": "Limit Placement Range",
+                "limitRangeLabel": "Restrict crosshair placement within calling item's maximum range",
                 "alpha": "Alpha:"
             },
             "pills": {

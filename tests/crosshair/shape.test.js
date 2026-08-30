@@ -462,6 +462,8 @@ test('REGRESSION: Attached Ray template placement preserves Sequencer visual ori
         destroyed: false,
         shapeInstance: shape
     };
+    shape.x = 100;
+    shape.y = 200;
     shape.sequencerCrosshair = mockSequencerCrosshair;
 
     // Simulate mouse position at (50, 230)
@@ -656,6 +658,46 @@ test('resolveRectangleAsset correctly chooses 1:1 square vs 2:1 rectangle animat
         width: 10
     });
     assert.equal(shape.getGraphicFile(), 'eskie.crosshair.rectangle.fantasy_01.white.no_base.20x10ft');
+});
+
+test('BaseCrosshairShape.create attaches item icon when showItemIcon is true and suppresses when false', async () => {
+    const { CircleCrosshairShape } = await import('../../src/crosshair/circle.js');
+    const mockDocument = { x: 0, y: 0 };
+    const mockPlaceable = { x: 0, y: 0, document: mockDocument };
+
+    let attachedIcon = null;
+    const mockCrosshairBuilder = {
+        type() { return this; },
+        borderColor() { return this; },
+        fillColor() { return this; },
+        distance() { return this; },
+        snapPosition() { return this; },
+        icon(path) { attachedIcon = path; return this; },
+        callback() { return this; },
+        location() { return this; }
+    };
+    globalThis.Sequence = class {
+        crosshair() { return mockCrosshairBuilder; }
+    };
+
+    // 1. Default / showItemIcon: true with item.img
+    const shapeWithIcon = new CircleCrosshairShape(mockPlaceable, {
+        radius: 15,
+        item: { img: "icons/magic/fireball.webp" },
+        showItemIcon: true
+    });
+    await shapeWithIcon.create();
+    assert.equal(attachedIcon, "icons/magic/fireball.webp");
+
+    // 2. showItemIcon: false with item.img
+    attachedIcon = null;
+    const shapeWithoutIcon = new CircleCrosshairShape(mockPlaceable, {
+        radius: 15,
+        item: { img: "icons/magic/fireball.webp" },
+        showItemIcon: false
+    });
+    await shapeWithoutIcon.create();
+    assert.equal(attachedIcon, null);
 });
 
 
