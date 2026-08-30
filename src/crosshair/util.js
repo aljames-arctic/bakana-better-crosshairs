@@ -171,8 +171,14 @@ export function alignCrosshairAndEffects(crosshair, config = {}, rad = 0) {
 
     if (typeof Sequencer !== "undefined" && Sequencer.EffectManager) {
         try {
-            const effects = Sequencer.EffectManager.getEffects({ name: effectId });
+            const mainEffects = Sequencer.EffectManager.getEffects({ name: effectId }) ?? [];
+            const iconEffects = Sequencer.EffectManager.getEffects({ name: `${effectId}-icon` }) ?? [];
+            const effects = [...mainEffects, ...iconEffects];
             for (const eff of effects) {
+                const isIcon = eff.name === `${effectId}-icon`;
+                const effRad = isIcon ? 0 : rad;
+                const effDeg = isIcon ? 0 : deg;
+
                 eff.x = targetX;
                 eff.y = targetY;
                 if (eff.worldPosition) {
@@ -183,7 +189,7 @@ export function alignCrosshairAndEffects(crosshair, config = {}, rad = 0) {
                     eff.position.x = targetX;
                     eff.position.y = targetY;
                 }
-                eff.rotation = rad;
+                eff.rotation = effRad;
 
                 if (eff.container) {
                     if (eff.container.position?.set) {
@@ -192,26 +198,26 @@ export function alignCrosshairAndEffects(crosshair, config = {}, rad = 0) {
                         eff.container.x = targetX;
                         eff.container.y = targetY;
                     }
-                    eff.container.rotation = rad;
+                    eff.container.rotation = effRad;
                 }
 
                 if (eff.spriteContainer && typeof eff.spriteContainer.rotation !== "undefined") {
                     eff.spriteContainer.rotation = 0;
                 }
 
-                if (typeof eff.rotation !== "undefined") eff.rotation = rad;
+                if (typeof eff.rotation !== "undefined") eff.rotation = effRad;
                 if (typeof eff.update === "function") {
                     try {
                         eff.update({
                             position: { x: targetX, y: targetY },
-                            rotation: deg
+                            rotation: effDeg
                         });
                     } catch (e) {
                         log.debug("alignCrosshairAndEffects | Exception updating Sequencer effect rotation:", e);
                     }
                 }
 
-                if (isRect && eff.container) {
+                if (isRect && eff.container && !isIcon) {
                     eff.container.pivot.set(0, 0);
                     if (eff.sprite) eff.sprite.position.set(0, 0);
                     if (eff.spriteContainer) eff.spriteContainer.position.set(0, 0);

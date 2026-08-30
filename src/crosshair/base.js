@@ -240,8 +240,10 @@ export class BaseCrosshairShape {
 
         const { widthPx, heightPx, factor, gridUnits } = this.getGraphicDimensions();
         const effectFile = this.getGraphicFile();
-        if (!effectFile) {
-            log.debug(`BaseCrosshairShape.playGraphicEffect | No valid graphic file for "${this.id}". Skipping effect.`);
+        const hasIcon = Boolean(this.showItemIcon && this.icon);
+
+        if (!effectFile && !hasIcon) {
+            log.debug(`BaseCrosshairShape.playGraphicEffect | No valid graphic file or icon for "${this.id}". Skipping effect.`);
             return seq.play();
         }
 
@@ -263,7 +265,7 @@ export class BaseCrosshairShape {
                 .persist();
         }
 
-        const isCircleAttached = isSticky && this.token && this.type === "circle";
+        const isCircleAttached = isSticky && Boolean(this.token) && this.type === "circle";
 
         log.debug(`BaseCrosshairShape.playGraphicEffect | Sizing graphic for "${this.id}":`, {
             widthPx,
@@ -275,24 +277,49 @@ export class BaseCrosshairShape {
             isCircleAttached
         });
 
-        const mainEffect = seq.effect()
-            .name(this.id)
-            .file(effectFile);
+        if (effectFile) {
+            const mainEffect = seq.effect()
+                .name(this.id)
+                .file(effectFile);
 
-        if (isCircleAttached) {
-            mainEffect.attachTo(this.token);
-        } else {
-            mainEffect.atLocation(initLoc);
+            if (isCircleAttached) {
+                mainEffect.attachTo(this.token);
+            } else {
+                mainEffect.atLocation(initLoc);
+            }
+
+            mainEffect
+                .rotate(this.direction ?? 0)
+                .anchor(this.animationAnchor)
+                .size({ width: widthPx * factor, height: heightPx * factor }, { gridUnits: Boolean(gridUnits) })
+                .opacity(0.8)
+                .belowTokens()
+                .locally()
+                .persist();
         }
 
-        mainEffect
-            .rotate(this.direction ?? 0)
-            .anchor(this.animationAnchor)
-            .size({ width: widthPx * factor, height: heightPx * factor }, { gridUnits: Boolean(gridUnits) })
-            .opacity(0.8)
-            .belowTokens()
-            .locally()
-            .persist();
+        if (hasIcon) {
+            const gridSize = canvas?.grid?.size ?? canvas?.dimensions?.size ?? 100;
+            const iconSize = Math.max(gridSize * 0.5, 36);
+
+            const iconEffect = seq.effect()
+                .name(`${this.id}-icon`)
+                .file(this.icon);
+
+            if (isCircleAttached) {
+                iconEffect.attachTo(this.token);
+            } else {
+                iconEffect.atLocation(initLoc);
+            }
+
+            iconEffect
+                .size(iconSize, { gridUnits: false })
+                .anchor({ x: 0.5, y: 0.5 })
+                .opacity(0.95)
+                .aboveLighting()
+                .locally()
+                .persist();
+        }
 
         return seq.play();
     }
@@ -328,10 +355,6 @@ export class BaseCrosshairShape {
                 .fillColor(this.fillColor, { alpha: this.fillAlpha });
 
         this.configureCrosshairShape(crosshairSeq);
-
-        if (this.showItemIcon && this.icon) {
-            crosshairSeq.icon(this.icon);
-        }
 
         if (this.stickToToken && this.token && !this.config?.isRemote) {
             if (this.type === "circle") {
@@ -505,9 +528,11 @@ export class BaseCrosshairShape {
                     for (const name of idsToEnd) {
                         Sequencer.EffectManager.endEffects({ name });
                         Sequencer.EffectManager.endEffects({ name: `${name}-line` });
+                        Sequencer.EffectManager.endEffects({ name: `${name}-icon` });
                         if (this.token) {
                             Sequencer.EffectManager.endEffects({ name, object: this.token });
                             Sequencer.EffectManager.endEffects({ name: `${name}-line`, object: this.token });
+                            Sequencer.EffectManager.endEffects({ name: `${name}-icon`, object: this.token });
                         }
                     }
                 }
@@ -545,9 +570,11 @@ export class BaseCrosshairShape {
                     for (const name of idsToEnd) {
                         Sequencer.EffectManager.endEffects({ name });
                         Sequencer.EffectManager.endEffects({ name: `${name}-line` });
+                        Sequencer.EffectManager.endEffects({ name: `${name}-icon` });
                         if (this.token) {
                             Sequencer.EffectManager.endEffects({ name, object: this.token });
                             Sequencer.EffectManager.endEffects({ name: `${name}-line`, object: this.token });
+                            Sequencer.EffectManager.endEffects({ name: `${name}-icon`, object: this.token });
                         }
                     }
                 }
@@ -579,7 +606,8 @@ export class BaseCrosshairShape {
     static async stop(token, options = {}) {
         const id = options?.id ?? "Crosshair";
         await Sequencer.EffectManager.endEffects({ name: id, object: token });
-        return Sequencer.EffectManager.endEffects({ name: `${id}-line`, object: token });
+        await Sequencer.EffectManager.endEffects({ name: `${id}-line`, object: token });
+        return Sequencer.EffectManager.endEffects({ name: `${id}-icon`, object: token });
     }
 
     /**

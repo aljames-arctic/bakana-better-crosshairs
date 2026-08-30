@@ -275,6 +275,21 @@ export class RemoteCrosshairVisual {
             .locally()
             .persist();
 
+        if (this.shape?.showItemIcon && this.shape?.icon) {
+            const gridSize = canvas?.grid?.size ?? canvas?.dimensions?.size ?? 100;
+            const iconSize = Math.max(gridSize * 0.5, 36);
+            seq.effect()
+                .name(`${this.effectName}-icon`)
+                .file(this.shape.icon)
+                .atLocation({ x: this.rawX, y: this.rawY })
+                .size(iconSize, { gridUnits: false })
+                .anchor({ x: 0.5, y: 0.5 })
+                .opacity(0.95)
+                .aboveLighting()
+                .locally()
+                .persist();
+        }
+
         await seq.play();
     }
 
@@ -310,8 +325,14 @@ export class RemoteCrosshairVisual {
         }
 
         if (Sequencer.EffectManager) {
-            const effects = Sequencer.EffectManager.getEffects({ name: this.effectName });
+            const mainEffects = Sequencer.EffectManager.getEffects({ name: this.effectName }) ?? [];
+            const iconEffects = Sequencer.EffectManager.getEffects({ name: `${this.effectName}-icon` }) ?? [];
+            const effects = [...mainEffects, ...iconEffects];
             for (const eff of effects) {
+                const isIcon = eff.name === `${this.effectName}-icon`;
+                const effRot = isIcon ? 0 : rad;
+                const effDeg = isIcon ? 0 : deg;
+
                 eff.x = this.rawX;
                 eff.y = this.rawY;
                 if (eff.worldPosition) {
@@ -322,7 +343,7 @@ export class RemoteCrosshairVisual {
                     eff.position.x = this.rawX;
                     eff.position.y = this.rawY;
                 }
-                eff.rotation = rad;
+                eff.rotation = effRot;
 
                 if (eff.container) {
                     if (eff.container.position?.set) {
@@ -331,7 +352,7 @@ export class RemoteCrosshairVisual {
                         eff.container.x = this.rawX;
                         eff.container.y = this.rawY;
                     }
-                    eff.container.rotation = rad;
+                    eff.container.rotation = effRot;
                 }
 
                 if (eff.spriteContainer && typeof eff.spriteContainer.rotation !== "undefined") {
@@ -342,7 +363,7 @@ export class RemoteCrosshairVisual {
                     try {
                         eff.update({
                             position: { x: this.rawX, y: this.rawY },
-                            rotation: deg
+                            rotation: effDeg
                         });
                     } catch (e) {}
                 }
@@ -362,6 +383,7 @@ export class RemoteCrosshairVisual {
             try {
                 await Sequencer.EffectManager.endEffects({ name: this.effectName });
                 await Sequencer.EffectManager.endEffects({ name: `${this.effectName}-line` });
+                await Sequencer.EffectManager.endEffects({ name: `${this.effectName}-icon` });
             } catch (e) {
                 log.debug("RemoteCrosshairVisual.destroy | Exception terminating remote Sequencer effects:", e);
             }

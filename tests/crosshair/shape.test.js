@@ -660,44 +660,123 @@ test('resolveRectangleAsset correctly chooses 1:1 square vs 2:1 rectangle animat
     assert.equal(shape.getGraphicFile(), 'eskie.crosshair.rectangle.fantasy_01.white.no_base.20x10ft');
 });
 
-test('BaseCrosshairShape.create attaches item icon when showItemIcon is true and suppresses when false', async () => {
+test('BaseCrosshairShape plays item icon effect smoothly when showItemIcon is true and suppresses when false', async () => {
     const { CircleCrosshairShape } = await import('../../src/crosshair/circle.js');
+    const { alignCrosshairAndEffects } = await import('../../src/crosshair/util.js');
     const mockDocument = { x: 0, y: 0 };
     const mockPlaceable = { x: 0, y: 0, document: mockDocument };
 
-    let attachedIcon = null;
-    const mockCrosshairBuilder = {
-        type() { return this; },
-        borderColor() { return this; },
-        fillColor() { return this; },
-        distance() { return this; },
-        snapPosition() { return this; },
-        icon(path) { attachedIcon = path; return this; },
-        callback() { return this; },
-        location() { return this; }
-    };
-    globalThis.Sequence = class {
-        crosshair() { return mockCrosshairBuilder; }
-    };
+    const spawnedEffects = [];
+    class MockEffectBuilder {
+        constructor() {
+            this.props = {};
+        }
+        name(val) { this.props.name = val; return this; }
+        file(val) { this.props.file = val; return this; }
+        atLocation(val) { this.props.atLocation = val; return this; }
+        attachTo(val) { this.props.attachTo = val; return this; }
+        size(val, opts) { this.props.size = val; this.props.sizeOpts = opts; return this; }
+        anchor(val) { this.props.anchor = val; return this; }
+        opacity(val) { this.props.opacity = val; return this; }
+        aboveLighting() { this.props.aboveLighting = true; return this; }
+        belowTokens() { this.props.belowTokens = true; return this; }
+        rotate(val) { this.props.rotate = val; return this; }
+        locally() { this.props.locally = true; return this; }
+        persist() { this.props.persist = true; return this; }
+    }
 
-    // 1. Default / showItemIcon: true with item.img
-    const shapeWithIcon = new CircleCrosshairShape(mockPlaceable, {
-        radius: 15,
-        item: { img: "icons/magic/fireball.webp" },
-        showItemIcon: true
-    });
-    await shapeWithIcon.create();
-    assert.equal(attachedIcon, "icons/magic/fireball.webp");
+    const origSequence = globalThis.Sequence;
+    const origSequencer = globalThis.Sequencer;
 
-    // 2. showItemIcon: false with item.img
-    attachedIcon = null;
-    const shapeWithoutIcon = new CircleCrosshairShape(mockPlaceable, {
-        radius: 15,
-        item: { img: "icons/magic/fireball.webp" },
-        showItemIcon: false
-    });
-    await shapeWithoutIcon.create();
-    assert.equal(attachedIcon, null);
+    try {
+        globalThis.Sequence = class {
+            wait() { return this; }
+            effect() {
+                const builder = new MockEffectBuilder();
+                spawnedEffects.push(builder.props);
+                return builder;
+            }
+            play() { return Promise.resolve(); }
+        };
+
+        // 1. showItemIcon: true with item.img
+        const shapeWithIcon = new CircleCrosshairShape(mockPlaceable, {
+            id: "test-circle-icon",
+            radius: 15,
+            item: { img: "icons/magic/fireball.webp" },
+            showItemIcon: true
+        });
+
+        assert.equal(shapeWithIcon.icon, "icons/magic/fireball.webp");
+        await shapeWithIcon.playGraphicEffect();
+
+        const iconEffect = spawnedEffects.find(e => e.name === "test-circle-icon-icon");
+        assert.ok(iconEffect, "Should spawn icon effect with name test-circle-icon-icon");
+        assert.equal(iconEffect.file, "icons/magic/fireball.webp");
+        assert.deepEqual(iconEffect.anchor, { x: 0.5, y: 0.5 });
+
+        // 2. showItemIcon: false with item.img
+        spawnedEffects.length = 0;
+        const shapeWithoutIcon = new CircleCrosshairShape(mockPlaceable, {
+            id: "test-circle-no-icon",
+            radius: 15,
+            item: { img: "icons/magic/fireball.webp" },
+            showItemIcon: false
+        });
+
+        assert.equal(shapeWithoutIcon.icon, null);
+        await shapeWithoutIcon.playGraphicEffect();
+
+        const omittedIconEffect = spawnedEffects.find(e => e.name === "test-circle-no-icon-icon");
+        assert.equal(omittedIconEffect, undefined, "Should not spawn icon effect when showItemIcon is false");
+
+        // 3. alignCrosshairAndEffects updates both main and icon effect in lockstep
+        const mainEff = {
+            name: "test-sync",
+            x: 0,
+            y: 0,
+            rotation: 0,
+            container: { position: { set(x, y) { this.x = x; this.y = y; }, x: 0, y: 0 }, rotation: 0 },
+            update(payload) {}
+        };
+        const iconEff = {
+            name: "test-sync-icon",
+            x: 0,
+            y: 0,
+            rotation: 0,
+            container: { position: { set(x, y) { this.x = x; this.y = y; }, x: 0, y: 0 }, rotation: 0 },
+            update(payload) {}
+        };
+
+        globalThis.Sequencer = {
+            EffectManager: {
+                getEffects: ({ name }) => {
+                    if (name === "test-sync") return [mainEff];
+                    if (name === "test-sync-icon") return [iconEff];
+                    return [];
+                }
+            }
+        };
+
+        globalThis.canvas.mousePosition = { x: 250, y: 310 };
+        alignCrosshairAndEffects(null, { id: "test-sync", currentDirection: 90 }, Math.PI / 2);
+
+        // Both effects follow fluid mouse coordinates together
+        assert.equal(mainEff.x, 250);
+        assert.equal(mainEff.y, 310);
+        assert.equal(mainEff.container.position.x, 250);
+        assert.equal(mainEff.container.position.y, 310);
+        assert.equal(mainEff.rotation, Math.PI / 2);
+
+        assert.equal(iconEff.x, 250);
+        assert.equal(iconEff.y, 310);
+        assert.equal(iconEff.container.position.x, 250);
+        assert.equal(iconEff.container.position.y, 310);
+        assert.equal(iconEff.rotation, 0, "Icon effect must remain upright without rotating");
+    } finally {
+        globalThis.Sequence = origSequence;
+        globalThis.Sequencer = origSequencer;
+    }
 });
 
 
