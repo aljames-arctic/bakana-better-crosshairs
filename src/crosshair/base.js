@@ -82,8 +82,8 @@ export class BaseCrosshairShape {
             if (cfg?.scope?.item?.img) return cfg.scope.item.img;
             if (document?.item?.img) return document.item.img;
             const origin = document?.flags?.dnd5e?.origin ?? document?.flags?.["midi-qol"]?.origin;
-            if (typeof origin === "string") {
-                const fromUuid = typeof fromUuidSync === "function" ? fromUuidSync(origin) : null;
+            if (origin) {
+                const fromUuid = globalThis.fromUuidSync?.(origin);
                 if (fromUuid?.img) return fromUuid.img;
             }
             return null;

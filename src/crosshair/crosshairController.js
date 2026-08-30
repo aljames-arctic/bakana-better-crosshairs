@@ -183,7 +183,7 @@ export class CrosshairController {
     static async hide(sourceToken, options = {}) {
         const token = crosshairAdapter.toToken(sourceToken);
         const effectId = options.id ?? "Crosshair";
-        if (typeof Sequencer !== "undefined" && Sequencer.EffectManager) {
+        if (globalThis.Sequencer?.EffectManager) {
             try {
                 await Sequencer.EffectManager.endEffects({ name: effectId, object: token });
                 await Sequencer.EffectManager.endEffects({ name: `${effectId}-line`, object: token });
@@ -310,8 +310,8 @@ export async function attachCrosshairToToken(sourceToken, shape, size, getCursor
                 } catch (e) {
                     log.debug("attachCrosshairToToken.start | Exception playing shape sequence:", e);
                 }
-                if (!options.isRemote && typeof shapeInstance.startBroadcasting === "function") {
-                    shapeInstance.startBroadcasting();
+                if (!options.isRemote) {
+                    shapeInstance?.startBroadcasting?.();
                 }
             }
             await controller.start();
@@ -322,21 +322,18 @@ export async function attachCrosshairToToken(sourceToken, shape, size, getCursor
         },
         stop: async (reason = "canceled") => {
             controller.stop();
-            if (shapeInstance && typeof shapeInstance.stopBroadcasting === "function") {
-                shapeInstance.stopBroadcasting(reason);
-            }
+            shapeInstance?.stopBroadcasting?.(reason);
             const effectId = shapeInstance?.id ?? options.id ?? "Crosshair";
-            if (typeof Sequencer !== "undefined" && Sequencer.EffectManager) {
+            if (globalThis.Sequencer?.EffectManager) {
                 try {
                     await Sequencer.EffectManager.endEffects({ name: effectId, object: token });
                     await Sequencer.EffectManager.endEffects({ name: `${effectId}-line`, object: token });
+                    await Sequencer.EffectManager.endEffects({ name: `${effectId}-icon`, object: token });
                 } catch (e) {
                     log.debug("attachCrosshairToToken.stop | Exception ending Sequencer effects:", e);
                 }
             }
-            if (shapeInstance && typeof shapeInstance.hide === "function") {
-                shapeInstance.hide();
-            }
+            shapeInstance?.hide?.();
             if (resolvedCancelFn) {
                 try {
                     resolvedCancelFn(reason);
