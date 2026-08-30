@@ -439,10 +439,11 @@ export class BaseSystemAdapter {
      * @param {Document} item - Target Item document
      * @returns {void} No return value
      */
-    async openItemCrosshairConfig(item) {
+    async openItemCrosshairConfig(item, options = {}) {
         if (!item) return;
+        const itemDoc = item?.document ?? item;
         const { ItemCrosshairConfigApplication } = await import("../../autorec/itemConfigMenu.js");
-        new ItemCrosshairConfigApplication({ item }).render(true);
+        new ItemCrosshairConfigApplication({ item: itemDoc, ...options }).render(true);
     }
 
     /**
@@ -452,6 +453,10 @@ export class BaseSystemAdapter {
      * @returns {void} No return value
      */
     addItemSheetHeaderControl(app, controls) {
+        if (app?.activity || (app?.document && app.document.documentName !== "Item" && app.document.item)) {
+            return this.addActivitySheetHeaderControl(app, controls);
+        }
+
         const item = app?.document;
         if (!item || item.documentName !== "Item" || !item.isOwner) return;
         if (!Array.isArray(controls)) return;
@@ -472,6 +477,76 @@ export class BaseSystemAdapter {
     }
 
     /**
+     * Add a Better Crosshairs header control to an ApplicationV2 activity sheet instance.
+     * @param {foundry.applications.api.ApplicationV2} app - Activity sheet application instance
+     * @param {Array<object>} controls - Array of header control button items
+     * @returns {void} No return value
+     */
+    addActivitySheetHeaderControl(app, controls) {
+        const activity = app?.activity ?? (app?.document?.item ? app.document : null);
+        const item = activity?.item ?? app?.item ?? null;
+        if (!item || !activity?.id || !item.isOwner) return;
+        if (!Array.isArray(controls)) return;
+        if (controls.some(c => c.label?.startsWith("BBC") || c.icon === "fa-solid fa-crosshairs" || c.icon?.includes("fa-crosshairs"))) return;
+
+        const activityConfigs = item.getFlag("bakana-better-crosshairs", "activityConfigs") ?? {};
+        const hasCustom = Boolean(activityConfigs[activity.id]);
+
+        controls.push({
+            label: "BBC",
+            icon: hasCustom ? "fa-solid fa-crosshairs bbc-header-icon-custom" : "fa-solid fa-crosshairs",
+            onClick: () => this.openItemCrosshairConfig(item, { selectedScope: activity.id })
+        });
+    }
+
+    /**
+     * Add Better Crosshairs option to an Activity context menu or edit dropdown.
+     * @param {object} activity - Target activity data model or document
+     * @param {Array<object>} options - Array of context menu entry options
+     * @returns {void} No return value
+     */
+    addActivityContextOption(activity, options) {
+        if (!activity || !Array.isArray(options)) return;
+        const item = activity.item ?? activity.document ?? null;
+        if (!item || !activity.id || !item.isOwner) return;
+        if (options.some(o => o.name === "BBC" || o.name === "BBC.itemConfigMenu.title" || o.icon?.includes("fa-crosshairs"))) return;
+
+        const activityConfigs = item.getFlag("bakana-better-crosshairs", "activityConfigs") ?? {};
+        const hasCustom = Boolean(activityConfigs[activity.id]);
+
+        options.push({
+            name: "BBC",
+            icon: `<i class="fa-solid fa-crosshairs${hasCustom ? " bbc-header-icon-custom" : ""}"></i>`,
+            callback: () => this.openItemCrosshairConfig(item, { selectedScope: activity.id })
+        });
+    }
+
+    /**
+     * Add Better Crosshairs option to an Item context menu or edit dropdown.
+     * @param {object} item - Target item document
+     * @param {Array<object>} options - Array of context menu entry options
+     * @returns {void} No return value
+     */
+    addItemContextOption(item, options) {
+        const itemDoc = item?.document ?? item;
+        if (!itemDoc || itemDoc.documentName !== "Item" || !itemDoc.isOwner || !Array.isArray(options)) return;
+        if (options.some(o => o.name === "BBC" || o.name === "BBC.itemConfigMenu.title" || o.icon?.includes("fa-crosshairs"))) return;
+
+        const customConfig = itemDoc.getFlag("bakana-better-crosshairs", "customConfig") ?? null;
+        const activityConfigs = itemDoc.getFlag("bakana-better-crosshairs", "activityConfigs") ?? null;
+        const hasAnyCustom = Boolean(
+            customConfig ||
+            (activityConfigs && typeof activityConfigs === "object" && Object.keys(activityConfigs).length > 0)
+        );
+
+        options.push({
+            name: "BBC",
+            icon: `<i class="fa-solid fa-crosshairs${hasAnyCustom ? " bbc-header-icon-custom" : ""}"></i>`,
+            callback: () => this.openItemCrosshairConfig(itemDoc)
+        });
+    }
+
+    /**
      * Return list of Hook names used for ApplicationV2 item sheet header controls.
      * Protected hook for subclass override (Template Method Pattern).
      * @protected
@@ -482,15 +557,58 @@ export class BaseSystemAdapter {
     }
 
     /**
-     * Register standard universal ApplicationV2 item sheet header hooks (`ApplicationV2` / `ItemSheetV2`).
+     * Return list of Hook names used for ApplicationV2 activity sheet header controls.
+     * Protected hook for subclass override (Template Method Pattern).
+     * @protected
+     * @returns {string[]} Array of hook names
+     */
+    _getActivitySheetHookNames() {
+        return ["getHeaderControlsActivitySheet", "getHeaderControlsActivitySheet5e"];
+    }
+
+    /**
+     * Return list of Hook names used for item context menu options.
+     * @protected
+     * @returns {string[]} Array of hook names
+     */
+    _getItemContextHookNames() {
+        return ["getItemContextOptions", "dnd5e.getItemContextOptions", "getItemEntryContext"];
+    }
+
+    /**
+     * Return list of Hook names used for activity context menu options.
+     * @protected
+     * @returns {string[]} Array of hook names
+     */
+    _getActivityContextHookNames() {
+        return ["getActivityContextOptions", "dnd5e.getActivityContextOptions", "getActivityEntryContext"];
+    }
+
+    /**
+     * Register standard universal ApplicationV2 item sheet and activity sheet header & context hooks.
      * Template method executing common hook registration workflow.
      * @returns {void} No return value
      */
     registerItemSheetHooks() {
         if (typeof Hooks?.on === "function") {
-            const handler = (app, controls) => this.addItemSheetHeaderControl(app, controls);
+            const itemSheetHandler = (app, controls) => this.addItemSheetHeaderControl(app, controls);
             for (const hookName of this._getItemSheetHookNames()) {
-                Hooks.on(hookName, handler);
+                Hooks.on(hookName, itemSheetHandler);
+            }
+
+            const activitySheetHandler = (app, controls) => this.addActivitySheetHeaderControl(app, controls);
+            for (const hookName of this._getActivitySheetHookNames()) {
+                Hooks.on(hookName, activitySheetHandler);
+            }
+
+            const itemContextHandler = (item, options) => this.addItemContextOption(item, options);
+            for (const hookName of this._getItemContextHookNames()) {
+                Hooks.on(hookName, itemContextHandler);
+            }
+
+            const activityContextHandler = (activity, options) => this.addActivityContextOption(activity, options);
+            for (const hookName of this._getActivityContextHookNames()) {
+                Hooks.on(hookName, activityContextHandler);
             }
         }
     }

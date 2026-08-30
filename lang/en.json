@@ -41,6 +41,9 @@
         },
         "itemConfigMenu": {
             "title": "Bakana's Better Crosshairs Custom Item Configuration",
+            "activityConfigTitle": "Bakana's Better Crosshairs Custom Activity Configuration",
+            "activityContextOption": "Better Crosshairs",
+            "itemContextOption": "Better Crosshairs",
             "deleteCustomBtn": "Delete Custom Override",
             "saveCustomBtn": "Save",
             "itemLevelScope": "Item Level",

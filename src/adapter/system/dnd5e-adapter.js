@@ -152,4 +152,28 @@ export class Dnd5eSystemAdapter extends BaseSystemAdapter {
     _getItemSheetHookNames() {
         return ["getHeaderControlsItemSheet5e", "getHeaderControlsItemSheet5e2"];
     }
+
+    /**
+     * Return list of DnD5e-specific Hook names for ApplicationV2 activity sheet header controls.
+     * Protected hook override (Template Method Pattern).
+     * @protected
+     * @override
+     * @returns {string[]} Array of hook names
+     */
+    _getActivitySheetHookNames() {
+        return [
+            "getHeaderControlsActivitySheet",
+            "getHeaderControlsActivitySheet5e",
+            "getHeaderControlsAttackSheet",
+            "getHeaderControlsCastSheet",
+            "getHeaderControlsCheckSheet",
+            "getHeaderControlsDamageSheet",
+            "getHeaderControlsEnchantSheet",
+            "getHeaderControlsForwardSheet",
+            "getHeaderControlsHealSheet",
+            "getHeaderControlsSaveSheet",
+            "getHeaderControlsSummonSheet",
+            "getHeaderControlsUtilitySheet"
+        ];
+    }
 }

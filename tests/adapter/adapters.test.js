@@ -1735,8 +1735,124 @@ test('REGRESSION: full attached and detached placement lifecycle preserves exact
     assert.equal(placedRegion.shapes[0].type, 'cone');
 });
 
+test('BaseSystemAdapter and Dnd5eSystemAdapter item and activity sheet & context menu integration', async (t) => {
+    const dndAdapter = new Dnd5eSystemAdapter();
 
+    // 1. Hook names contracts
+    const itemSheetHooks = dndAdapter._getItemSheetHookNames();
+    const actSheetHooks = dndAdapter._getActivitySheetHookNames();
+    const itemContextHooks = dndAdapter._getItemContextHookNames();
+    const actContextHooks = dndAdapter._getActivityContextHookNames();
 
+    assert.ok(itemSheetHooks.includes('getHeaderControlsItemSheet5e2'));
+    assert.ok(actSheetHooks.includes('getHeaderControlsActivitySheet5e'));
+    assert.ok(actSheetHooks.includes('getHeaderControlsAttackSheet'));
+    assert.ok(itemContextHooks.includes('dnd5e.getItemContextOptions'));
+    assert.ok(actContextHooks.includes('dnd5e.getActivityContextOptions'));
 
+    // Mock Item document
+    let openedConfig = null;
+    dndAdapter.openItemCrosshairConfig = (item, options = {}) => {
+        openedConfig = { item, options };
+    };
 
+    const mockItem = {
+        id: 'item-123',
+        documentName: 'Item',
+        isOwner: true,
+        flags: {
+            'bakana-better-crosshairs': {
+                activityConfigs: {
+                    'act-cast': { enabled: true, circleFile: 'jb2a.circle.blue' }
+                }
+            }
+        },
+        getFlag(mod, key) {
+            return this.flags?.[mod]?.[key] ?? null;
+        }
+    };
 
+    const mockActivity = {
+        id: 'act-cast',
+        item: mockItem
+    };
+
+    // 2. addItemSheetHeaderControl on item sheet
+    const itemControls = [];
+    dndAdapter.addItemSheetHeaderControl({ document: mockItem }, itemControls);
+    assert.equal(itemControls.length, 1);
+    assert.equal(itemControls[0].label, 'BBC');
+    assert.ok(itemControls[0].icon.includes('bbc-header-icon-custom'), 'Should have custom icon when activityConfigs is non-empty');
+    itemControls[0].onClick();
+    assert.equal(openedConfig.item.id, 'item-123');
+    assert.deepEqual(openedConfig.options, {});
+
+    // Duplicate prevention
+    dndAdapter.addItemSheetHeaderControl({ document: mockItem }, itemControls);
+    assert.equal(itemControls.length, 1, 'Should not add duplicate control');
+
+    // 3. addItemSheetHeaderControl forwarding to Activity Sheet
+    const forwardedControls = [];
+    dndAdapter.addItemSheetHeaderControl({ activity: mockActivity, item: mockItem }, forwardedControls);
+    assert.equal(forwardedControls.length, 1);
+    assert.equal(forwardedControls[0].label, 'BBC');
+    assert.ok(forwardedControls[0].icon.includes('bbc-header-icon-custom'));
+    forwardedControls[0].onClick();
+    assert.equal(openedConfig.item.id, 'item-123');
+    assert.equal(openedConfig.options.selectedScope, 'act-cast');
+
+    // 4. addActivitySheetHeaderControl directly
+    const actControls = [];
+    const mockActivityNoCustom = { id: 'act-save', item: mockItem };
+    dndAdapter.addActivitySheetHeaderControl({ activity: mockActivityNoCustom, item: mockItem }, actControls);
+    assert.equal(actControls.length, 1);
+    assert.equal(actControls[0].label, 'BBC');
+    assert.ok(!actControls[0].icon.includes('bbc-header-icon-custom'), 'Should not have custom badge if activity has no override');
+    actControls[0].onClick();
+    assert.equal(openedConfig.item.id, 'item-123');
+    assert.equal(openedConfig.options.selectedScope, 'act-save');
+
+    // 5. addItemContextOption
+    const itemContextOptions = [];
+    dndAdapter.addItemContextOption(mockItem, itemContextOptions);
+    assert.equal(itemContextOptions.length, 1);
+    assert.equal(itemContextOptions[0].name, 'BBC');
+    assert.ok(itemContextOptions[0].icon.includes('bbc-header-icon-custom'));
+    itemContextOptions[0].callback();
+    assert.equal(openedConfig.item.id, 'item-123');
+
+    // Duplicate prevention on item context menu
+    dndAdapter.addItemContextOption(mockItem, itemContextOptions);
+    assert.equal(itemContextOptions.length, 1);
+
+    // 6. addActivityContextOption
+    const actContextOptions = [];
+    dndAdapter.addActivityContextOption(mockActivity, actContextOptions);
+    assert.equal(actContextOptions.length, 1);
+    assert.equal(actContextOptions[0].name, 'BBC');
+    assert.ok(actContextOptions[0].icon.includes('bbc-header-icon-custom'));
+    actContextOptions[0].callback();
+    assert.equal(openedConfig.item.id, 'item-123');
+    assert.equal(openedConfig.options.selectedScope, 'act-cast');
+
+    // Duplicate prevention on activity context menu
+    dndAdapter.addActivityContextOption(mockActivity, actContextOptions);
+    assert.equal(actContextOptions.length, 1);
+
+    // 7. registerItemSheetHooks subscribes all categories
+    const registeredEvents = [];
+    const origHooksOn = globalThis.Hooks.on;
+    globalThis.Hooks.on = (event, fn) => {
+        registeredEvents.push(event);
+    };
+
+    try {
+        dndAdapter.registerItemSheetHooks();
+        for (const h of itemSheetHooks) assert.ok(registeredEvents.includes(h), `Item hook ${h} should be registered`);
+        for (const h of actSheetHooks) assert.ok(registeredEvents.includes(h), `Activity hook ${h} should be registered`);
+        for (const h of itemContextHooks) assert.ok(registeredEvents.includes(h), `Item context hook ${h} should be registered`);
+        for (const h of actContextHooks) assert.ok(registeredEvents.includes(h), `Activity context hook ${h} should be registered`);
+    } finally {
+        globalThis.Hooks.on = origHooksOn;
+    }
+});

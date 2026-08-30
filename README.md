@@ -85,7 +85,8 @@ Executed automatically inside the `createMeasuredTemplate` or `createRegion` hoo
 
 Bakana's Better Crosshairs supports item-level overrides stored directly on item flags (`bakana-better-crosshairs.customConfig`):
 
-- **Item Sheet Header Button**: When an item owner (player or GM) opens an Item Sheet, a **BBC** button (`<i class="fa-solid fa-crosshairs"></i> BBC`) appears in the sheet header bar. Clicking it opens up an item-specific configuration menu (`ItemCrosshairConfigApplication`).
+- **Item Sheet Header & Dropdown**: When an item owner (player or GM) opens an Item Sheet or right-clicks an item's edit dropdown, a **BBC** button (`<i class="fa-solid fa-crosshairs"></i> BBC`) appears. Clicking it opens up an item-specific configuration menu (`ItemCrosshairConfigApplication`).
+- **Activity Edit Menu Dropdown**: When viewing an activity's edit dropdown menu on an item sheet or opening an Activity Sheet, a **BBC** button / context menu option appears. Clicking it opens the configuration menu pre-selected directly to that specific activity's scope (`selectedScope: activity.id`).
 - **Live Status Badges**: The Item Configuration Menu displays dynamic badges to indicate how the item resolves its crosshairs:
   - **`CUSTOM`**: Custom overrides stored directly on the item's flags (`item.flags["bakana-better-crosshairs"].customConfig`).
   - **`AUTOREC`**: Inheriting settings from a registered Autorec workflow.
