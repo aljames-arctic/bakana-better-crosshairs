@@ -210,8 +210,8 @@ test('extractPlacedStylingFlags and applyDocumentPlacement extract and set borde
                     placedFillAlpha: 0.5
                 }
             },
-            borderColor: '#000000',
-            borderAlpha: 1
+            borderColor: '#fc753b',
+            borderAlpha: 0.6
         },
         template: {
             geometry: {

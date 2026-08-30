@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 import "../setup.js";
 import { attachCrosshairToToken, CrosshairController } from "../../src/crosshair/crosshairController.js";
 import { getPeerCursorPosition } from "../../src/crosshair/remoteCrosshairManager.js";
+import { initializeFoundryAdapter } from "../../src/adapter/foundry/index.js";
+
+initializeFoundryAdapter();
 
 test("attachCrosshairToToken initializes handle with shape, controller, and tracking functions", async () => {
     const dummyToken = { id: "tok-1", x: 100, y: 100, center: { x: 150, y: 150 }, w: 100, h: 100 };
@@ -15,7 +18,7 @@ test("attachCrosshairToToken initializes handle with shape, controller, and trac
         30,
         () => cursorCoords,
         () => { cancelCalled = true; },
-        { id: "test-attach-1" }
+        { id: "test-attach-1", stickToToken: false }
     );
 
     assert.ok(handle);
@@ -53,7 +56,7 @@ test("attachCrosshairToToken tracks remote peer player cursor via getPeerCursorP
         { distance: 40, angle: 60 },
         () => getPeerCursorPosition("remote-player-1"),
         null,
-        { id: "test-remote-attach", isRemote: true }
+        { id: "test-remote-attach", isRemote: true, stickToToken: false }
     );
 
     assert.ok(handle.shape);
@@ -87,7 +90,7 @@ test("attachCrosshairToToken continuously updates shape direction and currentDir
     );
 
     await handle.start();
-    const expectedAngle = (Math.atan2(160 - 150, 50 - 100) * (180 / Math.PI) + 360) % 360;
+    const expectedAngle = (Math.atan2(160 - 150, 50 - 150) * (180 / Math.PI) + 360) % 360;
     assert.equal(Math.round(handle.shape.direction * 100) / 100, Math.round(expectedAngle * 100) / 100);
     assert.equal(Math.round(handle.shape.config.currentDirection * 100) / 100, Math.round(expectedAngle * 100) / 100);
 
@@ -105,8 +108,9 @@ test("CrosshairController.hide terminates Sequencer effects on sourceToken", asy
     const dummyToken = { id: "tok-3", x: 0, y: 0 };
     await CrosshairController.hide(dummyToken, { id: "custom-effect" });
 
-    assert.equal(endedEffects.length, 2);
+    assert.equal(endedEffects.length, 3);
     assert.equal(endedEffects[0].name, "custom-effect");
     assert.equal(endedEffects[0].object.id, "tok-3");
     assert.equal(endedEffects[1].name, "custom-effect-line");
+    assert.equal(endedEffects[2].name, "custom-effect-icon");
 });

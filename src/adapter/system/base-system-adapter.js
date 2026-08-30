@@ -1,7 +1,6 @@
 import { MODULE_ID } from "../../lib/constants.js";
 import { log } from "../../lib/logger.js";
 import { slugify } from "../../lib/utils.js";
-import { ItemCrosshairConfigApplication } from "../../autorec/itemConfigMenu.js";
 
 /**
  * Base System Adapter for system-agnostic decision on whether to replace the default crosshair.
@@ -440,8 +439,9 @@ export class BaseSystemAdapter {
      * @param {Document} item - Target Item document
      * @returns {void} No return value
      */
-    openItemCrosshairConfig(item) {
+    async openItemCrosshairConfig(item) {
         if (!item) return;
+        const { ItemCrosshairConfigApplication } = await import("../../autorec/itemConfigMenu.js");
         new ItemCrosshairConfigApplication({ item }).render(true);
     }
 

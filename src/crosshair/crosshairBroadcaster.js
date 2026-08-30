@@ -138,6 +138,11 @@ export class CrosshairBroadcaster {
                 angle: updated.angle
             });
         }, BROADCAST_INTERVAL_MS);
+
+        if (typeof this.timer?.unref === "function") {
+            this.timer.unref();
+        }
+        shape.broadcastTimer = this.timer;
     }
 
     /**
@@ -149,6 +154,10 @@ export class CrosshairBroadcaster {
         if (this.timer) {
             clearInterval(this.timer);
             this.timer = null;
+        }
+        if (this.shape) {
+            this.shape.broadcastTimer = null;
+            this.shape.placementId = null;
         }
 
         this.lastState = null;

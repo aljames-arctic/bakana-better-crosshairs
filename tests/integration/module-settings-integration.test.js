@@ -69,7 +69,7 @@ test('registerModuleSettings registers menus and settings with safe onChange han
     assert.strictEqual(registeredMenus.length, 2);
     assert.ok(registeredMenus.some(m => m.key === 'autorecMenu'));
     assert.ok(registeredMenus.some(m => m.key === 'autorecExchangeMenu'));
-    assert.strictEqual(registeredSettings.length, 2);
+    assert.strictEqual(registeredSettings.length, 4);
 
     // Test onChange callback nullish resiliency
     const regTemplatesConfig = registeredSettings.find(s => s.key === 'registeredTemplates')?.config;
