@@ -92,3 +92,113 @@ export function registerModuleSettings() {
     });
 }
 
+/**
+ * Injects structured World, User, and Client section headers into SettingsConfig
+ * and ensures user-scoped menus (like autorecMenu) are grouped cleanly.
+ *
+ * @param {HTMLElement|jQuery} html - The settings config DOM element
+ * @param {object} [_app=null] - The settings application instance
+ */
+export function injectSettingsHeaders(html, _app = null) {
+    const root = html?.querySelector ? html : html?.[0];
+    if (!root?.querySelector) return;
+
+    // 1. Move autorecMenu (User Menu) into the User Settings section before showOtherPlayersCrosshairs if both are present
+    const autorecMenuSelector = [
+        `[data-key="${MODULE_ID}.autorecMenu"]`,
+        `[data-action="${MODULE_ID}.autorecMenu"]`,
+        `[data-setting-id="${MODULE_ID}.autorecMenu"]`,
+        `[data-entry-id="${MODULE_ID}.autorecMenu"]`,
+        `[data-key="autorecMenu"]`,
+        `[data-action="autorecMenu"]`
+    ].join(', ');
+    const showOtherPlayersSelector = [
+        `[name="${MODULE_ID}.showOtherPlayersCrosshairs"]`,
+        `[data-setting-id="${MODULE_ID}.showOtherPlayersCrosshairs"]`,
+        `[data-entry-id="${MODULE_ID}.showOtherPlayersCrosshairs"]`,
+        `[name="showOtherPlayersCrosshairs"]`
+    ].join(', ');
+
+    const autorecMenuEl = root.querySelector(autorecMenuSelector);
+    const showOtherPlayersEl = root.querySelector(showOtherPlayersSelector);
+
+    if (autorecMenuEl && showOtherPlayersEl) {
+        const autorecFg = autorecMenuEl.closest('.form-group') ?? autorecMenuEl;
+        const showOtherPlayersFg = showOtherPlayersEl.closest('.form-group') ?? showOtherPlayersEl;
+        if (autorecFg && showOtherPlayersFg && autorecFg.parentNode && autorecFg.parentNode === showOtherPlayersFg.parentNode) {
+            const next = autorecFg.nextElementSibling;
+            const isAlreadyBeforeClient = next === showOtherPlayersFg || (next?.classList?.contains('bbc-settings-section-header') && next?.dataset?.scope === 'client');
+            if (!isAlreadyBeforeClient) {
+                showOtherPlayersFg.parentNode.insertBefore(autorecFg, showOtherPlayersFg);
+            }
+        }
+    }
+
+    // 2. Insert section headers before the respective first setting in each scope
+    const sections = [
+        {
+            keys: ['autorecExchangeMenu', 'enableCrosshairBroadcasting'],
+            scope: 'world',
+            title: game.i18n?.localize?.('BBC.settingsSections.world') ?? 'World Settings',
+            icon: 'fas fa-globe'
+        },
+        {
+            keys: ['autorecMenu'],
+            scope: 'user',
+            title: game.i18n?.localize?.('BBC.settingsSections.user') ?? 'User Settings',
+            icon: 'fas fa-user'
+        },
+        {
+            keys: ['showOtherPlayersCrosshairs', 'logVerbosity'],
+            scope: 'client',
+            title: game.i18n?.localize?.('BBC.settingsSections.client') ?? 'Client Settings',
+            icon: 'fas fa-desktop'
+        }
+    ];
+
+    for (const section of sections) {
+        let targetEl = null;
+        for (const key of section.keys) {
+            const selector = [
+                `[data-setting-id="${MODULE_ID}.${key}"]`,
+                `[data-entry-id="${MODULE_ID}.${key}"]`,
+                `[name="${MODULE_ID}.${key}"]`,
+                `[data-key="${MODULE_ID}.${key}"]`,
+                `[data-action="${MODULE_ID}.${key}"]`,
+                `[data-setting-id="${key}"]`,
+                `[data-entry-id="${key}"]`,
+                `[name="${key}"]`,
+                `[data-key="${key}"]`,
+                `[data-action="${key}"]`
+            ].join(', ');
+            targetEl = root.querySelector(selector);
+            if (targetEl) break;
+        }
+
+        if (!targetEl) continue;
+
+        const formGroup = targetEl.closest('.form-group') ?? targetEl;
+        const parent = formGroup?.parentNode;
+        if (!formGroup || !parent) continue;
+
+        // Ensure we don't insert duplicate headers
+        const existing = parent.querySelector?.(`.bbc-settings-section-header[data-scope="${section.scope}"]`);
+        if (existing) continue;
+
+        const prev = formGroup.previousElementSibling;
+        if (prev?.classList?.contains('bbc-settings-section-header') && prev?.dataset?.scope === section.scope) {
+            continue;
+        }
+
+        const header = document.createElement('div');
+        header.className = 'bbc-settings-section-header';
+        header.dataset.scope = section.scope;
+        header.innerHTML = `<i class="${section.icon}"></i><span>${section.title}</span>`;
+        parent.insertBefore(header, formGroup);
+    }
+}
+
+Hooks.on('renderSettingsConfig', (app, html) => {
+    injectSettingsHeaders(html, app);
+});
+

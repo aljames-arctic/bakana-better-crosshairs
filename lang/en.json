@@ -1,5 +1,10 @@
 {
     "BBC": {
+        "settingsSections": {
+            "world": "World Settings",
+            "user": "User Settings",
+            "client": "Client Settings"
+        },
         "settings": {
             "autorecMenu": {
                 "name": "Autorecognition Menu",

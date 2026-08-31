@@ -1444,3 +1444,37 @@ details.bbc-diff-preview-box[open] .bbc-diff-chevron {
     background: rgba(51, 65, 85, 0.95);
     border-color: rgba(148, 163, 184, 0.5);
 }
+
+/* ==========================================================================
+   Module Settings Section Headers
+   ========================================================================== */
+
+.bbc-settings-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    margin: 1.5em 0 0.6em 0;
+    padding: 0.4em 0.75em;
+    background: rgba(99, 102, 241, 0.12);
+    border-left: 4px solid #6366f1;
+    border-radius: 4px;
+    font-size: 1.1em;
+    font-weight: 700;
+    color: inherit;
+    letter-spacing: 0.02em;
+}
+
+.bbc-settings-section-header i {
+    color: #818cf8;
+    font-size: 1em;
+}
+
+.bbc-settings-section-header span {
+    color: inherit;
+    font-weight: 700;
+}
+
+.bbc-settings-section-header:first-of-type {
+    margin-top: 0.4em;
+}
+
