@@ -4,7 +4,18 @@ const VERBOSITY_LEVELS = {
     'error': 1,
     'warn': 2,
     'info': 3,
-    'debug': 4
+    'debug': 4,
+    1: 1,
+    2: 2,
+    3: 3,
+    4: 4
+};
+
+export const GROUP_STYLES = {
+    'error': 'color: #ef4444; font-weight: bold;',
+    'warn': 'color: #f59e0b; font-weight: bold;',
+    'info': 'color: #ffffff; font-weight: bold;',
+    'debug': 'color: #38bdf8; font-weight: bold;'
 };
 
 let cachedVerbosity = null;
@@ -32,6 +43,49 @@ function getVerbosityLevel() {
 const groupStack = [];
 
 /**
+ * Ensure any pending (unstarted) groups on the stack are opened in the console
+ * before writing log messages, preventing empty groups when no log messages execute.
+ */
+function _ensureGroupsStarted() {
+    for (const entry of groupStack) {
+        if (entry.enabled && !entry.started) {
+            const style = GROUP_STYLES[entry.level] ?? GROUP_STYLES['info'];
+            const shouldCollapse = entry.forceCollapse ?? (entry.level === 'debug' || entry.level === 'info');
+            const consoleFn = (shouldCollapse && console.groupCollapsed) ? console.groupCollapsed : console.group;
+            consoleFn(`%c${MODULE_TLA} | ${entry.message}`, style, ...entry.groupArgs);
+            entry.started = true;
+        }
+    }
+}
+
+/**
+ * Internal helper to create a styled console group (or collapsed group)
+ * respecting the log verbosity level and highlighting with level-specific colors.
+ * Groups default to collapsed for 'info' and 'debug', and expanded for 'warn' and 'error'.
+ * Groups are lazy and only start in the console when a log message executes while open.
+ * @param {boolean|null} forceCollapse Explicit collapse override, or null to default (info & debug collapsed, warn & error expanded)
+ * @param {string} message Group label/message
+ * @param {...*} args Optional verbosity level as first argument, followed by group payload
+ */
+function _createGroup(forceCollapse, message, ...args) {
+    let level = 'info';
+    let groupArgs = args;
+    if (args.length > 0 && VERBOSITY_LEVELS[args[0]] !== undefined) {
+        level = args[0];
+        groupArgs = args.slice(1);
+    }
+    const enabled = getVerbosityLevel() >= VERBOSITY_LEVELS[level];
+    groupStack.push({
+        message,
+        level,
+        groupArgs,
+        forceCollapse,
+        started: false,
+        enabled
+    });
+}
+
+/**
  * Premium logging utility for Bakana's Better Crosshairs.
  * Supports levels: error, warn, info, debug, and console grouping.
  */
@@ -44,6 +98,7 @@ export const log = {
      */
     error(message, ...args) {
         if (getVerbosityLevel() >= VERBOSITY_LEVELS['error']) {
+            _ensureGroupsStarted();
             console.error(`${MODULE_TLA} | ${message}`, ...args);
         }
     },
@@ -56,6 +111,7 @@ export const log = {
      */
     warn(message, ...args) {
         if (getVerbosityLevel() >= VERBOSITY_LEVELS['warn']) {
+            _ensureGroupsStarted();
             console.warn(`${MODULE_TLA} | ${message}`, ...args);
         }
     },
@@ -68,6 +124,7 @@ export const log = {
      */
     info(message, ...args) {
         if (getVerbosityLevel() >= VERBOSITY_LEVELS['info']) {
+            _ensureGroupsStarted();
             console.log(`${MODULE_TLA} | ${message}`, ...args);
         }
     },
@@ -80,6 +137,7 @@ export const log = {
      */
     debug(message, ...args) {
         if (getVerbosityLevel() >= VERBOSITY_LEVELS['debug']) {
+            _ensureGroupsStarted();
             const timestamp = game?.time?.serverTime ?? 'Unknown';
             console.log(`%c[${MODULE_TLA} Debug (${timestamp})]`, "color: #38bdf8; font-weight: bold;", message, ...args);
         }
@@ -87,24 +145,36 @@ export const log = {
 
     /**
      * Start a console group if the current verbosity level allows.
-     * Optionally accepts a verbosity level string as the first extra argument.
+     * Groups default to collapsed for 'info' and 'debug', and expanded for 'warn' and 'error'.
+     * Groups are lazy and only start in the console when a log message executes while open.
      * @param {string} message - The label for the console group.
      * @param {...*} args - Optional verbosity level ('error'|'warn'|'info'|'debug') and additional arguments for console.group.
      * @returns {void}
      */
     group(message, ...args) {
-        let level = 'info';
-        let groupArgs = args;
-        if (args.length > 0 && VERBOSITY_LEVELS[args[0]] !== undefined) {
-            level = args[0];
-            groupArgs = args.slice(1);
-        }
-        if (getVerbosityLevel() >= VERBOSITY_LEVELS[level]) {
-            console.group(`${MODULE_TLA} | ${message}`, ...groupArgs);
-            groupStack.push(true);
-        } else {
-            groupStack.push(false);
-        }
+        _createGroup(null, message, ...args);
+    },
+
+    /**
+     * Start a collapsed console group if the current verbosity level allows.
+     * Groups are lazy and only start in the console when a log message executes while open.
+     * @param {string} message - The label for the console group.
+     * @param {...*} args - Optional verbosity level and additional arguments.
+     * @returns {void}
+     */
+    groupCollapsed(message, ...args) {
+        _createGroup(true, message, ...args);
+    },
+
+    /**
+     * Start an expanded console group if the current verbosity level allows.
+     * Groups are lazy and only start in the console when a log message executes while open.
+     * @param {string} message - The label for the console group.
+     * @param {...*} args - Optional verbosity level and additional arguments.
+     * @returns {void}
+     */
+    groupExpanded(message, ...args) {
+        _createGroup(false, message, ...args);
     },
 
     /**
@@ -112,7 +182,8 @@ export const log = {
      * @returns {void}
      */
     groupEnd() {
-        if (Boolean(groupStack.pop())) {
+        const group = groupStack.pop();
+        if (group?.started) {
             console.groupEnd();
         }
     },
@@ -120,7 +191,7 @@ export const log = {
     /**
      * Dynamically update the cached verbosity level.
      * Called by the settings onChange callback.
-     * @param {string} level - The new verbosity level key.
+     * @param {string|number} level - The new verbosity level key or number.
      * @returns {void}
      */
     setVerbosity(level) {
