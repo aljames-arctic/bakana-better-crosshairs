@@ -36,7 +36,7 @@
                 }
             },
             "enableCrosshairBroadcasting": {
-                "name": "Enable Crosshair Broadcasting (GM)",
+                "name": "Enable Crosshair Broadcasting",
                 "hint": "Allows the GM to enable real-time crosshair broadcasting to synchronize crosshair placement visuals across active player clients."
             },
             "showOtherPlayersCrosshairs": {

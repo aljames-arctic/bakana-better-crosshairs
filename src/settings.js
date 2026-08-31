@@ -20,7 +20,7 @@ export function registerModuleSettings() {
         hint: 'BBC.settings.autorecMenu.hint',
         icon: 'fa-solid fa-wand-magic-sparkles',
         type: AutorecMenuApplication,
-        restricted: false
+        restricted: true
     });
 
     game.settings.registerMenu(MODULE_ID, 'autorecExchangeMenu', {
@@ -49,6 +49,26 @@ export function registerModuleSettings() {
         }
     });
 
+    game.settings.register(MODULE_ID, 'enableCrosshairBroadcasting', {
+        name: 'BBC.settings.enableCrosshairBroadcasting.name',
+        hint: 'BBC.settings.enableCrosshairBroadcasting.hint',
+        scope: 'world',
+        config: true,
+        restricted: true,
+        type: Boolean,
+        default: true
+    });
+
+    game.settings.register(MODULE_ID, 'showOtherPlayersCrosshairs', {
+        name: 'BBC.settings.showOtherPlayersCrosshairs.name',
+        hint: 'BBC.settings.showOtherPlayersCrosshairs.hint',
+        scope: 'client',
+        config: true,
+        restricted: false,
+        type: Boolean,
+        default: true
+    });
+
     game.settings.register(MODULE_ID, 'logVerbosity', {
         name: 'BBC.settings.logVerbosity.name',
         hint: 'BBC.settings.logVerbosity.hint',
@@ -70,31 +90,10 @@ export function registerModuleSettings() {
          */
         onChange: (value) => log.setVerbosity(value ?? 'warn')
     });
-
-    game.settings.register(MODULE_ID, 'enableCrosshairBroadcasting', {
-        name: 'BBC.settings.enableCrosshairBroadcasting.name',
-        hint: 'BBC.settings.enableCrosshairBroadcasting.hint',
-        scope: 'world',
-        config: true,
-        restricted: true,
-        type: Boolean,
-        default: true
-    });
-
-    game.settings.register(MODULE_ID, 'showOtherPlayersCrosshairs', {
-        name: 'BBC.settings.showOtherPlayersCrosshairs.name',
-        hint: 'BBC.settings.showOtherPlayersCrosshairs.hint',
-        scope: 'client',
-        config: true,
-        restricted: false,
-        type: Boolean,
-        default: true
-    });
 }
 
 /**
- * Injects structured World, User, and Client section headers into SettingsConfig
- * and ensures user-scoped menus (like autorecMenu) are grouped cleanly.
+ * Injects structured World, User, and Client section headers into SettingsConfig.
  *
  * @param {HTMLElement|jQuery} html - The settings config DOM element
  * @param {object} [_app=null] - The settings application instance
@@ -103,33 +102,30 @@ export function injectSettingsHeaders(html, _app = null) {
     const root = html?.querySelector ? html : html?.[0];
     if (!root?.querySelector) return;
 
-    // 1. Move autorecMenu (User Menu) into the User Settings section before showOtherPlayersCrosshairs if both are present
-    const autorecMenuSelector = [
-        `[data-key="${MODULE_ID}.autorecMenu"]`,
-        `[data-action="${MODULE_ID}.autorecMenu"]`,
-        `[data-setting-id="${MODULE_ID}.autorecMenu"]`,
-        `[data-entry-id="${MODULE_ID}.autorecMenu"]`,
-        `[data-key="autorecMenu"]`,
-        `[data-action="autorecMenu"]`
-    ].join(', ');
+    // 1. Ensure logVerbosity (Client Setting) is placed after showOtherPlayersCrosshairs (User Setting)
     const showOtherPlayersSelector = [
         `[name="${MODULE_ID}.showOtherPlayersCrosshairs"]`,
         `[data-setting-id="${MODULE_ID}.showOtherPlayersCrosshairs"]`,
         `[data-entry-id="${MODULE_ID}.showOtherPlayersCrosshairs"]`,
         `[name="showOtherPlayersCrosshairs"]`
     ].join(', ');
+    const logVerbositySelector = [
+        `[name="${MODULE_ID}.logVerbosity"]`,
+        `[data-setting-id="${MODULE_ID}.logVerbosity"]`,
+        `[data-entry-id="${MODULE_ID}.logVerbosity"]`,
+        `[name="logVerbosity"]`
+    ].join(', ');
 
-    const autorecMenuEl = root.querySelector(autorecMenuSelector);
     const showOtherPlayersEl = root.querySelector(showOtherPlayersSelector);
+    const logVerbosityEl = root.querySelector(logVerbositySelector);
 
-    if (autorecMenuEl && showOtherPlayersEl) {
-        const autorecFg = autorecMenuEl.closest('.form-group') ?? autorecMenuEl;
+    if (showOtherPlayersEl && logVerbosityEl) {
         const showOtherPlayersFg = showOtherPlayersEl.closest('.form-group') ?? showOtherPlayersEl;
-        if (autorecFg && showOtherPlayersFg && autorecFg.parentNode && autorecFg.parentNode === showOtherPlayersFg.parentNode) {
-            const next = autorecFg.nextElementSibling;
-            const isAlreadyBeforeClient = next === showOtherPlayersFg || (next?.classList?.contains('bbc-settings-section-header') && next?.dataset?.scope === 'client');
-            if (!isAlreadyBeforeClient) {
-                showOtherPlayersFg.parentNode.insertBefore(autorecFg, showOtherPlayersFg);
+        const logFg = logVerbosityEl.closest('.form-group') ?? logVerbosityEl;
+        if (showOtherPlayersFg && logFg && showOtherPlayersFg.parentNode && showOtherPlayersFg.parentNode === logFg.parentNode) {
+            const parentChildren = Array.from(showOtherPlayersFg.parentNode.children);
+            if (parentChildren.indexOf(logFg) < parentChildren.indexOf(showOtherPlayersFg)) {
+                showOtherPlayersFg.parentNode.insertBefore(logFg, showOtherPlayersFg.nextElementSibling);
             }
         }
     }
@@ -137,19 +133,19 @@ export function injectSettingsHeaders(html, _app = null) {
     // 2. Insert section headers before the respective first setting in each scope
     const sections = [
         {
-            keys: ['autorecExchangeMenu', 'enableCrosshairBroadcasting'],
+            keys: ['autorecMenu', 'autorecExchangeMenu', 'enableCrosshairBroadcasting'],
             scope: 'world',
             title: game.i18n?.localize?.('BBC.settingsSections.world') ?? 'World Settings',
             icon: 'fas fa-globe'
         },
         {
-            keys: ['autorecMenu'],
+            keys: ['showOtherPlayersCrosshairs'],
             scope: 'user',
             title: game.i18n?.localize?.('BBC.settingsSections.user') ?? 'User Settings',
             icon: 'fas fa-user'
         },
         {
-            keys: ['showOtherPlayersCrosshairs', 'logVerbosity'],
+            keys: ['logVerbosity'],
             scope: 'client',
             title: game.i18n?.localize?.('BBC.settingsSections.client') ?? 'Client Settings',
             icon: 'fas fa-desktop'
