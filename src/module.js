@@ -107,6 +107,11 @@ Hooks.once('ready', () => {
     Hooks.on('canvasReady', () => {
         remoteCrosshairManager.clear();
     });
+    Hooks.on('userConnected', (user, connected) => {
+        if (!connected && user?.id) {
+            remoteCrosshairManager.clearForUser(user.id);
+        }
+    });
     log.info(`${MODULE_NAME} module ready`);
 });
 

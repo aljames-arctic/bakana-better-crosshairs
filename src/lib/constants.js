@@ -22,3 +22,15 @@ export const MODULE_TLA = 'BBC';
  */
 export const BROADCAST_INTERVAL_MS = 200;
 
+/**
+ * Heartbeat cadence in milliseconds (5 seconds) for periodic signals when crosshair is stationary.
+ * @type {number}
+ */
+export const BROADCAST_HEARTBEAT_INTERVAL_MS = 5000;
+
+/**
+ * Timeout duration in milliseconds (10 seconds) after which an inactive remote crosshair self-removes.
+ * @type {number}
+ */
+export const REMOTE_CROSSHAIR_TIMEOUT_MS = 10000;
+

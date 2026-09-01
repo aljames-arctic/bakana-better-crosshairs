@@ -1,4 +1,5 @@
-import { MODULE_ID, BROADCAST_INTERVAL_MS } from "../lib/constants.js";
+import { MODULE_ID, BROADCAST_INTERVAL_MS, REMOTE_CROSSHAIR_TIMEOUT_MS } from "../lib/constants.js";
+import { socketlib } from "../integration/socketlib.js";
 import { log } from "../lib/logger.js";
 import { crosshairAdapter } from "../adapter/index.js";
 import { alignCrosshairAndEffects, _calculateAngleFromOrigin } from "./util.js";
@@ -202,6 +203,9 @@ export class RemoteCrosshairVisual {
         this.shapeType = String(payload.shapeType ?? "circle");
         this.effectName = `remote-crosshair-${this.senderUserId}-${this.placementId}`;
         this.isDestroyed = false;
+        this.timeoutMs = Number(payload.timeoutMs ?? REMOTE_CROSSHAIR_TIMEOUT_MS);
+        this.timeoutTimer = null;
+        this.onTimeout = null;
 
         this.rawX = Number(payload.originX ?? payload.x ?? 0);
         this.rawY = Number(payload.originY ?? payload.y ?? 0);
@@ -253,6 +257,10 @@ export class RemoteCrosshairVisual {
             }
         }
 
+        if (!this.timeoutTimer && this.timeoutMs > 0) {
+            this.resetTimeout();
+        }
+
         if (typeof Sequencer === "undefined") return;
 
         const effectFile = this.shape?.getGraphicFile?.() ?? this.config.file;
@@ -294,11 +302,52 @@ export class RemoteCrosshairVisual {
     }
 
     /**
+     * Resets or starts the inactivity timeout timer for automatic self-removal.
+     * @param {Function|null} [onTimeout=null] - Optional callback invoked prior to destruction on timeout
+     * @returns {void}
+     */
+    resetTimeout(onTimeout = null) {
+        if (this.timeoutTimer) {
+            clearTimeout(this.timeoutTimer);
+            this.timeoutTimer = null;
+        }
+
+        if (onTimeout) {
+            this.onTimeout = onTimeout;
+        }
+
+        if (this.isDestroyed || this.timeoutMs <= 0) return;
+
+        this.timeoutTimer = setTimeout(async () => {
+            if (this.isDestroyed) return;
+            log.warn(`Remote crosshair placement "${this.placementId}" timed out after ${this.timeoutMs}ms without updates from caster "${this.senderUserId}". Self-removing.`);
+            try {
+                await this.onTimeout?.(this);
+            } catch (e) {
+                log.debug("RemoteCrosshairVisual.resetTimeout | Error executing onTimeout callback:", e);
+            }
+            await this.destroy();
+        }, this.timeoutMs);
+
+        this.timeoutTimer?.unref?.();
+    }
+
+    /**
+     * Handle incoming heartbeat signal from caster to refresh inactivity timeout.
+     * @returns {void}
+     */
+    heartbeat() {
+        if (this.isDestroyed) return;
+        this.resetTimeout();
+    }
+
+    /**
      * Update target position, rotation, and size properties on active remote Sequencer effects.
      * @param {Object} updatePayload - Socket payload containing updated coordinate and transform properties
      * @returns {void}
      */
     update(updatePayload) {
+        this.resetTimeout();
         if (this.isDestroyed || typeof Sequencer === "undefined") return;
 
         const ox = Number(updatePayload.originX ?? updatePayload.x);
@@ -379,6 +428,11 @@ export class RemoteCrosshairVisual {
         if (this.isDestroyed) return;
         this.isDestroyed = true;
 
+        if (this.timeoutTimer) {
+            clearTimeout(this.timeoutTimer);
+            this.timeoutTimer = null;
+        }
+
         if (typeof Sequencer !== "undefined" && Sequencer.EffectManager) {
             try {
                 await Sequencer.EffectManager.endEffects({ name: this.effectName });
@@ -422,13 +476,19 @@ class RemoteCrosshairManagerClass {
      * @returns {Promise<void>}
      */
     async handleSocketMessage(payload) {
-        if (!payload || typeof payload !== "object") return;
+        if (!payload?.type) return;
         const type = String(payload.type ?? "");
         if (!type.startsWith("CROSSHAIR_")) return;
 
         const senderUserId = String(payload.senderUserId ?? "");
         log.debug(`[Bakana Remote Socket] Received "${type}" payload from sender "${senderUserId}":`, payload);
         if (!this.shouldRenderRemote(senderUserId)) return;
+
+        if (type === "CROSSHAIR_CLEAR") {
+            log.info(`[Bakana Remote Socket] Received CROSSHAIR_CLEAR from sender "${senderUserId}". Clearing remote crosshairs.`);
+            await this.clear();
+            return;
+        }
 
         const placementId = String(payload.placementId ?? "");
         if (!placementId) return;
@@ -441,11 +501,20 @@ class RemoteCrosshairManagerClass {
 
             const visual = new RemoteCrosshairVisual(payload);
             this.remoteCrosshairs.set(placementId, visual);
+            visual.resetTimeout(async (timedOutVisual) => {
+                this.remoteCrosshairs.delete(timedOutVisual.placementId);
+            });
             await visual.create();
         } else if (type === "CROSSHAIR_UPDATE") {
             const visual = this.remoteCrosshairs.get(placementId);
             if (visual) {
                 visual.update(payload);
+            }
+        } else if (type === "CROSSHAIR_HEARTBEAT") {
+            const visual = this.remoteCrosshairs.get(placementId);
+            if (visual) {
+                log.debug(`[Bakana Remote Socket] Heartbeat received for placement "${placementId}" from sender "${senderUserId}".`);
+                visual.heartbeat();
             }
         } else if (type === "CROSSHAIR_END") {
             const visual = this.remoteCrosshairs.get(placementId);
@@ -479,14 +548,42 @@ class RemoteCrosshairManagerClass {
     }
 
     /**
-     * Clear all active remote crosshairs (e.g. on scene transitions or disconnects).
+     * Remove all remote crosshairs belonging to a specific user (e.g. on disconnect).
+     * @param {string} userId - User ID whose remote crosshairs should be cleared
      * @returns {Promise<void>}
      */
-    async clear() {
+    async clearForUser(userId) {
+        if (!userId) return;
+        const toDelete = [];
+        for (const [id, visual] of this.remoteCrosshairs.entries()) {
+            if (visual.senderUserId === userId) {
+                toDelete.push(id);
+                await visual.destroy();
+            }
+        }
+        for (const id of toDelete) {
+            this.remoteCrosshairs.delete(id);
+        }
+    }
+
+    /**
+     * Clear all active remote crosshairs (e.g. on scene transitions, disconnects, or manual GM action).
+     * @param {Object} [options={}] - Options dictionary
+     * @param {boolean} [options.broadcast=false] - Whether to broadcast clear event to peer clients
+     * @returns {Promise<void>}
+     */
+    async clear(options = {}) {
         for (const [id, visual] of this.remoteCrosshairs.entries()) {
             await visual.destroy();
         }
         this.remoteCrosshairs.clear();
+
+        if (options?.broadcast && game?.socket) {
+            socketlib.emit({
+                type: "CROSSHAIR_CLEAR",
+                senderUserId: game?.user?.id ?? ""
+            });
+        }
     }
 }
 

@@ -1,4 +1,4 @@
-import { MODULE_ID, BROADCAST_INTERVAL_MS } from "../lib/constants.js";
+import { MODULE_ID, BROADCAST_INTERVAL_MS, BROADCAST_HEARTBEAT_INTERVAL_MS } from "../lib/constants.js";
 import { socketlib } from "../integration/socketlib.js";
 import { log } from "../lib/logger.js";
 
@@ -14,6 +14,9 @@ export class CrosshairBroadcaster {
         this.timer = null;
         this.placementId = null;
         this.lastState = null;
+        this.lastBroadcastTime = 0;
+        this.intervalMs = BROADCAST_INTERVAL_MS;
+        this.heartbeatIntervalMs = BROADCAST_HEARTBEAT_INTERVAL_MS;
     }
 
     /**
@@ -101,6 +104,7 @@ export class CrosshairBroadcaster {
         };
 
         this.lastState = { ...live };
+        this.lastBroadcastTime = Date.now();
         socketlib.emit(initialPayload);
 
         this.timer = setInterval(() => {
@@ -118,31 +122,50 @@ export class CrosshairBroadcaster {
                 updated.width !== last.width ||
                 updated.angle !== last.angle;
 
-            if (!hasChanged) return;
+            const now = Date.now();
+            if (hasChanged) {
+                this.lastState = { ...updated };
+                this.lastBroadcastTime = now;
+                socketlib.emit({
+                    type: "CROSSHAIR_UPDATE",
+                    placementId: this.placementId,
+                    senderUserId: game.user.id,
+                    originX: updated.originX,
+                    originY: updated.originY,
+                    cursorX: updated.cursorX,
+                    cursorY: updated.cursorY,
+                    x: updated.originX,
+                    y: updated.originY,
+                    direction: updated.direction,
+                    rotationRad: (updated.direction ?? 0) * (Math.PI / 180),
+                    distance: updated.distance,
+                    width: updated.width,
+                    angle: updated.angle
+                });
+                return;
+            }
 
-            this.lastState = { ...updated };
-            socketlib.emit({
-                type: "CROSSHAIR_UPDATE",
-                placementId: this.placementId,
-                senderUserId: game.user.id,
-                originX: updated.originX,
-                originY: updated.originY,
-                cursorX: updated.cursorX,
-                cursorY: updated.cursorY,
-                x: updated.originX,
-                y: updated.originY,
-                direction: updated.direction,
-                rotationRad: (updated.direction ?? 0) * (Math.PI / 180),
-                distance: updated.distance,
-                width: updated.width,
-                angle: updated.angle
-            });
-        }, BROADCAST_INTERVAL_MS);
+            if (now - (this.lastBroadcastTime ?? 0) >= this.heartbeatIntervalMs) {
+                this.sendHeartbeat();
+            }
+        }, this.intervalMs);
 
-        if (typeof this.timer?.unref === "function") {
-            this.timer.unref();
-        }
+        this.timer?.unref?.();
         shape.broadcastTimer = this.timer;
+    }
+
+    /**
+     * Emit a periodic heartbeat signal to peer clients to refresh remote crosshair expiration.
+     * @returns {void}
+     */
+    sendHeartbeat() {
+        if (!this.placementId || !game?.user?.id) return;
+        this.lastBroadcastTime = Date.now();
+        socketlib.emit({
+            type: "CROSSHAIR_HEARTBEAT",
+            placementId: this.placementId,
+            senderUserId: game.user.id
+        });
     }
 
     /**
@@ -161,6 +184,7 @@ export class CrosshairBroadcaster {
         }
 
         this.lastState = null;
+        this.lastBroadcastTime = 0;
 
         if (this.placementId) {
             const shape = this.shape;

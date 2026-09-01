@@ -4,6 +4,7 @@ import { ray, RayCrosshairShape } from "./ray.js";
 import { square, SquareCrosshairShape } from "./square.js";
 import { BaseCrosshairShape } from "./base.js";
 import { CrosshairController, attachCrosshairToToken } from "./crosshairController.js";
+import { remoteCrosshairManager } from "./remoteCrosshairManager.js";
 
 /**
  * Normalizes polymorphic arguments passed to the play entry point into a standard builder, target, and configuration object.
@@ -53,6 +54,8 @@ export const crosshair = {
     },
     attachToToken: attachCrosshairToToken,
     hideTokenCrosshair: CrosshairController.hide,
+    clear: (options) => remoteCrosshairManager.clear(options),
+    clearRemote: (options) => remoteCrosshairManager.clear(options),
     cone,
     circle,
     ray,
@@ -68,6 +71,7 @@ export {
     ConeCrosshairShape,
     RayCrosshairShape,
     SquareCrosshairShape,
+    remoteCrosshairManager,
 };
 
 
