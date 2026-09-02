@@ -212,6 +212,8 @@ export class RemoteCrosshairVisual {
         this.cursorX = Number(payload.cursorX ?? this.rawX);
         this.cursorY = Number(payload.cursorY ?? this.rawY);
         this.rawDirection = Number(payload.direction ?? 0);
+        this.icon = payload.icon ?? null;
+        this.showItemIcon = payload.showItemIcon !== false;
 
         this.config = {
             id: this.effectName,
@@ -228,6 +230,8 @@ export class RemoteCrosshairVisual {
             direction: payload.direction,
             x: this.rawX,
             y: this.rawY,
+            icon: this.icon,
+            showItemIcon: this.showItemIcon,
             isRemote: true
         };
 
@@ -264,31 +268,37 @@ export class RemoteCrosshairVisual {
         if (typeof Sequencer === "undefined") return;
 
         const effectFile = this.shape?.getGraphicFile?.() ?? this.config.file;
-        if (!effectFile) return;
+        const iconFile = this.icon;
+        const hasIcon = Boolean(this.showItemIcon && iconFile);
+
+        if (!effectFile && !hasIcon) return;
 
         const { widthPx, heightPx, factor, gridUnits } = this.shape?.getGraphicDimensions?.() ?? { widthPx: 100, heightPx: 100, factor: 1, gridUnits: false };
         const deg = this.rawDirection ?? 0;
         const rad = deg * (Math.PI / 180);
 
         const seq = new Sequence();
-        seq.effect()
-            .name(this.effectName)
-            .file(effectFile)
-            .atLocation({ x: this.rawX, y: this.rawY })
-            .rotate(deg)
-            .anchor(this.shape?.animationAnchor ?? { x: 0.5, y: 0.5 })
-            .size({ width: widthPx * factor, height: heightPx * factor }, { gridUnits: Boolean(gridUnits) })
-            .opacity(0.8)
-            .belowTokens()
-            .locally()
-            .persist();
 
-        if (this.shape?.showItemIcon && this.shape?.icon) {
+        if (effectFile) {
+            seq.effect()
+                .name(this.effectName)
+                .file(effectFile)
+                .atLocation({ x: this.rawX, y: this.rawY })
+                .rotate(deg)
+                .anchor(this.shape?.animationAnchor ?? { x: 0.5, y: 0.5 })
+                .size({ width: widthPx * factor, height: heightPx * factor }, { gridUnits: Boolean(gridUnits) })
+                .opacity(0.8)
+                .belowTokens()
+                .locally()
+                .persist();
+        }
+
+        if (hasIcon) {
             const gridSize = canvas?.grid?.size ?? canvas?.dimensions?.size ?? 100;
             const iconSize = Math.max(gridSize * 0.5, 36);
             seq.effect()
                 .name(`${this.effectName}-icon`)
-                .file(this.shape.icon)
+                .file(iconFile)
                 .atLocation({ x: this.rawX, y: this.rawY })
                 .size(iconSize, { gridUnits: false })
                 .anchor({ x: 0.5, y: 0.5 })

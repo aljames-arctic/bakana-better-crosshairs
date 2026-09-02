@@ -286,6 +286,7 @@ globalThis.Sequencer = {
         rotation(r) { return this; }
         opacity(o) { return this; }
         belowTokens() { return this; }
+        aboveLighting() { return this; }
         locally() { return this; }
         persist() { return this; }
         crosshair(pos) { return this; }

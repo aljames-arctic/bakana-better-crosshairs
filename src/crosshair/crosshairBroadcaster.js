@@ -95,6 +95,8 @@ export class CrosshairBroadcaster {
             tokenId: shape.token?.id ?? null,
             stickToToken: Boolean(shape.stickToToken && shape.token),
             showLine: Boolean(shape.showLine),
+            icon: shape.icon ?? null,
+            showItemIcon: shape.showItemIcon !== false,
             originX: live.originX,
             originY: live.originY,
             cursorX: live.cursorX,

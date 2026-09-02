@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { TokenGeometry } from '../../src/lib/tokenGeometry.js';
 import { CrosshairRangeOverlay } from '../../src/crosshair/rangeOverlay.js';
 import { CrosshairBroadcaster } from '../../src/crosshair/crosshairBroadcaster.js';
+import { socketlib } from '../../src/integration/socketlib.js';
 
 test('TokenGeometry extracts canonical bounds, centers, and angle calculations', () => {
     const mockToken = {
@@ -109,4 +110,68 @@ test('CrosshairBroadcaster extracts live state and manages socket broadcasts', (
     assert.doesNotThrow(() => {
         broadcaster.stop('placed');
     });
+});
+
+test('CrosshairBroadcaster transmits icon and showItemIcon in CROSSHAIR_START payload', () => {
+    let broadcastedPayload = null;
+    const origEmit = socketlib.emit;
+    socketlib.emit = (payload) => { broadcastedPayload = payload; };
+
+    try {
+        const mockShapeWithIcon = {
+            id: 'test-broadcaster-icon-shape',
+            type: 'circle',
+            x: 200,
+            y: 200,
+            direction: 0,
+            distance: 20,
+            icon: 'icons/magic/fireball.webp',
+            showItemIcon: true,
+            getGraphicFile: () => 'path/to/circle.png'
+        };
+
+        const broadcaster = new CrosshairBroadcaster(mockShapeWithIcon);
+        broadcaster.start();
+
+        assert.ok(broadcastedPayload);
+        assert.equal(broadcastedPayload.type, 'CROSSHAIR_START');
+        assert.equal(broadcastedPayload.icon, 'icons/magic/fireball.webp');
+        assert.equal(broadcastedPayload.showItemIcon, true);
+
+        broadcaster.stop('placed');
+    } finally {
+        socketlib.emit = origEmit;
+    }
+});
+
+test('CrosshairBroadcaster passes null icon and honors showItemIcon false in payload', () => {
+    let broadcastedPayload = null;
+    const origEmit = socketlib.emit;
+    socketlib.emit = (payload) => { broadcastedPayload = payload; };
+
+    try {
+        const mockShapeWithoutIcon = {
+            id: 'test-broadcaster-no-icon-shape',
+            type: 'circle',
+            x: 200,
+            y: 200,
+            direction: 0,
+            distance: 20,
+            icon: null,
+            showItemIcon: false,
+            getGraphicFile: () => 'path/to/circle.png'
+        };
+
+        const broadcaster = new CrosshairBroadcaster(mockShapeWithoutIcon);
+        broadcaster.start();
+
+        assert.ok(broadcastedPayload);
+        assert.equal(broadcastedPayload.type, 'CROSSHAIR_START');
+        assert.equal(broadcastedPayload.icon, null);
+        assert.equal(broadcastedPayload.showItemIcon, false);
+
+        broadcaster.stop('placed');
+    } finally {
+        socketlib.emit = origEmit;
+    }
 });
