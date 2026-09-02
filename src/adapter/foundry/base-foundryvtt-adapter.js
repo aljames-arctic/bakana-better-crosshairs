@@ -6,6 +6,7 @@ import { MODULE_ID } from "../../lib/constants.js";
 import { DEFAULT_AUTOREC_ENTRY, autorecManager } from "../../autorec/autorecManager.js";
 import { CrosshairConfiguration } from "../../autorec/CrosshairConfiguration.js";
 import { notify } from "../../lib/notifier.js";
+import { getUserColor } from "../../lib/utils.js";
 import { runConcurrentScript, activePlacementTracker, shouldStickToToken } from "../../crosshair/util.js";
 import { PendingPlacementSession } from "./pendingPlacementSession.js";
 import { PixiGraphicsStyler } from "./pixiGraphicsStyler.js";
@@ -166,7 +167,9 @@ export class BaseFoundryVTTAdapter {
                     itemName: context.itemName,
                     stickToToken,
                     item: context.item,
-                    activity: context.activity
+                    activity: context.activity,
+                    placedFillColor: defaultEntry.placedFillColor ?? getUserColor("#000000"),
+                    placedFillAlpha: defaultEntry.placedFillAlpha ?? 0.5
                 };
             }
         }
@@ -413,10 +416,18 @@ export class BaseFoundryVTTAdapter {
      * @returns {{placedFillColor?: string, placedFillAlpha?: number, placedBorderColor?: string, placedBorderAlpha?: number, flags: Object}} Extracted placement styling properties and flags
      */
     extractPlacedStylingFlags(config = {}) {
-        const placedFillColor = config.placedFillColor;
-        const placedFillAlpha = config.placedFillAlpha;
-        const placedBorderColor = config.placedBorderColor;
-        const placedBorderAlpha = config.placedBorderAlpha;
+        const userColor = getUserColor("#000000");
+        const hasExplicitDisable = config.enablePlacedStyling === false;
+        const placedFillColor = (!hasExplicitDisable && config.placedFillColor !== undefined && config.placedFillColor !== null)
+            ? config.placedFillColor
+            : userColor;
+        const placedFillAlpha = (!hasExplicitDisable && config.placedFillAlpha !== undefined && config.placedFillAlpha !== null)
+            ? config.placedFillAlpha
+            : 0.5;
+        const placedBorderColor = config.placedBorderColor ?? "#ffffff";
+        const placedBorderAlpha = (config.placedBorderAlpha !== undefined && config.placedBorderAlpha !== null)
+            ? config.placedBorderAlpha
+            : 0.25;
         const postPlacementCode = config.postPlacementCode ?? "";
 
         const flags = {

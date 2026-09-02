@@ -43,3 +43,28 @@ test('CrosshairConfiguration.toJSON serializes properties cleanly for persistenc
     assert.equal(json.showItemIcon, false);
     assert.equal(typeof json, 'object');
 });
+
+test('CrosshairConfiguration and DEFAULT_AUTOREC_ENTRY default placedFillAlpha to 0.5 and placedFillColor to user color', () => {
+    const origColor = globalThis.game?.user?.color;
+    try {
+        if (!globalThis.game) globalThis.game = { user: {} };
+        if (!globalThis.game.user) globalThis.game.user = {};
+        globalThis.game.user.color = '#00bcd4';
+
+        const config = new CrosshairConfiguration();
+        assert.equal(config.placedFillAlpha, 0.5, 'CrosshairConfiguration placedFillAlpha must default to 50% (0.5)');
+        assert.equal(config.placedFillColor, '#00bcd4', 'CrosshairConfiguration placedFillColor must default to game.user.color');
+        assert.equal(config.toJSON().placedFillAlpha, 0.5);
+        assert.equal(config.toJSON().placedFillColor, '#00bcd4');
+
+        const fromEmpty = CrosshairConfiguration.fromSource({});
+        assert.equal(fromEmpty.placedFillAlpha, 0.5);
+        assert.equal(fromEmpty.placedFillColor, '#00bcd4');
+    } finally {
+        if (globalThis.game?.user) {
+            if (origColor !== undefined) globalThis.game.user.color = origColor;
+            else delete globalThis.game.user.color;
+        }
+    }
+});
+

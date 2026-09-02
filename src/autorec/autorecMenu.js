@@ -2,7 +2,7 @@ import { MODULE_ID } from "../lib/constants.js";
 import { DEFAULT_AUTOREC_ENTRY, autorecManager, computeRegistrationKey } from "./autorecManager.js";
 import { systemAdapter } from "../adapter/system/index.js";
 import { promptJsonFileImport } from "./autorecExchange.js";
-import { localize, notify } from "../lib/utils.js";
+import { localize, notify, getUserColor } from "../lib/utils.js";
 import { log } from "../lib/logger.js";
 import { BaseCrosshairMenuApplication, normalizeHexColor } from "./BaseCrosshairMenuApplication.js";
 
@@ -49,6 +49,7 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
      */
     async _prepareContext(options) {
         const rawEntries = autorecManager.getAllEntries();
+        const defaultUserColor = getUserColor("#000000");
         const entries = rawEntries.map(e => ({
             ...e,
             circleFile: e.circleFile ?? DEFAULT_AUTOREC_ENTRY.circleFile,
@@ -59,11 +60,11 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
             persist: Boolean(e.persist),
             borderColorPicker: normalizeHexColor(e.borderColor, "#ffffff"),
             fillColorPicker: normalizeHexColor(e.fillColor, "#000000"),
-            placedFillColorPicker: normalizeHexColor(e.placedFillColor, "#000000"),
+            placedFillColorPicker: normalizeHexColor(e.placedFillColor, defaultUserColor),
             placedBorderColorPicker: normalizeHexColor(e.placedBorderColor, "#000000"),
             hasPlacedStyling: Boolean(
-                (e.placedFillColor && e.placedFillColor !== "#000000") ||
-                (e.placedFillAlpha !== undefined && e.placedFillAlpha !== 0.25) ||
+                (e.placedFillColor && e.placedFillColor !== defaultUserColor) ||
+                (e.placedFillAlpha !== undefined && e.placedFillAlpha !== 0.5) ||
                 (e.placedBorderColor && e.placedBorderColor !== "#ffffff") ||
                 (e.placedBorderAlpha !== undefined && e.placedBorderAlpha !== 0.25) ||
                 Boolean(e.persist)

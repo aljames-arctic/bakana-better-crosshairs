@@ -1,4 +1,5 @@
 import { DEFAULT_AUTOREC_ENTRY } from "./autorecManager.js";
+import { getUserColor } from "../lib/utils.js";
 
 /**
  * Canonical domain model representing a fully resolved crosshair placement and animation configuration.
@@ -51,7 +52,8 @@ export class CrosshairConfiguration {
         this.fillAlpha = Number.isFinite(fillAlphaVal) ? fillAlphaVal : defaults.fillAlpha;
 
         // Placed document styling options
-        this.placedFillColor = String(source.placedFillColor ?? placedFill.color ?? defaults.placedFillColor).trim();
+        const defaultColor = defaults.placedFillColor ?? getUserColor("#000000");
+        this.placedFillColor = String(source.placedFillColor ?? placedFill.color ?? defaultColor).trim();
         const placedFillAlphaVal = Number(source.placedFillAlpha ?? placedFill.alpha ?? defaults.placedFillAlpha);
         this.placedFillAlpha = Number.isFinite(placedFillAlphaVal) ? placedFillAlphaVal : defaults.placedFillAlpha;
         this.placedBorderColor = String(source.placedBorderColor ?? placedBorder.color ?? defaults.placedBorderColor).trim();

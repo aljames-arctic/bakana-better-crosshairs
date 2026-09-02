@@ -1,7 +1,7 @@
 import { MODULE_ID } from "../lib/constants.js";
 import { DEFAULT_AUTOREC_ENTRY, autorecManager } from "./autorecManager.js";
 import { log } from "../lib/logger.js";
-import { localize, notify } from "../lib/utils.js";
+import { localize, notify, getUserColor } from "../lib/utils.js";
 import { systemAdapter } from "../adapter/system/index.js";
 import { BaseCrosshairMenuApplication, normalizeHexColor } from "./BaseCrosshairMenuApplication.js";
 
@@ -249,15 +249,15 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             fillColor: source.fillColor ?? "#000000",
             fillAlpha: source.fillAlpha ?? 0,
 
-            placedFillColor: source.placedFillColor ?? "#000000",
-            placedFillAlpha: source.placedFillAlpha ?? 0.25,
+            placedFillColor: source.placedFillColor ?? getUserColor("#000000"),
+            placedFillAlpha: source.placedFillAlpha ?? 0.5,
             placedBorderColor: source.placedBorderColor ?? "#ffffff",
             placedBorderAlpha: source.placedBorderAlpha ?? 0.25,
             persist: Boolean(source.persist),
 
             borderColorPicker: normalizeHexColor(source.borderColor, "#ffffff"),
             fillColorPicker: normalizeHexColor(source.fillColor, "#000000"),
-            placedFillColorPicker: normalizeHexColor(source.placedFillColor, "#000000"),
+            placedFillColorPicker: normalizeHexColor(source.placedFillColor, getUserColor("#000000")),
             placedBorderColorPicker: normalizeHexColor(source.placedBorderColor, "#000000"),
 
             isStickDefault: stickToTokenValue === "default",
@@ -270,8 +270,8 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
                 (source.fillAlpha !== undefined && source.fillAlpha !== 0)
             ),
             hasPlacedStyling: Boolean(
-                (source.placedFillColor && source.placedFillColor !== "#000000") ||
-                (source.placedFillAlpha !== undefined && source.placedFillAlpha !== 0.25) ||
+                (source.placedFillColor && source.placedFillColor !== getUserColor("#000000")) ||
+                (source.placedFillAlpha !== undefined && source.placedFillAlpha !== 0.5) ||
                 (source.placedBorderColor && source.placedBorderColor !== "#ffffff") ||
                 (source.placedBorderAlpha !== undefined && source.placedBorderAlpha !== 0.25) ||
                 Boolean(source.persist)
@@ -500,7 +500,7 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             fillColor: String(formData.get("fillColor") ?? "#000000").trim(),
             fillAlpha: parseFloat(String(formData.get("fillAlpha") ?? "0")),
             placedFillColor: String(formData.get("placedFillColor") ?? "").trim(),
-            placedFillAlpha: parseFloat(String(formData.get("placedFillAlpha") ?? "0.25")),
+            placedFillAlpha: parseFloat(String(formData.get("placedFillAlpha") ?? "0.5")),
             placedBorderColor: String(formData.get("placedBorderColor") ?? "").trim(),
             placedBorderAlpha: parseFloat(String(formData.get("placedBorderAlpha") ?? "0.25")),
             persist: formData.get("persist") === "on",

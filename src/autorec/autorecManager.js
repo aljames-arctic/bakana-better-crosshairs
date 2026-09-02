@@ -3,7 +3,7 @@ import { log } from '../lib/logger.js';
 import { systemAdapter } from '../adapter/system/index.js';
 import { crosshairAdapter } from '../adapter/foundry/index.js';
 import { socketlib } from '../integration/index.js';
-import { localize, notify } from '../lib/utils.js';
+import { localize, notify, getUserColor } from '../lib/utils.js';
 import { buildExportPackage, validateImportPackage as exchangeValidateImportPackage, analyzeImportDiff as exchangeAnalyzeImportDiff, triggerFileDownload } from './autorecExchange.js';
 import { AutorecImportDialog } from './autorecImportDialog.js';
 import { ModuleAutorecManager } from './moduleAutorecManager.js';
@@ -34,8 +34,18 @@ export const DEFAULT_AUTOREC_ENTRY = {
     rayFile: "eskie.crosshair.ray.fantasy_01.white",
     rectangleFile: "eskie.crosshair.rectangle.fantasy_01.white",
     lineFile: "eskie.crosshair.line.generic_01.white",
-    placedFillColor: "#000000",
-    placedFillAlpha: 0.25,
+    get placedFillColor() {
+        return getUserColor("#000000");
+    },
+    set placedFillColor(val) {
+        Object.defineProperty(this, "placedFillColor", {
+            value: val,
+            writable: true,
+            configurable: true,
+            enumerable: true
+        });
+    },
+    placedFillAlpha: 0.5,
     placedBorderColor: "#ffffff",
     placedBorderAlpha: 0.25,
     persist: false,
@@ -411,6 +421,12 @@ export class AutorecManager {
     initializeReadySync() {
         if (this.readySyncInitialized) return;
         this.readySyncInitialized = true;
+
+        const defaultEntry = this.registeredHandlers.get("DEFAULT");
+        if (defaultEntry && !defaultEntry.enablePlacedStyling) {
+            defaultEntry.placedFillColor = getUserColor("#000000");
+            defaultEntry.placedFillAlpha = 0.5;
+        }
 
         socketlib.on((data) => {
             if (!data || typeof data !== "object") return;
@@ -886,13 +902,14 @@ export class AutorecManager {
                 || Boolean(config.fillColor)
                 || (config.fillAlpha !== undefined && config.fillAlpha !== 0);
 
-            const placedFillColor = config.placedFillColor ?? DEFAULT_AUTOREC_ENTRY.placedFillColor;
-            const placedFillAlpha = config.placedFillAlpha ?? DEFAULT_AUTOREC_ENTRY.placedFillAlpha;
+            const defaultUserColor = getUserColor("#000000");
+            const placedFillColor = config.placedFillColor ?? defaultUserColor;
+            const placedFillAlpha = config.placedFillAlpha ?? 0.5;
             const placedBorderColor = config.placedBorderColor ?? DEFAULT_AUTOREC_ENTRY.placedBorderColor;
             const placedBorderAlpha = config.placedBorderAlpha ?? DEFAULT_AUTOREC_ENTRY.placedBorderAlpha;
             const persist = Boolean(config.persist ?? config.options?.persist ?? config.placed?.persist);
-            const hasPlacedStyling = Boolean(config.placedFillColor && config.placedFillColor !== "#000000")
-                || (config.placedFillAlpha !== undefined && config.placedFillAlpha !== 0.25)
+            const hasPlacedStyling = Boolean(config.placedFillColor && config.placedFillColor !== defaultUserColor)
+                || (config.placedFillAlpha !== undefined && config.placedFillAlpha !== 0.5)
                 || Boolean(config.placedBorderColor && config.placedBorderColor !== "#ffffff")
                 || (config.placedBorderAlpha !== undefined && config.placedBorderAlpha !== 0.25)
                 || persist;

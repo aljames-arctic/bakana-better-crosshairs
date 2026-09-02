@@ -1,3 +1,5 @@
+import { getUserColor } from "../../lib/utils.js";
+
 /**
  * Utility for applying customized BBC placed border and fill styles onto PIXI graphics containers
  * for MeasuredTemplate and Region canvas placeables.
@@ -34,15 +36,15 @@ export class PixiGraphicsStyler {
         const docBorderColor = "borderColor" in doc ? doc.borderColor : undefined;
         const docBorderAlpha = "borderAlpha" in doc ? doc.borderAlpha : undefined;
 
-        const placedBorderColor = docBorderColor ?? bbcFlags.placedBorderColor;
-        const placedBorderAlpha = docBorderAlpha ?? bbcFlags.placedBorderAlpha;
-        const placedFillColor = docFillColor ?? bbcFlags.placedFillColor;
-        const placedFillAlpha = docFillAlpha ?? bbcFlags.placedFillAlpha;
+        const placedBorderColor = docBorderColor ?? bbcFlags.placedBorderColor ?? "#ffffff";
+        const placedBorderAlpha = docBorderAlpha ?? bbcFlags.placedBorderAlpha ?? 0.25;
+        const placedFillColor = docFillColor ?? bbcFlags.placedFillColor ?? getUserColor("#000000");
+        const placedFillAlpha = docFillAlpha ?? bbcFlags.placedFillAlpha ?? 0.5;
 
         const borderNum = this.toColorNumber(placedBorderColor);
-        const borderAlphaNum = typeof placedBorderAlpha === "number" && !Number.isNaN(placedBorderAlpha) ? placedBorderAlpha : undefined;
+        const borderAlphaNum = typeof placedBorderAlpha === "number" && !Number.isNaN(placedBorderAlpha) ? placedBorderAlpha : 0.25;
         const fillNum = this.toColorNumber(placedFillColor);
-        const fillAlphaNum = typeof placedFillAlpha === "number" && !Number.isNaN(placedFillAlpha) ? placedFillAlpha : undefined;
+        const fillAlphaNum = typeof placedFillAlpha === "number" && !Number.isNaN(placedFillAlpha) ? placedFillAlpha : 0.5;
 
         const applyGraphicsData = (gfx) => {
             if (!gfx) return false;
@@ -54,7 +56,7 @@ export class PixiGraphicsStyler {
                         if (borderNum !== undefined && gd.lineStyle.color !== borderNum) { gd.lineStyle.color = borderNum; dirty = true; }
                         if (borderAlphaNum !== undefined && gd.lineStyle.alpha !== borderAlphaNum) { gd.lineStyle.alpha = borderAlphaNum; dirty = true; }
                     }
-                    if (gd.fillStyle && gd.fillStyle.alpha > 0) {
+                    if (gd.fillStyle) {
                         if (fillNum !== undefined && gd.fillStyle.color !== fillNum) { gd.fillStyle.color = fillNum; dirty = true; }
                         if (fillAlphaNum !== undefined && gd.fillStyle.alpha !== fillAlphaNum) { gd.fillStyle.alpha = fillAlphaNum; dirty = true; }
                     }

@@ -82,3 +82,41 @@ test('PixiGraphicsStyler.applyPlacedStyling prioritizes updated document colors 
     assert.equal(mockPlaceable.document.fillColor, '#123456');
     assert.equal(mockPlaceable.document.borderColor, '#abcdef');
 });
+
+test('PixiGraphicsStyler.applyPlacedStyling applies 50% opacity and user color to 0-alpha graphicsData by default', () => {
+    const origColor = globalThis.game?.user?.color;
+    try {
+        if (!globalThis.game) globalThis.game = { user: {} };
+        if (!globalThis.game.user) globalThis.game.user = {};
+        globalThis.game.user.color = '#3366cc';
+
+        const mockGraphic = {
+            geometry: {
+                graphicsData: [
+                    { lineStyle: { width: 2, color: 0x000000, alpha: 1 }, fillStyle: { alpha: 0, color: 0x000000 } }
+                ],
+                invalidate: () => {}
+            }
+        };
+
+        const mockPlaceable = {
+            document: {
+                id: 'placed-region-1',
+                flags: { bbc: {} }
+            },
+            template: mockGraphic
+        };
+
+        PixiGraphicsStyler.applyPlacedStyling(mockPlaceable, false);
+
+        const gd = mockGraphic.geometry.graphicsData[0];
+        assert.equal(gd.fillStyle.color, 0x3366cc);
+        assert.equal(gd.fillStyle.alpha, 0.5, 'Default opacity must be 50% (0.5), not 0%');
+    } finally {
+        if (globalThis.game?.user) {
+            if (origColor !== undefined) globalThis.game.user.color = origColor;
+            else delete globalThis.game.user.color;
+        }
+    }
+});
+

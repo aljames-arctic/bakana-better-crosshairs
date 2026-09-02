@@ -48,4 +48,18 @@ export const version = {
     }
 };
 
+/**
+ * Resolve the current Foundry user's assigned player color or a fallback hex color.
+ * Modern Foundry V12+ / V14 contract compliant (Rule 1 & Rule 4).
+ * @param {string} [fallback="#000000"] - Fallback hex color if user color is unavailable
+ * @returns {string} Hex color string
+ */
+export function getUserColor(fallback = "#000000") {
+    const rawColor = game?.user?.color;
+    if (!rawColor) return fallback;
+    const str = rawColor?.css ?? rawColor?.toString?.() ?? String(rawColor);
+    return (str && str !== "[object Object]") ? str : fallback;
+}
+
 export { notify } from "./notifier.js";
+

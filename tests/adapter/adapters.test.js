@@ -1856,3 +1856,78 @@ test('BaseSystemAdapter and Dnd5eSystemAdapter item and activity sheet & context
         globalThis.Hooks.on = origHooksOn;
     }
 });
+
+test('FoundryVTTV13Adapter and FoundryVTTV14Adapter apply 50% opacity and game.user.color for system defaults', () => {
+    const origColor = globalThis.game?.user?.color;
+    try {
+        if (!globalThis.game) globalThis.game = { user: {} };
+        if (!globalThis.game.user) globalThis.game.user = {};
+        globalThis.game.user.color = '#e91e63';
+
+        const adapterV13 = new FoundryVTTV13Adapter();
+        const adapterV14 = new FoundryVTTV14Adapter();
+
+        // 1. MeasuredTemplate in V13 with system defaults (no placed overrides)
+        let v13TmplUpdate = null;
+        const v13TemplateDoc = {
+            t: 'circle',
+            updateSource: (data) => { v13TmplUpdate = data; }
+        };
+        adapterV13.applyDocumentPlacement(v13TemplateDoc, { x: 100, y: 200, distance: 20 }, { itemName: 'Fireball' });
+        assert.ok(v13TmplUpdate);
+        assert.equal(v13TmplUpdate.fillColor, '#e91e63', 'V13 MeasuredTemplate fillColor must default to game.user.color');
+        assert.equal(v13TmplUpdate.fillAlpha, 0.5, 'V13 MeasuredTemplate fillAlpha must default to 50% (0.5)');
+        assert.equal(v13TmplUpdate.flags.bbc.placedFillColor, '#e91e63');
+        assert.equal(v13TmplUpdate.flags.bbc.placedFillAlpha, 0.5);
+
+        // 2. MeasuredTemplate in V14 with system defaults
+        let v14TmplUpdate = null;
+        const v14TemplateDoc = {
+            t: 'cone',
+            updateSource: (data) => { v14TmplUpdate = data; }
+        };
+        adapterV14.applyDocumentPlacement(v14TemplateDoc, { x: 300, y: 400, distance: 30 }, { itemName: 'Cone of Cold' });
+        assert.ok(v14TmplUpdate);
+        assert.equal(v14TmplUpdate.fillColor, '#e91e63', 'V14 MeasuredTemplate fillColor must default to game.user.color');
+        assert.equal(v14TmplUpdate.fillAlpha, 0.5, 'V14 MeasuredTemplate fillAlpha must default to 50% (0.5)');
+        assert.equal(v14TmplUpdate.flags.bbc.placedFillColor, '#e91e63');
+        assert.equal(v14TmplUpdate.flags.bbc.placedFillAlpha, 0.5);
+
+        // 3. Region in V14 with system defaults
+        let v14RegionUpdate = null;
+        const v14RegionDoc = {
+            shapes: [{ toObject: () => ({ type: 'circle', x: 0, y: 0, radius: 15 }) }],
+            updateSource: (data) => { v14RegionUpdate = data; }
+        };
+        adapterV14.applyDocumentPlacement(v14RegionDoc, { x: 500, y: 600, radius: 25, gridUnits: false }, { itemName: 'Thunderwave' });
+        assert.ok(v14RegionUpdate);
+        assert.equal(v14RegionUpdate.color, '#e91e63', 'V14 Region color must default to game.user.color');
+        assert.equal(v14RegionUpdate.fillColor, undefined, 'V14 Region must not leak fillColor property');
+        assert.equal(v14RegionUpdate.fillAlpha, undefined, 'V14 Region must not leak fillAlpha property');
+        assert.equal(v14RegionUpdate.flags.bbc.placedFillColor, '#e91e63');
+        assert.equal(v14RegionUpdate.flags.bbc.placedFillAlpha, 0.5, 'V14 Region flags.bbc.placedFillAlpha must default to 50% (0.5)');
+
+        // 4. Explicit custom overrides take precedence
+        let customUpdate = null;
+        const customTemplateDoc = {
+            t: 'circle',
+            updateSource: (data) => { customUpdate = data; }
+        };
+        adapterV14.applyDocumentPlacement(customTemplateDoc, { x: 100, y: 200, distance: 20 }, {
+            itemName: 'Custom Spell',
+            placedFillColor: '#112233',
+            placedFillAlpha: 0.8,
+            enablePlacedStyling: true
+        });
+        assert.equal(customUpdate.fillColor, '#112233');
+        assert.equal(customUpdate.fillAlpha, 0.8);
+        assert.equal(customUpdate.flags.bbc.placedFillColor, '#112233');
+        assert.equal(customUpdate.flags.bbc.placedFillAlpha, 0.8);
+    } finally {
+        if (globalThis.game?.user) {
+            if (origColor !== undefined) globalThis.game.user.color = origColor;
+            else delete globalThis.game.user.color;
+        }
+    }
+});
+
