@@ -110,6 +110,9 @@ export class BaseCrosshairShape {
         config.stickToToken = Boolean(this.stickToToken);
         config.showLine = this.showLine;
         config.shapeInstance = this;
+        if (this.placeable && !this.placeable.crosshair) {
+            this.placeable.crosshair = { shapeInstance: this };
+        }
 
         // Anchor points normalized (0.0 to 1.0) across bounding box width/height.
         // animationAnchor dictates where the Sequencer graphic effect anchor sits on the canvas point.
@@ -428,6 +431,9 @@ export class BaseCrosshairShape {
         if (crosshair) {
             this.sequencerCrosshair = crosshair;
             crosshair.shapeInstance = this;
+            if (this.placeable) {
+                this.placeable.crosshair = crosshair;
+            }
             if (!this.config?.isRemote) {
                 activePlacementTracker.crosshair = crosshair;
             }
@@ -680,6 +686,13 @@ export class BaseCrosshairShape {
         if (posChanged || dirChanged) {
             this._updateRangeText();
             this.refreshTemplateHighlights();
+        } else {
+            const hId = this.placeable?._bbcHighlightId ?? this.placeable?.highlightId;
+            const hl = canvas?.interface?.grid?.getHighlightLayer?.(hId);
+            if (hl && (!hl.visible || !hl.renderable)) {
+                hl.visible = true;
+                hl.renderable = true;
+            }
         }
 
         alignCrosshairAndEffects(this.sequencerCrosshair ?? this, this.config, this.direction * (Math.PI / 180));

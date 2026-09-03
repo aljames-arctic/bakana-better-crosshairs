@@ -2944,6 +2944,99 @@ test('FoundryVTTV14Adapter._wrapHighlightGrid intercepts rotated MeasuredTemplat
     adapterV14.refreshTemplateHighlights = origRefresh;
 });
 
+test('FoundryVTTV14Adapter._wrapHighlightGrid allows execution of refreshTemplateHighlights without recursion block', () => {
+    const adapterV14 = new FoundryVTTV14Adapter();
+    const highlightedPositions = [];
+
+    const mockHighlightLayer = {
+        visible: false,
+        renderable: false
+    };
+
+    const origInterface = globalThis.canvas?.interface;
+    const origGrid = globalThis.canvas?.grid;
+    const origDimensions = globalThis.canvas?.dimensions;
+
+    try {
+        if (!globalThis.canvas) globalThis.canvas = {};
+        globalThis.canvas.interface = {
+            grid: {
+                addHighlightLayer: () => {},
+                clearHighlightLayer: () => {},
+                getHighlightLayer: () => mockHighlightLayer,
+                highlightPosition: (id, data) => {
+                    highlightedPositions.push({ id, ...data });
+                }
+            }
+        };
+        globalThis.canvas.grid = {
+            sizeX: 100,
+            sizeY: 100,
+            size: 100,
+            getCenterPoint: ({ i, j }) => ({ x: i * 100 + 50, y: j * 100 + 50 }),
+            getTopLeftPoint: ({ i, j }) => ({ x: i * 100, y: j * 100 })
+        };
+        globalThis.canvas.dimensions = {
+            size: 100,
+            distance: 5
+        };
+
+        const mockDoc = {
+            id: 'unblocked-rect',
+            documentName: 'MeasuredTemplate',
+            t: 'rect',
+            distance: 10,
+            width: 10,
+            direction: 0,
+            x: 0,
+            y: 0,
+            updateSource(data) { Object.assign(this, data); }
+        };
+
+        const mockShape = {
+            direction: 45,
+            x: 0,
+            y: 0,
+            getGraphicDimensions: () => ({ widthPx: 200, heightPx: 200 })
+        };
+
+        const mockTmpl = {
+            document: mockDoc,
+            t: 'rect',
+            direction: 0,
+            x: 0,
+            y: 0,
+            highlightId: 'Template.unblocked-rect',
+            crosshair: { shapeInstance: mockShape },
+            highlightGrid() {},
+            _refreshGrid() {},
+            renderFlags: { set: () => {} },
+            applyRenderFlags() {},
+            testPoint: (pt) => {
+                return pt.x >= -50 && pt.x <= 250 && pt.y >= -50 && pt.y <= 250;
+            }
+        };
+
+        adapterV14._wrapHighlightGrid(mockTmpl);
+
+        // Execute wrapped _refreshGrid
+        mockTmpl._refreshGrid();
+
+        // Check that highlights were populated and visible
+        assert.equal(mockHighlightLayer.visible, true, 'Highlight layer should be set to visible');
+        assert.equal(mockHighlightLayer.renderable, true, 'Highlight layer should be set to renderable');
+        assert.ok(highlightedPositions.length > 0, 'Highlights should be drawn without being blocked by recursion guard');
+        assert.equal(mockTmpl._bbcRefreshingHighlights, false, 'Recursion guard flag should be reset to false after execution');
+    } finally {
+        if (origInterface !== undefined) globalThis.canvas.interface = origInterface;
+        else delete globalThis.canvas.interface;
+        if (origGrid !== undefined) globalThis.canvas.grid = origGrid;
+        else delete globalThis.canvas.grid;
+        if (origDimensions !== undefined) globalThis.canvas.dimensions = origDimensions;
+        else delete globalThis.canvas.dimensions;
+    }
+});
+
 test('FoundryVTTV14Adapter.updatePreviewShape preserves rotated direction and handles unrotated diagonal angle', () => {
     const adapterV14 = new FoundryVTTV14Adapter();
 

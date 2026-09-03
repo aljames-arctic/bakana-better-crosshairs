@@ -710,21 +710,40 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 const shapesList = this._getShapesArray(doc);
                 let primaryShape = shapesList[0] ?? (Array.isArray(doc.shapes) ? doc.shapes[0] : (Array.isArray(tmpl.shapes) ? tmpl.shapes[0] : null));
 
-                if (primaryShape && effectiveDirection !== undefined && primaryShape.rotation !== effectiveDirection) {
+                const shape = tmpl.crosshair?.shapeInstance ?? activePlacementTracker.crosshair?.shapeInstance;
+                const targetX = shape?.x ?? doc?.x ?? tmpl?.x;
+                const targetY = shape?.y ?? doc?.y ?? tmpl?.y;
+
+                if (primaryShape) {
                     const raw = typeof primaryShape.toObject === "function" ? primaryShape.toObject() : primaryShape;
-                    const updated = { ...raw, rotation: effectiveDirection };
-                    delete updated._id;
-                    delete updated.id;
-                    if (typeof doc.updateSource === "function") {
-                        try {
-                            doc.updateSource({ shapes: [updated] });
-                        } catch (e) {
+                    let changed = false;
+                    const updated = { ...raw };
+                    if (effectiveDirection !== undefined && updated.rotation !== effectiveDirection) {
+                        updated.rotation = effectiveDirection;
+                        changed = true;
+                    }
+                    if (targetX !== undefined && updated.x !== targetX) {
+                        updated.x = targetX;
+                        changed = true;
+                    }
+                    if (targetY !== undefined && updated.y !== targetY) {
+                        updated.y = targetY;
+                        changed = true;
+                    }
+                    if (changed) {
+                        delete updated._id;
+                        delete updated.id;
+                        if (typeof doc.updateSource === "function") {
+                            try {
+                                doc.updateSource({ shapes: [updated] });
+                            } catch (e) {
+                                doc.shapes = [updated];
+                            }
+                        } else {
                             doc.shapes = [updated];
                         }
-                    } else {
-                        doc.shapes = [updated];
+                        primaryShape = updated;
                     }
-                    primaryShape = updated;
                 }
 
                 const highlightId = tmpl.highlightId ?? tmpl._bbcHighlightId ?? (doc.id ? `Region.${doc.id}` : "Region.preview");
@@ -1017,12 +1036,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                     const isRotated = isRect && !isRegion && normDir !== undefined && (normDir !== 0);
 
                     if (isRotated) {
-                        try {
-                            this._bbcRefreshingHighlights = true;
-                            self.refreshTemplateHighlights(this, normDir);
-                        } finally {
-                            this._bbcRefreshingHighlights = false;
-                        }
+                        self.refreshTemplateHighlights(this, normDir);
                         return;
                     }
 
