@@ -541,6 +541,10 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         if (coords.y !== undefined) shape.y = coords.y;
         if (coords.rotation !== undefined) shape.rotation = coords.rotation;
         else if (coords.direction !== undefined) shape.rotation = coords.direction;
+        if (coords.anchorX !== undefined) shape.anchorX = coords.anchorX;
+        else if (shape.anchorX === undefined) shape.anchorX = originalShape?.anchorX ?? 0;
+        if (coords.anchorY !== undefined) shape.anchorY = coords.anchorY;
+        else if (shape.anchorY === undefined) shape.anchorY = originalShape?.anchorY ?? 0;
 
         if (shape.type === "rectangle") {
             const isSquare = coords.type === "square" || coords.originalType === "square" || coords.t === "rect";
@@ -690,6 +694,32 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         const isRegion = doc.documentName === "Region" || Boolean(tmpl.shapes || doc.shapes);
 
         if (isRegion) {
+            const effectiveDirection = direction ?? doc.direction ?? tmpl.direction;
+            if (effectiveDirection !== undefined) {
+                tmpl.direction = effectiveDirection;
+                doc.direction = effectiveDirection;
+            }
+
+            const shapesList = this._getShapesArray(doc);
+            let primaryShape = shapesList[0] ?? (Array.isArray(doc.shapes) ? doc.shapes[0] : (Array.isArray(tmpl.shapes) ? tmpl.shapes[0] : null));
+
+            if (primaryShape && effectiveDirection !== undefined && primaryShape.rotation !== effectiveDirection) {
+                const raw = typeof primaryShape.toObject === "function" ? primaryShape.toObject() : primaryShape;
+                const updated = { ...raw, rotation: effectiveDirection };
+                delete updated._id;
+                delete updated.id;
+                if (typeof doc.updateSource === "function") {
+                    try {
+                        doc.updateSource({ shapes: [updated] });
+                    } catch (e) {
+                        doc.shapes = [updated];
+                    }
+                } else {
+                    doc.shapes = [updated];
+                }
+                primaryShape = updated;
+            }
+
             const highlightId = tmpl.highlightId ?? tmpl._bbcHighlightId ?? (doc.id ? `Region.${doc.id}` : "Region.preview");
             tmpl._bbcHighlightId = highlightId;
             if (canvas?.interface?.grid) {
@@ -702,18 +732,82 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 const hl = canvas.interface.grid.getHighlightLayer?.(highlightId);
                 if (hl) hl.visible = true;
 
-                if (canvas.grid && typeof canvas.grid.getOffsetRange === "function" && tmpl.bounds && typeof tmpl.testPoint === "function") {
-                    const [i0, j0, i1, j1] = canvas.grid.getOffsetRange(tmpl.bounds);
+                // Compute bounding box for grid space range query, accurately enveloping rotated geometry
+                let shapeBounds = null;
+                const isRotatedRect = Boolean(primaryShape && (primaryShape.type === "rectangle" || primaryShape.type === "box" || primaryShape.type === "square"));
+
+                if (isRotatedRect) {
+                    shapeBounds = this._computeRotatedRectangleBounds(primaryShape, effectiveDirection, doc, tmpl);
+                } else if (primaryShape?.type === "circle" || primaryShape?.type === "ellipse") {
+                    const origX = primaryShape.x ?? doc.x ?? tmpl.x ?? 0;
+                    const origY = primaryShape.y ?? doc.y ?? tmpl.y ?? 0;
+                    const radVal = primaryShape.radius ?? 100;
+                    shapeBounds = { x: origX - radVal, y: origY - radVal, width: radVal * 2, height: radVal * 2 };
+                }
+
+                let bounds = shapeBounds ?? tmpl.bounds;
+                if (doc.polygonTree?.bounds && Number.isFinite(doc.polygonTree.bounds.width) && doc.polygonTree.bounds.width > 0) {
+                    const pb = doc.polygonTree.bounds;
+                    if (bounds) {
+                        const x0 = Math.min(bounds.x, pb.x);
+                        const y0 = Math.min(bounds.y, pb.y);
+                        const x1 = Math.max(bounds.x + bounds.width, pb.x + pb.width);
+                        const y1 = Math.max(bounds.y + bounds.height, pb.y + pb.height);
+                        bounds = { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
+                    } else {
+                        bounds = pb;
+                    }
+                } else if (tmpl.bounds && (!bounds || !Number.isFinite(bounds.width) || bounds.width <= 0)) {
+                    bounds = tmpl.bounds;
+                }
+
+                if (canvas.grid && typeof canvas.grid.getOffsetRange === "function" && bounds) {
+                    const paddedBounds = typeof bounds.pad === "function"
+                        ? bounds.pad(1)
+                        : { x: bounds.x - 1, y: bounds.y - 1, width: bounds.width + 2, height: bounds.height + 2 };
+
+                    const [i0, j0, i1, j1] = canvas.grid.getOffsetRange(paddedBounds);
                     const colorVal = doc.color ?? "#ffaa00";
                     const colorNum = typeof foundry?.utils?.Color?.from === "function"
                         ? foundry.utils.Color.from(colorVal).valueOf()
                         : (typeof Color !== "undefined" && Color.from ? Color.from(colorVal).valueOf() : 0xffaa00);
                     const borderNum = 0xffffff;
 
+                    const dxGrid = ((canvas.grid?.sizeX ?? canvas.grid?.size ?? 100) / 2);
+                    const dyGrid = ((canvas.grid?.sizeY ?? canvas.grid?.size ?? 100) / 2);
+
                     for (let i = i0; i <= i1; i++) {
                         for (let j = j0; j <= j1; j++) {
                             const center = canvas.grid.getCenterPoint({ i, j });
-                            if (tmpl.testPoint(center)) {
+                            if (!center) continue;
+
+                            // Normalize token center point alignment matching core Foundry V14 Region._getCoveredGridSpaceOffsets
+                            const testPt = {
+                                x: Math.round(center.x - dxGrid) + dxGrid,
+                                y: Math.round(center.y - dyGrid) + dyGrid
+                            };
+
+                            let isCovered = false;
+                            if (typeof doc.polygonTree?.testPoint === "function") {
+                                try {
+                                    isCovered = Boolean(doc.polygonTree.testPoint(testPt, 0.75));
+                                } catch (e) {}
+                            }
+                            if (!isCovered && typeof doc.testPoint === "function") {
+                                try {
+                                    isCovered = Boolean(doc.testPoint(testPt));
+                                } catch (e) {}
+                            }
+                            if (!isCovered && typeof tmpl.testPoint === "function") {
+                                try {
+                                    isCovered = Boolean(tmpl.testPoint(testPt) || tmpl.testPoint(center));
+                                } catch (e) {}
+                            }
+                            if (!isCovered && isRotatedRect) {
+                                isCovered = this._testRotatedRectanglePoint(primaryShape, testPt, 0.75);
+                            }
+
+                            if (isCovered) {
                                 const pt = canvas.grid.getTopLeftPoint({ i, j });
                                 if (typeof canvas.interface.grid.highlightPosition === "function") {
                                     canvas.interface.grid.highlightPosition(highlightId, {
@@ -933,5 +1027,109 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
     _getGridCenterPoint(x, y) {
         const pt = canvas.grid.getCenterPoint({ x, y });
         return { x: pt.x, y: pt.y };
+    }
+
+    /**
+     * Compute the minimal axis-aligned bounding box enclosing a rotated Region rectangle shape.
+     * Uses BaseGrid#getRectangle vertex transformation with anchor translation.
+     * @param {Object} shape - Region rectangle shape data
+     * @param {number} [fallbackRotation=0] - Fallback rotation angle in degrees
+     * @param {Document} [doc=null] - Document fallback coordinates
+     * @param {PlaceableObject} [tmpl=null] - Placeable fallback coordinates
+     * @returns {{x: number, y: number, width: number, height: number}} Axis-aligned bounding box
+     * @protected
+     */
+    _computeRotatedRectangleBounds(shape, fallbackRotation = 0, doc = null, tmpl = null) {
+        const originX = shape?.x ?? doc?.x ?? tmpl?.x ?? 0;
+        const originY = shape?.y ?? doc?.y ?? tmpl?.y ?? 0;
+        const width = shape?.width ?? 100;
+        const height = shape?.height ?? width;
+        const rotation = shape?.rotation ?? fallbackRotation ?? 0;
+        const anchorX = shape?.anchorX ?? 0;
+        const anchorY = shape?.anchorY ?? 0;
+
+        const rad = (rotation * Math.PI) / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+
+        const bxRel = cos * width;
+        const byRel = sin * width;
+        const dxRel = -sin * height;
+        const dyRel = cos * height;
+
+        const axOffset = (anchorX * bxRel) + (anchorY * dxRel);
+        const ayOffset = (anchorX * byRel) + (anchorY * dyRel);
+
+        const ax = originX - axOffset;
+        const ay = originY - ayOffset;
+        const bx = ax + bxRel;
+        const by = ay + byRel;
+        const dx = ax + dxRel;
+        const dy = ay + dyRel;
+        const cx = dx + bxRel;
+        const cy = dy + byRel;
+
+        const minX = Math.min(ax, bx, cx, dx);
+        const maxX = Math.max(ax, bx, cx, dx);
+        const minY = Math.min(ay, by, cy, dy);
+        const maxY = Math.max(ay, by, cy, dy);
+
+        return {
+            x: minX,
+            y: minY,
+            width: maxX - minX,
+            height: maxY - minY
+        };
+    }
+
+    /**
+     * Test whether a point intersects a rotated Region rectangle shape within an optional tolerance.
+     * Implements inverse Euclidean rotation into local rectangle coordinate space.
+     * @param {Object} shape - Region rectangle shape data ({ x, y, width, height, rotation, anchorX, anchorY })
+     * @param {{x: number, y: number}} pt - The point to test in canvas pixel coordinates
+     * @param {number} [tolerance=0.75] - Intersection tolerance distance in pixels
+     * @returns {boolean} True if point is inside or within tolerance of the rotated rectangle
+     * @protected
+     */
+    _testRotatedRectanglePoint(shape, pt, tolerance = 0.75) {
+        if (!shape || !pt) return false;
+        const originX = shape.x ?? 0;
+        const originY = shape.y ?? 0;
+        const width = shape.width ?? 0;
+        const height = shape.height ?? width;
+        if (width <= 0 || height <= 0) return false;
+
+        const rotation = shape.rotation ?? 0;
+        const anchorX = shape.anchorX ?? 0;
+        const anchorY = shape.anchorY ?? 0;
+
+        const rad = (rotation * Math.PI) / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+
+        // Vector along width: (cos * width, sin * width)
+        const bxRel = cos * width;
+        const byRel = sin * width;
+        // Vector along height: (-sin * height, cos * height)
+        const dxRel = -sin * height;
+        const dyRel = cos * height;
+
+        // Offset from origin to top-left vertex A based on normalized anchor
+        const axOffset = (anchorX * bxRel) + (anchorY * dxRel);
+        const ayOffset = (anchorX * byRel) + (anchorY * dyRel);
+
+        const ax = originX - axOffset;
+        const ay = originY - ayOffset;
+
+        // Vector from top-left vertex A to test point P
+        const vx = pt.x - ax;
+        const vy = pt.y - ay;
+
+        // Transform into local rectangle space by rotating backwards by -rad:
+        const u = (vx * cos) + (vy * sin);
+        const v = (-vx * sin) + (vy * cos);
+
+        return (u >= -tolerance) && (u <= width + tolerance) &&
+               (v >= -tolerance) && (v <= height + tolerance);
     }
 }

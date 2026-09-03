@@ -2635,5 +2635,146 @@ test('FoundryVTTV14Adapter initializes cleanly when foundry.utils.logCompatibili
     }
 });
 
+test('FoundryVTTV14Adapter._computeRotatedRectangleBounds computes exact AABB for 0, 45, and 90 degrees with top-left and center anchors', () => {
+    const adapter = new FoundryVTTV14Adapter();
 
+    // 0 degrees, top-left anchor: [100, 300] x [100, 300]
+    const b0 = adapter._computeRotatedRectangleBounds({ x: 100, y: 100, width: 200, height: 200, rotation: 0, anchorX: 0, anchorY: 0 });
+    assert.equal(b0.x, 100);
+    assert.equal(b0.y, 100);
+    assert.equal(b0.width, 200);
+    assert.equal(b0.height, 200);
 
+    // 45 degrees, top-left anchor: width & height = 200 * sqrt(2) = 282.84
+    const b45 = adapter._computeRotatedRectangleBounds({ x: 100, y: 100, width: 200, height: 200, rotation: 45, anchorX: 0, anchorY: 0 });
+    assert.ok(Math.abs(b45.x - (-41.421356)) < 0.01, `b45.x (${b45.x}) should be approx -41.42`);
+    assert.equal(b45.y, 100);
+    assert.ok(Math.abs(b45.width - (200 * Math.SQRT2)) < 0.01, 'b45.width should be approx 282.84');
+    assert.ok(Math.abs(b45.height - (200 * Math.SQRT2)) < 0.01, 'b45.height should be approx 282.84');
+
+    // 45 degrees, center anchor (0.5, 0.5): centered around (200, 200)
+    const bCenter = adapter._computeRotatedRectangleBounds({ x: 200, y: 200, width: 200, height: 200, rotation: 45, anchorX: 0.5, anchorY: 0.5 });
+    assert.ok(Math.abs(bCenter.x - (200 - 100 * Math.SQRT2)) < 0.01);
+    assert.ok(Math.abs(bCenter.y - (200 - 100 * Math.SQRT2)) < 0.01);
+    assert.ok(Math.abs(bCenter.width - (200 * Math.SQRT2)) < 0.01);
+    assert.ok(Math.abs(bCenter.height - (200 * Math.SQRT2)) < 0.01);
+});
+
+test('FoundryVTTV14Adapter._testRotatedRectanglePoint tests rotated rectangle points correctly with tolerance', () => {
+    const adapter = new FoundryVTTV14Adapter();
+    const square45 = { x: 100, y: 100, width: 200, height: 200, rotation: 45, anchorX: 0, anchorY: 0 };
+
+    // Center of square45: (100, 100 + 100 * sqrt(2)) = (100, 241.42)
+    const rad45 = (45 * Math.PI) / 180;
+    const center = {
+        x: 100 + 100 * Math.cos(rad45) - 100 * Math.sin(rad45),
+        y: 100 + 100 * Math.sin(rad45) + 100 * Math.cos(rad45)
+    };
+    assert.equal(adapter._testRotatedRectanglePoint(square45, center), true, 'Center must be inside rotated square');
+
+    // Tip at (100, 100)
+    assert.equal(adapter._testRotatedRectanglePoint(square45, { x: 100, y: 100 }), true, 'Origin vertex must be inside');
+
+    // Opposite tip C at (100, 100 + 200 * sqrt(2)) = (100, 382.84)
+    assert.equal(adapter._testRotatedRectanglePoint(square45, { x: 100, y: 382 }), true, 'Tip C must be inside');
+
+    // Outside point (unrotated top-right at 290, 110, which is outside the 45-deg diamond)
+    assert.equal(adapter._testRotatedRectanglePoint(square45, { x: 290, y: 110 }), false, 'Unrotated top-right corner must be outside 45-deg diamond');
+
+    // Far outside point
+    assert.equal(adapter._testRotatedRectanglePoint(square45, { x: 500, y: 500 }), false, 'Far outside point must be false');
+});
+
+test('FoundryVTTV14Adapter.refreshTemplateHighlights calculates rotated bounding box and highlights rotated square region cells', () => {
+    const origClear = globalThis.canvas?.interface?.grid?.clearHighlightLayer;
+    const origAdd = globalThis.canvas?.interface?.grid?.addHighlightLayer;
+    const origHighlight = globalThis.canvas?.interface?.grid?.highlightPosition;
+    const origOffsetRange = globalThis.canvas?.grid?.getOffsetRange;
+    const origCenterPoint = globalThis.canvas?.grid?.getCenterPoint;
+    const origTopLeftPoint = globalThis.canvas?.grid?.getTopLeftPoint;
+
+    const highlightedCells = [];
+    let receivedBounds = null;
+
+    if (globalThis.canvas?.interface?.grid) {
+        globalThis.canvas.interface.grid.addHighlightLayer = () => {};
+        globalThis.canvas.interface.grid.clearHighlightLayer = () => {};
+        globalThis.canvas.interface.grid.highlightPosition = (id, pos) => {
+            highlightedCells.push({ id, ...pos });
+        };
+    }
+    if (globalThis.canvas?.grid) {
+        globalThis.canvas.grid.getOffsetRange = (bounds) => {
+            receivedBounds = bounds;
+            const x0 = Math.floor(bounds.x / 100);
+            const y0 = Math.floor(bounds.y / 100);
+            const x1 = Math.ceil((bounds.x + bounds.width) / 100);
+            const y1 = Math.ceil((bounds.y + bounds.height) / 100);
+            return [x0, y0, x1, y1];
+        };
+        globalThis.canvas.grid.getCenterPoint = (coords) => ({
+            x: (coords.i + 0.5) * 100,
+            y: (coords.j + 0.5) * 100
+        });
+        globalThis.canvas.grid.getTopLeftPoint = (coords) => ({
+            x: coords.i * 100,
+            y: coords.j * 100
+        });
+    }
+
+    try {
+        const adapterV14 = new FoundryVTTV14Adapter();
+        let applyRenderFlagsCalled = false;
+
+        const mockRegionDoc = {
+            id: 'region-square-rotated',
+            documentName: 'Region',
+            color: '#00ffcc',
+            direction: 0,
+            shapes: [{ type: 'rectangle', x: 100, y: 100, width: 200, height: 200, rotation: 0, anchorX: 0, anchorY: 0 }],
+            updateSource(data) { Object.assign(this, data); }
+        };
+        const mockRegion = {
+            document: mockRegionDoc,
+            bounds: { x: 100, y: 100, width: 200, height: 200 },
+            renderFlags: { set: () => {} },
+            applyRenderFlags() { applyRenderFlagsCalled = true; }
+        };
+
+        // Rotate square region to 45 degrees
+        adapterV14.refreshTemplateHighlights(mockRegion, 45);
+
+        assert.equal(applyRenderFlagsCalled, true);
+        assert.equal(mockRegionDoc.shapes[0].rotation, 45, 'Shape rotation must update to 45');
+        assert.equal(mockRegionDoc.direction, 45, 'Document direction must update to 45');
+        assert.equal(mockRegion.direction, 45, 'Placeable direction must update to 45');
+
+        // Verify bounding box passed to getOffsetRange covers rotated extent
+        assert.ok(receivedBounds, 'getOffsetRange must receive rotated bounding box');
+        assert.ok(receivedBounds.x < 0, `receivedBounds.x (${receivedBounds.x}) must extend past 0 due to 45 deg rotation`);
+        assert.ok(receivedBounds.y + receivedBounds.height > 350, `receivedBounds height must extend past 350 due to 45 deg rotation`);
+
+        // Check highlighted cells
+        assert.ok(highlightedCells.length > 0, 'Must highlight grid cells for rotated square');
+        assert.ok(highlightedCells.every(c => c.id === 'Region.region-square-rotated'));
+
+        // Cell containing the center (around x: 100, y: 241, i.e. i = 0 or 1, j = 2) should be highlighted
+        const hasCenterCell = highlightedCells.some(c => c.x === 0 && c.y === 200);
+        assert.ok(hasCenterCell, 'Cell at (0, 200) near rotated center must be highlighted');
+
+        // Cell far outside (like i = 5, j = 5) should NOT be highlighted
+        const hasOutsideCell = highlightedCells.some(c => c.x >= 500 || c.y >= 500);
+        assert.equal(hasOutsideCell, false, 'Far outside cells must not be highlighted');
+    } finally {
+        if (globalThis.canvas?.interface?.grid) {
+            if (origClear) globalThis.canvas.interface.grid.clearHighlightLayer = origClear;
+            if (origAdd) globalThis.canvas.interface.grid.addHighlightLayer = origAdd;
+            if (origHighlight) globalThis.canvas.interface.grid.highlightPosition = origHighlight;
+        }
+        if (globalThis.canvas?.grid) {
+            if (origOffsetRange) globalThis.canvas.grid.getOffsetRange = origOffsetRange;
+            if (origCenterPoint) globalThis.canvas.grid.getCenterPoint = origCenterPoint;
+            if (origTopLeftPoint) globalThis.canvas.grid.getTopLeftPoint = origTopLeftPoint;
+        }
+    }
+});
