@@ -348,6 +348,7 @@ export class BaseCrosshairShape {
      * @returns {Promise<Array>} A promise resolving to an array `[Sequence, targets]`
      */
     async create() {
+        crosshairAdapter._patchDeprecations?.();
         const crosshairSeq = new Sequence()
             .crosshair("position")
                 .type(this.type)

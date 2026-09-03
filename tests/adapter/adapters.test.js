@@ -2539,3 +2539,58 @@ test('FoundryVTTV13Adapter preserves legacy NOP rule and does not touch CONST.ME
     }
 });
 
+test('FoundryVTTV14Adapter suppresses MEASURED_TEMPLATE_TYPES warnings even when CONST is frozen', () => {
+    const origLog = globalThis.foundry.utils.logCompatibilityWarning;
+    const origConst = globalThis.CONST;
+
+    try {
+        const loggedWarnings = [];
+        globalThis.foundry.utils.logCompatibilityWarning = (message, options) => {
+            loggedWarnings.push(message);
+        };
+
+        // Create a frozen CONST mimicking Foundry V14 runtime
+        const mockV14Const = {};
+        Object.defineProperty(mockV14Const, 'MEASURED_TEMPLATE_TYPES', {
+            get() {
+                globalThis.foundry.utils.logCompatibilityWarning('CONST.MEASURED_TEMPLATE_TYPES is deprecated without replacement.', { since: 14, until: 16 });
+                return {
+                    CIRCLE: 'circle',
+                    CONE: 'cone',
+                    RECTANGLE: 'rect',
+                    RAY: 'ray'
+                };
+            },
+            configurable: false,
+            enumerable: false
+        });
+        Object.freeze(mockV14Const);
+        globalThis.CONST = mockV14Const;
+
+        // Verify pre-patch read logs a warning
+        assert.equal(globalThis.CONST.MEASURED_TEMPLATE_TYPES.CIRCLE, 'circle');
+        assert.equal(loggedWarnings.length, 1);
+        assert.ok(loggedWarnings[0].includes('MEASURED_TEMPLATE_TYPES'));
+
+        loggedWarnings.length = 0;
+
+        // Initialize V14 adapter and patch deprecations
+        const adapter = new FoundryVTTV14Adapter();
+        adapter._patchDeprecations();
+
+        // Verify post-patch read evaluates without logging warning
+        assert.equal(globalThis.CONST.MEASURED_TEMPLATE_TYPES.CIRCLE, 'circle');
+        assert.equal(globalThis.CONST.MEASURED_TEMPLATE_TYPES.CONE, 'cone');
+        assert.equal(loggedWarnings.length, 0, 'MEASURED_TEMPLATE_TYPES warning must be suppressed');
+
+        // Other non-MEASURED_TEMPLATE_TYPES warnings must pass through normally
+        globalThis.foundry.utils.logCompatibilityWarning('Some other warning', {});
+        assert.equal(loggedWarnings.length, 1);
+        assert.equal(loggedWarnings[0], 'Some other warning');
+    } finally {
+        globalThis.foundry.utils.logCompatibilityWarning = origLog;
+        globalThis.CONST = origConst;
+    }
+});
+
+

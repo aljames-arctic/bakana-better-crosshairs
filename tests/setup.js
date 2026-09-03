@@ -110,7 +110,8 @@ globalThis.foundry = {
             }
             return null;
         },
-        randomID: () => 'test-id-' + Math.random().toString(36).substring(2, 8)
+        randomID: () => 'test-id-' + Math.random().toString(36).substring(2, 8),
+        logCompatibilityWarning: (msg, opts) => {}
     }
 };
 

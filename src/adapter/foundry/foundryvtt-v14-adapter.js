@@ -841,12 +841,28 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
 
     /**
      * Patch V14-specific deprecated constants to prevent upstream Sequencer deprecation warnings.
-     * Replaces the deprecation warning getter on CONST.MEASURED_TEMPLATE_TYPES with a static frozen
-     * object containing the canonical template types so upstream crosshair calls evaluate cleanly.
+     * Wraps foundry.utils.logCompatibilityWarning to suppress CONST.MEASURED_TEMPLATE_TYPES deprecation
+     * warnings from upstream Sequencer calls, and defines a fallback static enum if missing.
      * @protected
      * @returns {void}
      */
     _patchDeprecations() {
+        if (typeof foundry !== "undefined" && typeof foundry?.utils?.logCompatibilityWarning === "function") {
+            if (!foundry.utils.logCompatibilityWarning._bbcPatched) {
+                const origLog = foundry.utils.logCompatibilityWarning;
+                const wrappedLog = function (message, ...args) {
+                    const msgStr = typeof message === "string" ? message : (message?.message ?? "");
+                    if (msgStr.includes("MEASURED_TEMPLATE_TYPES")) {
+                        return;
+                    }
+                    return origLog.call(this, message, ...args);
+                };
+                wrappedLog._bbcPatched = true;
+                foundry.utils.logCompatibilityWarning = wrappedLog;
+                log.debug("FoundryVTTV14Adapter._patchDeprecations | Wrapped foundry.utils.logCompatibilityWarning to suppress MEASURED_TEMPLATE_TYPES warnings.");
+            }
+        }
+
         if (typeof CONST === "undefined") return;
         try {
             const desc = Object.getOwnPropertyDescriptor(CONST, "MEASURED_TEMPLATE_TYPES");
