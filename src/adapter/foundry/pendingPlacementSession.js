@@ -1,4 +1,5 @@
 import { systemAdapter } from "../system/index.js";
+import { activePlacementTracker } from "../../crosshair/util.js";
 
 /**
  * Manages the lifecycle of a pending Foundry template/region placement session,
@@ -80,8 +81,11 @@ export class PendingPlacementSession {
             pendingItem.resolved = true;
         }
         this.adapter.pendingPlacements.delete(this.placementKey);
-        if (this.placeable && typeof this.adapter.dismissPreview === "function") {
-            this.adapter.dismissPreview(this.placeable);
+        const placeableToDismiss = this.placeable ?? activePlacementTracker.placeable;
+        if (placeableToDismiss && typeof this.adapter.dismissPreview === "function") {
+            this.adapter.dismissPreview(placeableToDismiss);
         }
+        activePlacementTracker.placeable = null;
+        activePlacementTracker.crosshair = null;
     }
 }

@@ -2317,5 +2317,100 @@ test('FoundryVTTV13Adapter and FoundryVTTV14Adapter applyDocumentPlacement assig
     assert.equal(docV14.distance, 28.28);
 });
 
+test('BaseFoundryVTTAdapter.dismissPreview clears and destroys Region highlight layers for V14 Region placeables without highlightId', () => {
+    const clearedLayers = [];
+    const destroyedLayers = [];
+    const origClear = globalThis.canvas?.interface?.grid?.clearHighlightLayer;
+    const origDestroy = globalThis.canvas?.interface?.grid?.destroyHighlightLayer;
+    const origHighlightLayers = globalThis.canvas?.interface?.grid?.highlightLayers;
 
+    const mockHighlightLayers = {
+        'Region.preview': { clear: () => {}, destroy: () => {} },
+        'Region.reg123': { clear: () => {}, destroy: () => {} }
+    };
 
+    if (globalThis.canvas?.interface?.grid) {
+        globalThis.canvas.interface.grid.clearHighlightLayer = (id) => { clearedLayers.push(id); };
+        globalThis.canvas.interface.grid.destroyHighlightLayer = (id) => { destroyedLayers.push(id); };
+        globalThis.canvas.interface.grid.highlightLayers = mockHighlightLayers;
+    }
+
+    try {
+        const adapter = new FoundryVTTV14Adapter();
+        const mockRegionPlaceable = {
+            id: 'reg123',
+            document: {
+                id: 'reg123',
+                documentName: 'Region'
+            },
+            destroy: () => {}
+        };
+
+        adapter.dismissPreview(mockRegionPlaceable);
+
+        assert.ok(clearedLayers.includes('Region.reg123'), 'Region.reg123 should be cleared');
+        assert.ok(destroyedLayers.includes('Region.reg123'), 'Region.reg123 should be destroyed');
+        assert.ok(clearedLayers.includes('Region.preview'), 'Region.preview should be cleared');
+        assert.ok(destroyedLayers.includes('Region.preview'), 'Region.preview should be destroyed');
+    } finally {
+        if (globalThis.canvas?.interface?.grid) {
+            if (origClear) globalThis.canvas.interface.grid.clearHighlightLayer = origClear;
+            if (origDestroy) globalThis.canvas.interface.grid.destroyHighlightLayer = origDestroy;
+            globalThis.canvas.interface.grid.highlightLayers = origHighlightLayers;
+        }
+    }
+});
+
+test('BaseFoundryVTTAdapter wraps placeable.destroy so native right-click/ESC destruction triggers dismissPreview', () => {
+    let dismissCalled = false;
+    const adapter = new BaseFoundryVTTAdapter();
+    let origDestroyCalled = false;
+    const mockPlaceable = {
+        id: 'tmpl-cancel-test',
+        document: { id: 'tmpl-cancel-test', documentName: 'MeasuredTemplate' },
+        destroy() { origDestroyCalled = true; }
+    };
+
+    adapter.dismissPreview = (p) => {
+        dismissCalled = true;
+    };
+    adapter.hidePreview(mockPlaceable);
+
+    assert.equal(typeof mockPlaceable.destroy, 'function');
+    mockPlaceable.destroy();
+
+    assert.equal(dismissCalled, true, 'dismissPreview must be called when placeable is destroyed');
+    assert.equal(origDestroyCalled, true, 'original destroy method must be invoked');
+});
+
+test('BaseCrosshairShape.onCancelCallback dismisses preview placeable and clears activePlacementTracker', () => {
+    let dismissedPlaceable = null;
+    const origDismiss = crosshairAdapter.dismissPreview;
+    crosshairAdapter.dismissPreview = (p) => {
+        dismissedPlaceable = p;
+    };
+
+    try {
+        const mockPlaceable = {
+            id: 'cancel-crosshair-placeable',
+            document: { direction: 0, updateSource: () => {} },
+            direction: 0,
+            x: 50,
+            y: 50,
+            destroy: () => {}
+        };
+        activePlacementTracker.placeable = mockPlaceable;
+        activePlacementTracker.crosshair = {};
+
+        const shape = new BaseCrosshairShape(mockPlaceable, { type: 'circle', id: 'cancel-test' });
+        shape.onCancelCallback();
+
+        assert.equal(dismissedPlaceable, mockPlaceable, 'dismissPreview must be called on the placeable');
+        assert.equal(activePlacementTracker.placeable, null, 'activePlacementTracker.placeable must be reset to null');
+        assert.equal(activePlacementTracker.crosshair, null, 'activePlacementTracker.crosshair must be reset to null');
+    } finally {
+        crosshairAdapter.dismissPreview = origDismiss;
+        activePlacementTracker.placeable = null;
+        activePlacementTracker.crosshair = null;
+    }
+});

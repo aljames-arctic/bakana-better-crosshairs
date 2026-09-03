@@ -585,6 +585,12 @@ export class BaseCrosshairShape {
         if (this.context && typeof this.context.cancel === "function") {
             this.context.cancel();
         }
+        const placeableToDismiss = this.placeable ?? activePlacementTracker.placeable;
+        if (placeableToDismiss && typeof crosshairAdapter?.dismissPreview === "function") {
+            crosshairAdapter.dismissPreview(placeableToDismiss);
+        }
+        activePlacementTracker.placeable = null;
+        activePlacementTracker.crosshair = null;
     }
 
     /**

@@ -2,6 +2,7 @@ import '../setup.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PendingPlacementSession } from '../../src/adapter/foundry/pendingPlacementSession.js';
+import { activePlacementTracker } from '../../src/crosshair/util.js';
 
 test('PendingPlacementSession resolves coordinates and triggers deferred document creation', async () => {
     let createdDocData = null;
@@ -73,4 +74,35 @@ test('PendingPlacementSession cancels placement and removes from pendingPlacemen
     assert.equal(session.resolved, true);
     assert.equal(mockAdapter.pendingPlacements.has(placementKey), false);
     assert.equal(dismissedPlaceable, mockPlaceable);
+});
+
+test('PendingPlacementSession cancels placement and cleans up activePlacementTracker when placeable is null', () => {
+    let dismissedPlaceable = null;
+    const mockAdapter = {
+        pendingPlacements: new Map(),
+        dismissPreview: (p) => {
+            dismissedPlaceable = p;
+        }
+    };
+
+    const placementKey = 'ConeOfCold_tracker_test';
+    const pendingData = {
+        itemName: 'ConeOfCold',
+        resolved: false,
+        cancelled: false
+    };
+    mockAdapter.pendingPlacements.set(placementKey, pendingData);
+
+    const trackerPlaceable = { id: 'tracker-placeable' };
+    activePlacementTracker.placeable = trackerPlaceable;
+    activePlacementTracker.crosshair = {};
+
+    const session = new PendingPlacementSession(mockAdapter, placementKey, pendingData, null, null);
+    session.cancel();
+
+    assert.equal(session.cancelled, true);
+    assert.equal(mockAdapter.pendingPlacements.has(placementKey), false);
+    assert.equal(dismissedPlaceable, trackerPlaceable);
+    assert.equal(activePlacementTracker.placeable, null);
+    assert.equal(activePlacementTracker.crosshair, null);
 });

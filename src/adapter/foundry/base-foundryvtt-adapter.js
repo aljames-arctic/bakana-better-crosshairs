@@ -1,6 +1,6 @@
 import { systemAdapter } from "../system/index.js";
 import { log } from "../../lib/logger.js";
-import { Token, Ray, clearHighlightLayer } from "../../lib/compat.js";
+import { Token, Ray, clearHighlightLayer, destroyHighlightLayer } from "../../lib/compat.js";
 import { TokenGeometry } from "../../lib/tokenGeometry.js";
 import { MODULE_ID } from "../../lib/constants.js";
 import { DEFAULT_AUTOREC_ENTRY, autorecManager } from "../../autorec/autorecManager.js";
@@ -288,6 +288,18 @@ export class BaseFoundryVTTAdapter {
             }
         }
 
+        if (!placeable._bbcDestroyWrapped && typeof placeable.destroy === "function") {
+            placeable._bbcDestroyWrapped = true;
+            const origDestroy = placeable.destroy;
+            const self = this;
+            placeable.destroy = function (...args) {
+                if (!this._bbcDismissed) {
+                    try { self.dismissPreview(this); } catch (e) {}
+                }
+                return origDestroy.apply(this, args);
+            };
+        }
+
         this._wrapHighlightGrid(placeable);
     }
 
@@ -370,7 +382,14 @@ export class BaseFoundryVTTAdapter {
                         }
                     }
 
-                    const hId = this.highlightId ?? this.objectId ?? "preview";
+                    const isRegion = this.document?.documentName === "Region" || Boolean(this.shapes || this.document?.shapes);
+                    const hId = this.highlightId ?? `${isRegion ? "Region" : "Template"}.${this.document?.id ?? "preview"}`;
+                    this.highlightId = hId;
+                    this._bbcHighlightId = hId;
+                    if (this.document) {
+                        this.document.highlightId = hId;
+                        this.document._bbcHighlightId = hId;
+                    }
                     const hl = canvas?.interface?.grid?.getHighlightLayer?.(hId);
                     if (hl) hl.visible = true;
 
@@ -412,17 +431,62 @@ export class BaseFoundryVTTAdapter {
      * @returns {void} No return value
      */
     dismissPreview(placeable) {
-        if (!placeable) return;
+        if (!placeable || placeable._bbcDismissed) return;
+        placeable._bbcDismissed = true;
 
         try { Object.defineProperty(placeable, 'isPreview', { get: () => false, configurable: true }); } catch (e) {}
         try { Object.defineProperty(placeable, 'visible', { get: () => false, configurable: true }); } catch (e) {}
         try { Object.defineProperty(placeable, 'renderable', { get: () => false, configurable: true }); } catch (e) {}
 
-        const hId = placeable.highlightId ?? placeable.id ?? "preview";
-        clearHighlightLayer(hId);
-        if (typeof canvas?.interface?.grid?.destroyHighlightLayer === "function") {
-            try { canvas.interface.grid.destroyHighlightLayer(hId); } catch (e) {}
+        const doc = placeable.document ?? (placeable.documentName ? placeable : null);
+        const isRegion = doc?.documentName === "Region" || Boolean(placeable.shapes || doc?.shapes);
+        const primaryHId = placeable.highlightId ?? placeable._bbcHighlightId ?? doc?.highlightId ?? doc?._bbcHighlightId;
+
+        const candidateIds = new Set();
+        const pId = String(placeable.id ?? doc?.id ?? "").trim();
+        if (pId) {
+            candidateIds.add(pId);
+            candidateIds.add(`Region.${pId}`);
+            candidateIds.add(`Template.${pId}`);
         }
+        if (placeable.objectId) {
+            candidateIds.add(placeable.objectId);
+            candidateIds.add(`Region.${placeable.objectId}`);
+            candidateIds.add(`Template.${placeable.objectId}`);
+        }
+        candidateIds.add("preview");
+        candidateIds.add("Region.preview");
+        candidateIds.add("Template.preview");
+
+        const rawLayers = canvas?.interface?.grid?.highlightLayers ?? canvas?.grid?.highlightLayers;
+        if (rawLayers) {
+            const layerKeys = typeof rawLayers.keys === "function"
+                ? Array.from(rawLayers.keys())
+                : Object.keys(rawLayers);
+
+            for (const key of layerKeys) {
+                if (typeof key !== "string") continue;
+                const lower = key.toLowerCase();
+                if (lower === "preview" || lower.includes(".preview") || lower.includes("preview")) {
+                    candidateIds.add(key);
+                } else if (pId && (key.endsWith(`.${pId}`) || key === pId)) {
+                    candidateIds.add(key);
+                }
+            }
+        }
+
+        for (const hId of candidateIds) {
+            if (hId !== primaryHId) {
+                clearHighlightLayer(hId);
+                destroyHighlightLayer(hId);
+            }
+        }
+
+        const fallbackRegionId = Boolean(pId) ? `Region.${pId}` : "Region.preview";
+        const finalId = primaryHId ?? (isRegion ? fallbackRegionId : (placeable.id ?? "preview"));
+        clearHighlightLayer(finalId);
+        destroyHighlightLayer(finalId);
+
         if (typeof canvas?.regions?.highlight?.clear === "function") {
             try { canvas.regions.highlight.clear(); } catch (e) {}
         }
@@ -880,6 +944,27 @@ export class BaseFoundryVTTAdapter {
         // 1. Immediately hide the Foundry template/region preview graphic completely so custom Sequencer visuals take over
         this.hidePreview(placeable);
 
+        const isRegion = doc.documentName === "Region" || Boolean(placeable.shapes || doc.shapes);
+        const defaultHlId = `${isRegion ? "Region" : "Template"}.${doc.id ?? "preview"}`;
+        if (!placeable.highlightId) placeable.highlightId = defaultHlId;
+        placeable._bbcHighlightId = defaultHlId;
+        if (doc) {
+            if (!doc.highlightId) doc.highlightId = defaultHlId;
+            doc._bbcHighlightId = defaultHlId;
+        }
+
+        if (!placeable._bbcDestroyWrapped && typeof placeable.destroy === "function") {
+            placeable._bbcDestroyWrapped = true;
+            const origDestroy = placeable.destroy;
+            const self = this;
+            placeable.destroy = function (...args) {
+                if (!this._bbcDismissed) {
+                    try { self.dismissPreview(this); } catch (e) {}
+                }
+                return origDestroy.apply(this, args);
+            };
+        }
+
         // 2. Resolve token and item context deterministically through version adapter
         const callingContext = this.extractCallingContext(doc);
         const item = entry.item ?? callingContext.item;
@@ -1013,6 +1098,9 @@ export class BaseFoundryVTTAdapter {
 
         // If the sequencer sequence was right-click cancelled, abort placement
         if (pending.cancelled) {
+            if (pending.placeable && typeof this.dismissPreview === "function") {
+                this.dismissPreview(pending.placeable);
+            }
             this.pendingPlacements.delete(placementKey);
             return false;
         }

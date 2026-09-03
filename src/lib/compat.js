@@ -44,23 +44,46 @@ export const deepClone = foundry?.utils?.deepClone;
  */
 export function clearHighlightLayer(id) {
     if (typeof id !== "string" || !id.trim()) {
-        log.warn("compat.clearHighlightLayer | Called with invalid or empty identifier.");
+        log.debug("compat.clearHighlightLayer | Called with invalid or empty identifier.");
         return;
     }
     const cleanId = id.trim();
     const gridApi = canvas?.interface?.grid ?? canvas?.grid;
 
     if (typeof gridApi?.clearHighlightLayer === "function") {
-        return gridApi.clearHighlightLayer(cleanId);
+        try { return gridApi.clearHighlightLayer(cleanId); } catch (e) {}
     }
 
     const legacyLayer = canvas?.grid?.highlightLayers?.[cleanId];
     if (legacyLayer && typeof legacyLayer.clear === "function") {
-        legacyLayer.clear();
-        return;
+        try { legacyLayer.clear(); return; } catch (e) {}
     }
 
-    log.warn(`compat.clearHighlightLayer | No highlight layer available for key "${cleanId}".`);
+    log.debug(`compat.clearHighlightLayer | No highlight layer available for key "${cleanId}".`);
+}
+
+/**
+ * Destroys the specified grid highlight layer across Foundry canvas versions.
+ *
+ * @param {string} id - The identifier of the highlight layer to destroy.
+ * @returns {void}
+ */
+export function destroyHighlightLayer(id) {
+    if (typeof id !== "string" || !id.trim()) return;
+    const cleanId = id.trim();
+    const gridApi = canvas?.interface?.grid ?? canvas?.grid;
+
+    if (typeof gridApi?.destroyHighlightLayer === "function") {
+        try { gridApi.destroyHighlightLayer(cleanId); } catch (e) {}
+    }
+
+    const legacyLayer = canvas?.grid?.highlightLayers?.[cleanId];
+    if (legacyLayer && typeof legacyLayer.destroy === "function") {
+        try { legacyLayer.destroy({ children: true }); } catch (e) {}
+    }
+    if (canvas?.grid?.highlightLayers && cleanId in canvas.grid.highlightLayers) {
+        try { delete canvas.grid.highlightLayers[cleanId]; } catch (e) {}
+    }
 }
 
 /**
