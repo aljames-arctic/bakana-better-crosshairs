@@ -3130,4 +3130,102 @@ test('FoundryVTTV14Adapter._wrapHighlightGrid wraps _refreshGrid and intercepts 
     adapterV14.refreshTemplateHighlights = origRefresh;
 });
 
+test('FoundryVTTV14Adapter.refreshTemplateHighlights does not highlight extra unrotated squares when MeasuredTemplate has native testPoint', () => {
+    const origClear = globalThis.canvas?.interface?.grid?.clearHighlightLayer;
+    const origAdd = globalThis.canvas?.interface?.grid?.addHighlightLayer;
+    const origHighlight = globalThis.canvas?.interface?.grid?.highlightPosition;
+    const origOffsetRange = globalThis.canvas?.grid?.getOffsetRange;
+    const origCenterPoint = globalThis.canvas?.grid?.getCenterPoint;
+    const origTopLeftPoint = globalThis.canvas?.grid?.getTopLeftPoint;
+
+    const highlightedCells = [];
+
+    if (globalThis.canvas?.interface?.grid) {
+        globalThis.canvas.interface.grid.addHighlightLayer = () => {};
+        globalThis.canvas.interface.grid.clearHighlightLayer = () => {};
+        globalThis.canvas.interface.grid.highlightPosition = (id, pos) => {
+            highlightedCells.push({ id, ...pos });
+        };
+    }
+    if (globalThis.canvas?.grid) {
+        globalThis.canvas.grid.getOffsetRange = (bounds) => {
+            const x0 = Math.floor(bounds.left / 100);
+            const y0 = Math.floor(bounds.top / 100);
+            const x1 = Math.ceil(bounds.right / 100);
+            const y1 = Math.ceil(bounds.bottom / 100);
+            return [x0, y0, x1, y1];
+        };
+        globalThis.canvas.grid.getCenterPoint = (coords) => ({
+            x: (coords.i + 0.5) * 100,
+            y: (coords.j + 0.5) * 100
+        });
+        globalThis.canvas.grid.getTopLeftPoint = (coords) => ({
+            x: coords.i * 100,
+            y: coords.j * 100
+        });
+    }
+
+    try {
+        const adapterV14 = new FoundryVTTV14Adapter();
+
+        const mockDoc = {
+            id: 'tmpl-no-extra-squares',
+            documentName: 'MeasuredTemplate',
+            t: 'rect',
+            distance: 20,
+            width: 20,
+            direction: 0,
+            x: 200,
+            y: 200,
+            updateSource(data) { Object.assign(this, data); }
+        };
+
+        // Simulate core Foundry MeasuredTemplate#testPoint which only tests the unrotated shape:
+        // [200, 200] to [600, 600]
+        const mockTmpl = {
+            document: mockDoc,
+            t: 'rect',
+            direction: 0,
+            x: 200,
+            y: 200,
+            highlightId: 'Template.tmpl-no-extra-squares',
+            renderFlags: { set() {} },
+            applyRenderFlags() {},
+            highlightGrid() {},
+            testPoint(pt) {
+                return pt.x >= 200 && pt.x <= 600 && pt.y >= 200 && pt.y <= 600;
+            }
+        };
+
+        // Rotate square MeasuredTemplate to 45 degrees
+        adapterV14.refreshTemplateHighlights(mockTmpl, 45);
+
+        // At 45 degrees, top-right of unrotated box (500, 200) is far outside the 45-degree diamond
+        const hasUnrotatedFarCorner = highlightedCells.some(c => c.x === 500 && c.y === 200);
+        assert.equal(hasUnrotatedFarCorner, false, 'Must NOT highlight cells belonging exclusively to the unrotated 0-deg template');
+
+        const hasUnrotatedBottomCorner = highlightedCells.some(c => c.x === 500 && c.y === 500);
+        assert.equal(hasUnrotatedBottomCorner, false, 'Must NOT highlight bottom-right corner of unrotated template');
+
+        // Diamond tip must be highlighted: x = -100, y = 400 (center is -50, 450, inside 45-deg diamond)
+        const hasDiamondTip = highlightedCells.some(c => c.x === -100 && c.y === 400);
+        assert.equal(hasDiamondTip, true, 'Must highlight rotated diamond cells');
+
+        // Total count should strictly equal 18 cells, not 26
+        assert.equal(highlightedCells.length, 18, 'Rotated 20ft square diamond must highlight exactly 18 cells without 8 extra unrotated squares');
+    } finally {
+        if (globalThis.canvas?.interface?.grid) {
+            if (origClear) globalThis.canvas.interface.grid.clearHighlightLayer = origClear;
+            if (origAdd) globalThis.canvas.interface.grid.addHighlightLayer = origAdd;
+            if (origHighlight) globalThis.canvas.interface.grid.highlightPosition = origHighlight;
+        }
+        if (globalThis.canvas?.grid) {
+            if (origOffsetRange) globalThis.canvas.grid.getOffsetRange = origOffsetRange;
+            if (origCenterPoint) globalThis.canvas.grid.getCenterPoint = origCenterPoint;
+            if (origTopLeftPoint) globalThis.canvas.grid.getTopLeftPoint = origTopLeftPoint;
+        }
+    }
+});
+
+
 

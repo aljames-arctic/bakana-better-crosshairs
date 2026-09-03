@@ -908,8 +908,8 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             tmpl._bbcHighlightId = highlightId;
 
             const isAttached = Boolean(shape?.isAttached);
-            const anchorX = shape?.config?.anchor?.x ?? shape?.defaultShapeAnchor?.x ?? (isAttached ? 0 : 0);
-            const anchorY = shape?.config?.anchor?.y ?? shape?.defaultShapeAnchor?.y ?? (isAttached ? 0.5 : 0);
+            const anchorX = shape?.shapeAnchor?.x ?? shape?.config?.anchor?.x ?? shape?.defaultShapeAnchor?.x ?? (isAttached ? 0 : 0);
+            const anchorY = shape?.shapeAnchor?.y ?? shape?.config?.anchor?.y ?? shape?.defaultShapeAnchor?.y ?? (isAttached ? 0.5 : 0);
 
             const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
             const dims = typeof shape?.getGraphicDimensions === "function" ? shape.getGraphicDimensions() : null;
@@ -1447,7 +1447,15 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         const hl = canvas.interface.grid.getHighlightLayer?.(highlightId);
         if (hl) hl.visible = true;
 
-        let bounds = this._computeRotatedRectangleBounds(rectShape, rectShape.rotation ?? 0, doc, tmpl);
+        const resolvedWidth = rectShape.width ?? doc?.width ?? tmpl?.bounds?.width ?? 200;
+        const resolvedHeight = rectShape.height ?? doc?.distance ?? tmpl?.bounds?.height ?? resolvedWidth;
+        const effectiveShape = {
+            ...rectShape,
+            width: resolvedWidth,
+            height: resolvedHeight
+        };
+
+        let bounds = this._computeRotatedRectangleBounds(effectiveShape, effectiveShape.rotation ?? 0, doc, tmpl);
         if (doc?.polygonTree?.bounds && Number.isFinite(doc.polygonTree.bounds.width) && doc.polygonTree.bounds.width > 0) {
             const pb = doc.polygonTree.bounds;
             if (bounds) {
@@ -1507,18 +1515,20 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                             isCovered = Boolean(doc.polygonTree.testPoint(testPt, 0.75));
                         } catch (e) {}
                     }
-                    if (!isCovered && typeof doc?.testPoint === "function") {
-                        try {
-                            isCovered = Boolean(doc.testPoint(testPt));
-                        } catch (e) {}
-                    }
-                    if (!isCovered && typeof tmpl?.testPoint === "function") {
-                        try {
-                            isCovered = Boolean(tmpl.testPoint(testPt) || tmpl.testPoint(center));
-                        } catch (e) {}
+                    if (!isCovered && doc?.documentName === "Region") {
+                        if (typeof doc.testPoint === "function") {
+                            try {
+                                isCovered = Boolean(doc.testPoint(testPt));
+                            } catch (e) {}
+                        }
+                        if (!isCovered && typeof tmpl?.testPoint === "function") {
+                            try {
+                                isCovered = Boolean(tmpl.testPoint(testPt));
+                            } catch (e) {}
+                        }
                     }
                     if (!isCovered) {
-                        isCovered = Boolean(this._testRotatedRectanglePoint(rectShape, testPt, 0.75) || this._testRotatedRectanglePoint(rectShape, center, 0.75));
+                        isCovered = Boolean(this._testRotatedRectanglePoint(effectiveShape, testPt, 0.75));
                     }
 
                     if (isCovered) {
