@@ -10,6 +10,7 @@ import {
     MeasuredTemplate,
     Region,
     Ray,
+    addHighlightLayer,
     clearHighlightLayer,
     destroyHighlightLayer,
     saveDataToFile,
@@ -3387,44 +3388,57 @@ test('Foundry adapter provides createRay and createRayFromAngle helpers', () => 
     assert.equal(Math.round(staticRayFromAngle.B.y), 50);
 });
 
-test('Foundry adapter encapsulates clearHighlightLayer and destroyHighlightLayer across instances and barrels', () => {
+test('Foundry adapter encapsulates addHighlightLayer, clearHighlightLayer, and destroyHighlightLayer across instances and barrels', () => {
     const adapter = new FoundryVTTV14Adapter();
+    const addedLayers = [];
     const clearedLayers = [];
     const destroyedLayers = [];
 
+    const origAdd = globalThis.canvas?.interface?.grid?.addHighlightLayer;
     const origClear = globalThis.canvas?.interface?.grid?.clearHighlightLayer;
     const origDestroy = globalThis.canvas?.interface?.grid?.destroyHighlightLayer;
 
     try {
+        globalThis.canvas.interface.grid.addHighlightLayer = (id) => addedLayers.push(id);
         globalThis.canvas.interface.grid.clearHighlightLayer = (id) => clearedLayers.push(id);
         globalThis.canvas.interface.grid.destroyHighlightLayer = (id) => destroyedLayers.push(id);
 
         // Instance methods
+        adapter.addHighlightLayer('layer-inst-1');
         adapter.clearHighlightLayer('layer-inst-1');
         adapter.destroyHighlightLayer('layer-inst-1');
+        assert.deepEqual(addedLayers, ['layer-inst-1']);
         assert.deepEqual(clearedLayers, ['layer-inst-1']);
         assert.deepEqual(destroyedLayers, ['layer-inst-1']);
 
         // Static methods
+        BaseFoundryVTTAdapter.addHighlightLayer('layer-stat-2');
         BaseFoundryVTTAdapter.clearHighlightLayer('layer-stat-2');
         BaseFoundryVTTAdapter.destroyHighlightLayer('layer-stat-2');
+        assert.deepEqual(addedLayers, ['layer-inst-1', 'layer-stat-2']);
         assert.deepEqual(clearedLayers, ['layer-inst-1', 'layer-stat-2']);
         assert.deepEqual(destroyedLayers, ['layer-inst-1', 'layer-stat-2']);
 
         // Barrel re-exports
+        addHighlightLayer('layer-barrel-3');
         clearHighlightLayer('layer-barrel-3');
         destroyHighlightLayer('layer-barrel-3');
+        assert.deepEqual(addedLayers, ['layer-inst-1', 'layer-stat-2', 'layer-barrel-3']);
         assert.deepEqual(clearedLayers, ['layer-inst-1', 'layer-stat-2', 'layer-barrel-3']);
         assert.deepEqual(destroyedLayers, ['layer-inst-1', 'layer-stat-2', 'layer-barrel-3']);
 
         // Empty/invalid input contract handling
+        adapter.addHighlightLayer('');
+        adapter.addHighlightLayer(null);
         adapter.clearHighlightLayer('');
         adapter.clearHighlightLayer(null);
         adapter.destroyHighlightLayer('');
         adapter.destroyHighlightLayer(null);
+        assert.equal(addedLayers.length, 3, 'Invalid highlight layer IDs must be safely ignored');
         assert.equal(clearedLayers.length, 3, 'Invalid highlight layer IDs must be safely ignored');
         assert.equal(destroyedLayers.length, 3, 'Invalid highlight layer IDs must be safely ignored');
     } finally {
+        if (origAdd) globalThis.canvas.interface.grid.addHighlightLayer = origAdd;
         if (origClear) globalThis.canvas.interface.grid.clearHighlightLayer = origClear;
         if (origDestroy) globalThis.canvas.interface.grid.destroyHighlightLayer = origDestroy;
     }

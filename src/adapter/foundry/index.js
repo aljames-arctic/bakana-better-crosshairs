@@ -67,6 +67,13 @@ export const mergeObject = (original, other, options) => crosshairAdapter.mergeO
 export const deepClone = (obj) => crosshairAdapter.deepClone(obj);
 
 /**
+ * Adds the specified grid highlight layer across Foundry canvas versions.
+ * @param {string} id - The identifier of the highlight layer to add.
+ * @returns {void}
+ */
+export const addHighlightLayer = (id) => crosshairAdapter.addHighlightLayer(id);
+
+/**
  * Clears the specified grid highlight layer across Foundry canvas versions.
  * @param {string} id - The identifier of the highlight layer to clear.
  * @returns {void}

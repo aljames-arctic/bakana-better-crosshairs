@@ -114,6 +114,36 @@ export class BaseFoundryVTTAdapter {
     }
 
     /**
+     * Adds the specified grid highlight layer across Foundry canvas versions.
+     * @param {string} id - The identifier of the highlight layer to add.
+     * @returns {void}
+     */
+    addHighlightLayer(id) {
+        if (!id || typeof id !== "string") {
+            log.debug("BaseFoundryVTTAdapter.addHighlightLayer | Called with invalid or empty identifier.");
+            return;
+        }
+        const cleanId = id.trim();
+        if (!cleanId) return;
+
+        const gridApi = canvas?.interface?.grid ?? canvas?.grid;
+        if (gridApi?.addHighlightLayer) {
+            try { return gridApi.addHighlightLayer(cleanId); } catch (e) {}
+        }
+
+        const legacyLayer = canvas?.grid?.highlightLayers?.[cleanId];
+        if (!legacyLayer && canvas?.grid?.addHighlightLayer) {
+            try { return canvas.grid.addHighlightLayer(cleanId); } catch (e) {}
+        }
+
+        log.debug(`BaseFoundryVTTAdapter.addHighlightLayer | Could not add highlight layer for key "${cleanId}".`);
+    }
+
+    static addHighlightLayer(id) {
+        return new BaseFoundryVTTAdapter().addHighlightLayer(id);
+    }
+
+    /**
      * Clears the specified grid highlight layer across Foundry canvas versions.
      * @param {string} id - The identifier of the highlight layer to clear.
      * @returns {void}

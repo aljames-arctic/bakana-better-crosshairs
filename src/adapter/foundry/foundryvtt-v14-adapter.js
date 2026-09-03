@@ -753,9 +753,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 if (isRotatedRect) {
                     this._highlightRotatedRectangle(tmpl, doc, primaryShape, highlightId);
                 } else if (canvas?.interface?.grid) {
-                    if (typeof canvas.interface.grid.addHighlightLayer === "function") {
-                        try { canvas.interface.grid.addHighlightLayer(highlightId); } catch (e) {}
-                    }
+                    this.addHighlightLayer(highlightId);
                     this.clearHighlightLayer(highlightId);
                     const hl = canvas.interface.grid.getHighlightLayer?.(highlightId);
                     if (hl) hl.visible = true;
@@ -1450,9 +1448,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
     _highlightRotatedRectangle(tmpl, doc, rectShape, highlightId) {
         if (!canvas?.interface?.grid) return;
 
-        if (typeof canvas.interface.grid.addHighlightLayer === "function") {
-            try { canvas.interface.grid.addHighlightLayer(highlightId); } catch (e) {}
-        }
+        this.addHighlightLayer(highlightId);
         this.clearHighlightLayer(highlightId);
         const hl = canvas.interface.grid.getHighlightLayer?.(highlightId);
         if (hl) hl.visible = true;
