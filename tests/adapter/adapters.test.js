@@ -2963,3 +2963,171 @@ test('FoundryVTTV14Adapter.updatePreviewShape preserves rotated direction and ha
     assert.equal(Math.round(unrotatedDoc.direction), 45, 'updatePreviewShape must calculate 45 deg diagonal angle when unrotated');
 });
 
+test('FoundryVTTV14Adapter._getGridOffsetRange provides left/top/right/bottom and handles NaN gracefully', () => {
+    const adapterV14 = new FoundryVTTV14Adapter();
+    const origOffsetRange = globalThis.canvas?.grid?.getOffsetRange;
+
+    try {
+        let receivedPaddedBounds = null;
+        // Mock getOffsetRange that accesses .left and .top like real Foundry BaseGrid
+        globalThis.canvas.grid.getOffsetRange = (bounds) => {
+            receivedPaddedBounds = bounds;
+            const x0 = Math.floor(bounds.left / 100);
+            const y0 = Math.floor(bounds.top / 100);
+            const x1 = Math.ceil(bounds.right / 100);
+            const y1 = Math.ceil(bounds.bottom / 100);
+            return [x0, y0, x1, y1];
+        };
+
+        const testBounds = { x: 100, y: 100, width: 200, height: 200 };
+        const range = adapterV14._getGridOffsetRange(testBounds);
+
+        assert.ok(receivedPaddedBounds.left !== undefined, 'paddedBounds must have left property');
+        assert.ok(receivedPaddedBounds.right !== undefined, 'paddedBounds must have right property');
+        assert.ok(receivedPaddedBounds.top !== undefined, 'paddedBounds must have top property');
+        assert.ok(receivedPaddedBounds.bottom !== undefined, 'paddedBounds must have bottom property');
+        assert.deepEqual(range, [0, 0, 4, 4], 'Must compute valid integer range from left/top/right/bottom');
+
+        // Test fallback when getOffsetRange returns NaN
+        globalThis.canvas.grid.getOffsetRange = () => [NaN, NaN, NaN, NaN];
+        const fallbackRange = adapterV14._getGridOffsetRange(testBounds);
+        assert.ok(fallbackRange.every(Number.isFinite), 'Fallback must return finite numbers when getOffsetRange returns NaN');
+        assert.deepEqual(fallbackRange, [0, 0, 4, 4]);
+    } finally {
+        if (origOffsetRange) globalThis.canvas.grid.getOffsetRange = origOffsetRange;
+    }
+});
+
+test('FoundryVTTV14Adapter highlights rotated MeasuredTemplate when canvas.grid.getOffsetRange requires left/top/right/bottom', () => {
+    const origClear = globalThis.canvas?.interface?.grid?.clearHighlightLayer;
+    const origAdd = globalThis.canvas?.interface?.grid?.addHighlightLayer;
+    const origHighlight = globalThis.canvas?.interface?.grid?.highlightPosition;
+    const origOffsetRange = globalThis.canvas?.grid?.getOffsetRange;
+    const origCenterPoint = globalThis.canvas?.grid?.getCenterPoint;
+    const origTopLeftPoint = globalThis.canvas?.grid?.getTopLeftPoint;
+
+    const highlightedCells = [];
+
+    if (globalThis.canvas?.interface?.grid) {
+        globalThis.canvas.interface.grid.addHighlightLayer = () => {};
+        globalThis.canvas.interface.grid.clearHighlightLayer = () => {};
+        globalThis.canvas.interface.grid.highlightPosition = (id, pos) => {
+            highlightedCells.push({ id, ...pos });
+        };
+    }
+    if (globalThis.canvas?.grid) {
+        // Strict Foundry V14 BaseGrid simulation: accesses bounds.left/right/top/bottom
+        globalThis.canvas.grid.getOffsetRange = (bounds) => {
+            const x0 = Math.floor(bounds.left / 100);
+            const y0 = Math.floor(bounds.top / 100);
+            const x1 = Math.ceil(bounds.right / 100);
+            const y1 = Math.ceil(bounds.bottom / 100);
+            return [x0, y0, x1, y1];
+        };
+        globalThis.canvas.grid.getCenterPoint = (coords) => ({
+            x: (coords.i + 0.5) * 100,
+            y: (coords.j + 0.5) * 100
+        });
+        globalThis.canvas.grid.getTopLeftPoint = (coords) => ({
+            x: coords.i * 100,
+            y: coords.j * 100
+        });
+    }
+
+    try {
+        const adapterV14 = new FoundryVTTV14Adapter();
+
+        const mockDoc = {
+            id: 'tmpl-rect-strict',
+            documentName: 'MeasuredTemplate',
+            t: 'rect',
+            distance: 10,
+            width: 10,
+            direction: 0,
+            x: 100,
+            y: 100,
+            updateSource(data) { Object.assign(this, data); }
+        };
+        const mockTmpl = {
+            document: mockDoc,
+            t: 'rect',
+            direction: 0,
+            x: 100,
+            y: 100,
+            highlightId: 'Template.tmpl-rect-strict',
+            renderFlags: { set() {} },
+            applyRenderFlags() {},
+            highlightGrid() {}
+        };
+
+        // Rotate square MeasuredTemplate to 30 degrees
+        adapterV14.refreshTemplateHighlights(mockTmpl, 30);
+
+        assert.ok(highlightedCells.length > 0, 'Must highlight grid cells even when getOffsetRange requires .left/.top/.right/.bottom');
+        assert.ok(highlightedCells.every(c => c.id === 'Template.tmpl-rect-strict'));
+    } finally {
+        if (globalThis.canvas?.interface?.grid) {
+            if (origClear) globalThis.canvas.interface.grid.clearHighlightLayer = origClear;
+            if (origAdd) globalThis.canvas.interface.grid.addHighlightLayer = origAdd;
+            if (origHighlight) globalThis.canvas.interface.grid.highlightPosition = origHighlight;
+        }
+        if (globalThis.canvas?.grid) {
+            if (origOffsetRange) globalThis.canvas.grid.getOffsetRange = origOffsetRange;
+            if (origCenterPoint) globalThis.canvas.grid.getCenterPoint = origCenterPoint;
+            if (origTopLeftPoint) globalThis.canvas.grid.getTopLeftPoint = origTopLeftPoint;
+        }
+    }
+});
+
+test('FoundryVTTV14Adapter._wrapHighlightGrid wraps _refreshGrid and intercepts rotated rect', () => {
+    const adapterV14 = new FoundryVTTV14Adapter();
+    let refreshGridCalled = false;
+    let refreshTemplateHighlightsCalled = false;
+
+    const mockDoc = {
+        id: 'wrap-refreshgrid-test',
+        documentName: 'MeasuredTemplate',
+        t: 'rect',
+        distance: 20,
+        width: 20,
+        direction: 0,
+        x: 100,
+        y: 100,
+        updateSource(data) { Object.assign(this, data); }
+    };
+
+    const mockShape = {
+        direction: 45,
+        x: 100,
+        y: 100
+    };
+
+    const mockTmpl = {
+        document: mockDoc,
+        t: 'rect',
+        direction: 0,
+        x: 100,
+        y: 100,
+        highlightId: 'Template.wrap-refreshgrid-test',
+        crosshair: { shapeInstance: mockShape },
+        highlightGrid() {},
+        _refreshGrid() { refreshGridCalled = true; },
+        renderFlags: { set() {} },
+        applyRenderFlags() {}
+    };
+
+    const origRefresh = adapterV14.refreshTemplateHighlights.bind(adapterV14);
+    adapterV14.refreshTemplateHighlights = () => {
+        refreshTemplateHighlightsCalled = true;
+    };
+
+    adapterV14._wrapHighlightGrid(mockTmpl);
+    mockTmpl._refreshGrid();
+
+    assert.equal(refreshTemplateHighlightsCalled, true, 'Wrapped _refreshGrid must trigger refreshTemplateHighlights when rotated');
+    assert.equal(refreshGridCalled, false, 'Core _refreshGrid must NOT be called for rotated rect');
+
+    adapterV14.refreshTemplateHighlights = origRefresh;
+});
+
+

@@ -691,149 +691,153 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
      * @returns {void}
      */
     refreshTemplateHighlights(tmpl, direction) {
-        if (!tmpl) return;
+        if (!tmpl || tmpl._bbcRefreshingHighlights) return;
+        tmpl._bbcRefreshingHighlights = true;
 
-        const doc = tmpl.document ?? tmpl;
-        if (!doc) return;
+        try {
+            const doc = tmpl.document ?? tmpl;
+            if (!doc) return;
 
-        const isRegion = doc.documentName === "Region" || Boolean(tmpl.shapes || doc.shapes);
+            const isRegion = doc.documentName === "Region" || Boolean(tmpl.shapes || doc.shapes);
 
-        if (isRegion) {
-            const effectiveDirection = direction ?? doc.direction ?? tmpl.direction;
-            if (effectiveDirection !== undefined) {
-                tmpl.direction = effectiveDirection;
-                doc.direction = effectiveDirection;
-            }
+            if (isRegion) {
+                const effectiveDirection = direction ?? doc.direction ?? tmpl.direction;
+                if (effectiveDirection !== undefined) {
+                    tmpl.direction = effectiveDirection;
+                    doc.direction = effectiveDirection;
+                }
 
-            const shapesList = this._getShapesArray(doc);
-            let primaryShape = shapesList[0] ?? (Array.isArray(doc.shapes) ? doc.shapes[0] : (Array.isArray(tmpl.shapes) ? tmpl.shapes[0] : null));
+                const shapesList = this._getShapesArray(doc);
+                let primaryShape = shapesList[0] ?? (Array.isArray(doc.shapes) ? doc.shapes[0] : (Array.isArray(tmpl.shapes) ? tmpl.shapes[0] : null));
 
-            if (primaryShape && effectiveDirection !== undefined && primaryShape.rotation !== effectiveDirection) {
-                const raw = typeof primaryShape.toObject === "function" ? primaryShape.toObject() : primaryShape;
-                const updated = { ...raw, rotation: effectiveDirection };
-                delete updated._id;
-                delete updated.id;
-                if (typeof doc.updateSource === "function") {
-                    try {
-                        doc.updateSource({ shapes: [updated] });
-                    } catch (e) {
+                if (primaryShape && effectiveDirection !== undefined && primaryShape.rotation !== effectiveDirection) {
+                    const raw = typeof primaryShape.toObject === "function" ? primaryShape.toObject() : primaryShape;
+                    const updated = { ...raw, rotation: effectiveDirection };
+                    delete updated._id;
+                    delete updated.id;
+                    if (typeof doc.updateSource === "function") {
+                        try {
+                            doc.updateSource({ shapes: [updated] });
+                        } catch (e) {
+                            doc.shapes = [updated];
+                        }
+                    } else {
                         doc.shapes = [updated];
                     }
-                } else {
-                    doc.shapes = [updated];
-                }
-                primaryShape = updated;
-            }
-
-            const highlightId = tmpl.highlightId ?? tmpl._bbcHighlightId ?? (doc.id ? `Region.${doc.id}` : "Region.preview");
-            tmpl._bbcHighlightId = highlightId;
-
-            const isRotatedRect = Boolean(primaryShape && (primaryShape.type === "rectangle" || primaryShape.type === "box" || primaryShape.type === "square"));
-
-            if (isRotatedRect) {
-                this._highlightRotatedRectangle(tmpl, doc, primaryShape, highlightId);
-            } else if (canvas?.interface?.grid) {
-                if (typeof canvas.interface.grid.addHighlightLayer === "function") {
-                    try { canvas.interface.grid.addHighlightLayer(highlightId); } catch (e) {}
-                }
-                if (typeof canvas.interface.grid.clearHighlightLayer === "function") {
-                    try { canvas.interface.grid.clearHighlightLayer(highlightId); } catch (e) {}
-                }
-                const hl = canvas.interface.grid.getHighlightLayer?.(highlightId);
-                if (hl) hl.visible = true;
-
-                let shapeBounds = null;
-                if (primaryShape?.type === "circle" || primaryShape?.type === "ellipse") {
-                    const origX = primaryShape.x ?? doc.x ?? tmpl.x ?? 0;
-                    const origY = primaryShape.y ?? doc.y ?? tmpl.y ?? 0;
-                    const radVal = primaryShape.radius ?? 100;
-                    shapeBounds = { x: origX - radVal, y: origY - radVal, width: radVal * 2, height: radVal * 2 };
+                    primaryShape = updated;
                 }
 
-                let bounds = shapeBounds ?? tmpl.bounds;
-                if (doc.polygonTree?.bounds && Number.isFinite(doc.polygonTree.bounds.width) && doc.polygonTree.bounds.width > 0) {
-                    const pb = doc.polygonTree.bounds;
-                    if (bounds) {
-                        const x0 = Math.min(bounds.x, pb.x);
-                        const y0 = Math.min(bounds.y, pb.y);
-                        const x1 = Math.max(bounds.x + bounds.width, pb.x + pb.width);
-                        const y1 = Math.max(bounds.y + bounds.height, pb.y + pb.height);
-                        bounds = { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
-                    } else {
-                        bounds = pb;
+                const highlightId = tmpl.highlightId ?? tmpl._bbcHighlightId ?? (doc.id ? `Region.${doc.id}` : "Region.preview");
+                tmpl._bbcHighlightId = highlightId;
+
+                const isRotatedRect = Boolean(primaryShape && (primaryShape.type === "rectangle" || primaryShape.type === "box" || primaryShape.type === "square"));
+
+                if (isRotatedRect) {
+                    this._highlightRotatedRectangle(tmpl, doc, primaryShape, highlightId);
+                } else if (canvas?.interface?.grid) {
+                    if (typeof canvas.interface.grid.addHighlightLayer === "function") {
+                        try { canvas.interface.grid.addHighlightLayer(highlightId); } catch (e) {}
                     }
-                } else if (tmpl.bounds && (!bounds || !Number.isFinite(bounds.width) || bounds.width <= 0)) {
-                    bounds = tmpl.bounds;
-                }
+                    if (typeof canvas.interface.grid.clearHighlightLayer === "function") {
+                        try { canvas.interface.grid.clearHighlightLayer(highlightId); } catch (e) {}
+                    }
+                    const hl = canvas.interface.grid.getHighlightLayer?.(highlightId);
+                    if (hl) hl.visible = true;
 
-                if (canvas.grid && typeof canvas.grid.getOffsetRange === "function" && bounds) {
-                    const paddedBounds = typeof bounds.pad === "function"
-                        ? bounds.pad(1)
-                        : { x: bounds.x - 1, y: bounds.y - 1, width: bounds.width + 2, height: bounds.height + 2 };
+                    let shapeBounds = null;
+                    if (primaryShape?.type === "circle" || primaryShape?.type === "ellipse") {
+                        const origX = primaryShape.x ?? doc.x ?? tmpl.x ?? 0;
+                        const origY = primaryShape.y ?? doc.y ?? tmpl.y ?? 0;
+                        const radVal = primaryShape.radius ?? 100;
+                        shapeBounds = { x: origX - radVal, y: origY - radVal, width: radVal * 2, height: radVal * 2 };
+                    }
 
-                    const [i0, j0, i1, j1] = canvas.grid.getOffsetRange(paddedBounds);
-                    const colorVal = doc.color ?? "#ffaa00";
-                    const colorNum = typeof foundry?.utils?.Color?.from === "function"
-                        ? foundry.utils.Color.from(colorVal).valueOf()
-                        : (typeof Color !== "undefined" && Color.from ? Color.from(colorVal).valueOf() : 0xffaa00);
-                    const borderNum = 0xffffff;
+                    let bounds = shapeBounds ?? tmpl.bounds;
+                    if (doc.polygonTree?.bounds && Number.isFinite(doc.polygonTree.bounds.width) && doc.polygonTree.bounds.width > 0) {
+                        const pb = doc.polygonTree.bounds;
+                        if (bounds) {
+                            const x0 = Math.min(bounds.x, pb.x);
+                            const y0 = Math.min(bounds.y, pb.y);
+                            const x1 = Math.max(bounds.x + bounds.width, pb.x + pb.width);
+                            const y1 = Math.max(bounds.y + bounds.height, pb.y + pb.height);
+                            bounds = { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
+                        } else {
+                            bounds = pb;
+                        }
+                    } else if (tmpl.bounds && (!bounds || !Number.isFinite(bounds.width) || bounds.width <= 0)) {
+                        bounds = tmpl.bounds;
+                    }
 
-                    const dxGrid = ((canvas.grid?.sizeX ?? canvas.grid?.size ?? 100) / 2);
-                    const dyGrid = ((canvas.grid?.sizeY ?? canvas.grid?.size ?? 100) / 2);
+                    if (bounds) {
+                        const [i0, j0, i1, j1] = this._getGridOffsetRange(bounds);
+                        const colorVal = doc.color ?? "#ffaa00";
+                        const colorNum = typeof foundry?.utils?.Color?.from === "function"
+                            ? foundry.utils.Color.from(colorVal)
+                            : (typeof Color !== "undefined" && Color.from ? Color.from(colorVal) : 0xffaa00);
+                        const borderNum = 0xffffff;
 
-                    for (let i = i0; i <= i1; i++) {
-                        for (let j = j0; j <= j1; j++) {
-                            const center = canvas.grid.getCenterPoint({ i, j });
-                            if (!center) continue;
+                        const dxGrid = ((canvas.grid?.sizeX ?? canvas.grid?.size ?? 100) / 2);
+                        const dyGrid = ((canvas.grid?.sizeY ?? canvas.grid?.size ?? 100) / 2);
 
-                            const testPt = {
-                                x: Math.round(center.x - dxGrid) + dxGrid,
-                                y: Math.round(center.y - dyGrid) + dyGrid
-                            };
+                        for (let i = i0; i <= i1; i++) {
+                            for (let j = j0; j <= j1; j++) {
+                                const center = canvas.grid.getCenterPoint({ i, j });
+                                if (!center) continue;
 
-                            let isCovered = false;
-                            if (typeof doc.polygonTree?.testPoint === "function") {
-                                try {
-                                    isCovered = Boolean(doc.polygonTree.testPoint(testPt, 0.75));
-                                } catch (e) {}
-                            }
-                            if (!isCovered && typeof doc.testPoint === "function") {
-                                try {
-                                    isCovered = Boolean(doc.testPoint(testPt));
-                                } catch (e) {}
-                            }
-                            if (!isCovered && typeof tmpl.testPoint === "function") {
-                                try {
-                                    isCovered = Boolean(tmpl.testPoint(testPt) || tmpl.testPoint(center));
-                                } catch (e) {}
-                            }
+                                const testPt = {
+                                    x: Math.round(center.x - dxGrid) + dxGrid,
+                                    y: Math.round(center.y - dyGrid) + dyGrid
+                                };
 
-                            if (isCovered) {
-                                const pt = canvas.grid.getTopLeftPoint({ i, j });
-                                if (typeof canvas.interface.grid.highlightPosition === "function") {
-                                    canvas.interface.grid.highlightPosition(highlightId, {
-                                        x: pt.x,
-                                        y: pt.y,
-                                        color: colorNum,
-                                        border: borderNum
-                                    });
+                                let isCovered = false;
+                                if (typeof doc.polygonTree?.testPoint === "function") {
+                                    try {
+                                        isCovered = Boolean(doc.polygonTree.testPoint(testPt, 0.75));
+                                    } catch (e) {}
+                                }
+                                if (!isCovered && typeof doc.testPoint === "function") {
+                                    try {
+                                        isCovered = Boolean(doc.testPoint(testPt));
+                                    } catch (e) {}
+                                }
+                                if (!isCovered && typeof tmpl.testPoint === "function") {
+                                    try {
+                                        isCovered = Boolean(tmpl.testPoint(testPt) || tmpl.testPoint(center));
+                                    } catch (e) {}
+                                }
+
+                                if (isCovered) {
+                                    const pt = canvas.grid.getTopLeftPoint({ i, j });
+                                    if (typeof canvas.interface.grid.highlightPosition === "function") {
+                                        canvas.interface.grid.highlightPosition(highlightId, {
+                                            x: pt.x,
+                                            y: pt.y,
+                                            color: colorNum,
+                                            border: borderNum
+                                        });
+                                    }
                                 }
                             }
                         }
                     }
-                }
-            }
 
-            this._safeSetRenderFlags(tmpl, {
-                refreshShape: true,
-                refreshGrid: true,
-                refreshHighlight: true,
-                refreshState: true,
-                refresh: true
-            });
-            if (typeof tmpl.applyRenderFlags === "function") tmpl.applyRenderFlags();
-            return;
-        }
+                    const finalHl = canvas.interface.grid.getHighlightLayer?.(highlightId);
+                    if (finalHl) {
+                        finalHl.visible = true;
+                        finalHl.renderable = true;
+                    }
+                }
+
+                this._safeSetRenderFlags(tmpl, {
+                    refreshShape: true,
+                    refreshGrid: true,
+                    refreshHighlight: true,
+                    refreshState: true,
+                    refresh: true
+                });
+                if (typeof tmpl.applyRenderFlags === "function") tmpl.applyRenderFlags();
+                return;
+            }
 
         // MeasuredTemplate in V14:
         const isRect = doc?.t === "rect" || tmpl.t === "rect";
@@ -924,18 +928,25 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 anchorY
             };
 
-            this._highlightRotatedRectangle(tmpl, doc, rectShape, highlightId);
-
             this._safeSetRenderFlags(tmpl, {
                 refreshTemplate: true,
                 refreshShape: true,
                 refreshGrid: false,
-                refreshHighlight: true,
                 refreshState: true,
                 refreshVisibility: true,
                 refresh: true
             });
-            if (typeof tmpl.applyRenderFlags === "function") tmpl.applyRenderFlags();
+            if (typeof tmpl.applyRenderFlags === "function") {
+                try { tmpl.applyRenderFlags(); } catch (e) {}
+            }
+
+            this._highlightRotatedRectangle(tmpl, doc, rectShape, highlightId);
+
+            const hl = canvas?.interface?.grid?.getHighlightLayer?.(highlightId);
+            if (hl) {
+                hl.visible = true;
+                hl.renderable = true;
+            }
             return;
         }
 
@@ -953,7 +964,13 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         const hId = tmpl.highlightId ?? tmpl.objectId ?? `Template.${doc?.id ?? "preview"}`;
         tmpl._bbcHighlightId = hId;
         const hl = canvas?.interface?.grid?.getHighlightLayer?.(hId);
-        if (hl) hl.visible = true;
+        if (hl) {
+            hl.visible = true;
+            hl.renderable = true;
+        }
+        } finally {
+            tmpl._bbcRefreshingHighlights = false;
+        }
     }
 
     /**
@@ -991,7 +1008,11 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                     const isRect = this.document?.t === "rect" || this.t === "rect";
                     const isRegion = this.document?.documentName === "Region" || Boolean(this.shapes || this.document?.shapes);
 
-                    const shapeDir = shape?.direction;
+                    const shapeDir = shape?.direction
+                        ?? this.crosshair?.direction
+                        ?? activePlacementTracker.crosshair?.direction
+                        ?? activePlacementTracker.config?.currentDirection
+                        ?? activePlacementTracker.config?.direction;
                     const normDir = Number.isFinite(shapeDir) ? (((shapeDir % 360) + 360) % 360) : undefined;
                     const isRotated = isRect && !isRegion && normDir !== undefined && (normDir !== 0);
 
@@ -1069,7 +1090,10 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                     const hId = this.highlightId ?? this.objectId ?? (isRegion ? (this.document?.id ? `Region.${this.document.id}` : "Region.preview") : "preview");
                     this._bbcHighlightId = hId;
                     const hl = canvas?.interface?.grid?.getHighlightLayer?.(hId);
-                    if (hl) hl.visible = true;
+                    if (hl) {
+                        hl.visible = true;
+                        hl.renderable = true;
+                    }
 
                     return orig.apply(this, args);
                 };
@@ -1078,6 +1102,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
 
         wrapMethod("highlightGrid");
         wrapMethod("_highlightGrid");
+        wrapMethod("_refreshGrid");
     }
 
     /**
@@ -1187,13 +1212,70 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
     }
 
     /**
+     * Compute integer grid space coordinate offset range [i0, j0, i1, j1] enclosing a bounding rectangle in V14.
+     * Guarantees PIXI.Rectangle compatibility and provides fallback against NaN if bounds properties are missing.
+     * @param {Object} bounds - Bounding rectangle { x, y, width, height }
+     * @returns {number[]} [i0, j0, i1, j1] Grid offset range
+     * @protected
+     */
+    _getGridOffsetRange(bounds) {
+        if (!canvas?.grid || !bounds) return [0, 0, 0, 0];
+
+        let targetBounds = bounds;
+        if (canvas.dimensions?.rect && typeof targetBounds.fit === "function") {
+            try { targetBounds = targetBounds.fit(canvas.dimensions.rect); } catch (e) {}
+        }
+
+        const paddedBounds = typeof targetBounds.pad === "function"
+            ? targetBounds.pad(1)
+            : {
+                x: targetBounds.x - 1,
+                y: targetBounds.y - 1,
+                width: targetBounds.width + 2,
+                height: targetBounds.height + 2,
+                left: (targetBounds.left ?? targetBounds.x) - 1,
+                top: (targetBounds.top ?? targetBounds.y) - 1,
+                right: (targetBounds.right ?? (targetBounds.x + targetBounds.width)) + 1,
+                bottom: (targetBounds.bottom ?? (targetBounds.y + targetBounds.height)) + 1
+            };
+
+        if (paddedBounds.left === undefined) paddedBounds.left = paddedBounds.x;
+        if (paddedBounds.top === undefined) paddedBounds.top = paddedBounds.y;
+        if (paddedBounds.right === undefined) paddedBounds.right = paddedBounds.x + paddedBounds.width;
+        if (paddedBounds.bottom === undefined) paddedBounds.bottom = paddedBounds.y + paddedBounds.height;
+
+        let i0 = 0, j0 = 0, i1 = 0, j1 = 0;
+        if (typeof canvas.grid.getOffsetRange === "function") {
+            try {
+                const res = canvas.grid.getOffsetRange(paddedBounds);
+                if (Array.isArray(res) && res.length >= 4) {
+                    [i0, j0, i1, j1] = res;
+                }
+            } catch (e) {
+                log.debug("FoundryVTTV14Adapter._getGridOffsetRange | getOffsetRange failed:", e);
+            }
+        }
+
+        if (!Number.isFinite(i0) || !Number.isFinite(j0) || !Number.isFinite(i1) || !Number.isFinite(j1)) {
+            const gx = canvas.grid?.sizeX ?? canvas.grid?.size ?? 100;
+            const gy = canvas.grid?.sizeY ?? canvas.grid?.size ?? 100;
+            i0 = Math.floor(paddedBounds.x / gx);
+            j0 = Math.floor(paddedBounds.y / gy);
+            i1 = Math.ceil((paddedBounds.x + paddedBounds.width) / gx);
+            j1 = Math.ceil((paddedBounds.y + paddedBounds.height) / gy);
+        }
+
+        return [i0, j0, i1, j1];
+    }
+
+    /**
      * Compute the minimal axis-aligned bounding box enclosing a rotated Region rectangle shape.
      * Uses BaseGrid#getRectangle vertex transformation with anchor translation.
      * @param {Object} shape - Region rectangle shape data
      * @param {number} [fallbackRotation=0] - Fallback rotation angle in degrees
      * @param {Document} [doc=null] - Document fallback coordinates
      * @param {PlaceableObject} [tmpl=null] - Placeable fallback coordinates
-     * @returns {{x: number, y: number, width: number, height: number}} Axis-aligned bounding box
+     * @returns {Object} Axis-aligned bounding box or PIXI.Rectangle
      * @protected
      */
     _computeRotatedRectangleBounds(shape, fallbackRotation = 0, doc = null, tmpl = null) {
@@ -1230,12 +1312,65 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         const maxX = Math.max(ax, bx, cx, dx);
         const minY = Math.min(ay, by, cy, dy);
         const maxY = Math.max(ay, by, cy, dy);
+        const w = maxX - minX;
+        const h = maxY - minY;
+
+        if (typeof PIXI !== "undefined" && PIXI.Rectangle) {
+            return new PIXI.Rectangle(minX, minY, w, h);
+        }
 
         return {
             x: minX,
             y: minY,
-            width: maxX - minX,
-            height: maxY - minY
+            width: w,
+            height: h,
+            left: minX,
+            top: minY,
+            right: maxX,
+            bottom: maxY,
+            pad(padX, padY = padX) {
+                const px = this.x - padX;
+                const py = this.y - padY;
+                const pw = this.width + (padX * 2);
+                const ph = this.height + (padY * 2);
+                return {
+                    x: px,
+                    y: py,
+                    width: pw,
+                    height: ph,
+                    left: px,
+                    top: py,
+                    right: px + pw,
+                    bottom: py + ph,
+                    pad: this.pad,
+                    fit: this.fit
+                };
+            },
+            fit(other) {
+                if (!other) return this;
+                const ox = other.x ?? other.left ?? 0;
+                const oy = other.y ?? other.top ?? 0;
+                const ow = other.width ?? ((other.right !== undefined) ? (other.right - ox) : 0);
+                const oh = other.height ?? ((other.bottom !== undefined) ? (other.bottom - oy) : 0);
+                const x0 = Math.max(this.x, ox);
+                const y0 = Math.max(this.y, oy);
+                const x1 = Math.min(this.right, ox + ow);
+                const y1 = Math.min(this.bottom, oy + oh);
+                const rw = Math.max(0, x1 - x0);
+                const rh = Math.max(0, y1 - y0);
+                return {
+                    x: x0,
+                    y: y0,
+                    width: rw,
+                    height: rh,
+                    left: x0,
+                    top: y0,
+                    right: x0 + rw,
+                    bottom: y0 + rh,
+                    pad: this.pad,
+                    fit: this.fit
+                };
+            }
         };
     }
 
@@ -1320,7 +1455,20 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 const y0 = Math.min(bounds.y, pb.y);
                 const x1 = Math.max(bounds.x + bounds.width, pb.x + pb.width);
                 const y1 = Math.max(bounds.y + bounds.height, pb.y + pb.height);
-                bounds = { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
+                bounds = typeof PIXI !== "undefined" && PIXI.Rectangle
+                    ? new PIXI.Rectangle(x0, y0, x1 - x0, y1 - y0)
+                    : {
+                        x: x0,
+                        y: y0,
+                        width: x1 - x0,
+                        height: y1 - y0,
+                        left: x0,
+                        top: y0,
+                        right: x1,
+                        bottom: y1,
+                        pad: bounds.pad,
+                        fit: bounds.fit
+                    };
             } else {
                 bounds = pb;
             }
@@ -1328,20 +1476,16 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             bounds = tmpl.bounds;
         }
 
-        if (canvas.grid && typeof canvas.grid.getOffsetRange === "function" && bounds) {
-            const paddedBounds = typeof bounds.pad === "function"
-                ? bounds.pad(1)
-                : { x: bounds.x - 1, y: bounds.y - 1, width: bounds.width + 2, height: bounds.height + 2 };
-
-            const [i0, j0, i1, j1] = canvas.grid.getOffsetRange(paddedBounds);
+        if (bounds) {
+            const [i0, j0, i1, j1] = this._getGridOffsetRange(bounds);
             const colorVal = doc?.fillColor ?? doc?.color ?? "#ffaa00";
             const colorNum = typeof foundry?.utils?.Color?.from === "function"
-                ? foundry.utils.Color.from(colorVal).valueOf()
-                : (typeof Color !== "undefined" && Color.from ? Color.from(colorVal).valueOf() : 0xffaa00);
+                ? foundry.utils.Color.from(colorVal)
+                : (typeof Color !== "undefined" && Color.from ? Color.from(colorVal) : 0xffaa00);
             const borderVal = doc?.borderColor ?? "#ffffff";
-            const borderNum = typeof foundry?.utils?.Color?.from === "function"
-                ? foundry.utils.Color.from(borderVal).valueOf()
-                : (typeof Color !== "undefined" && Color.from ? Color.from(borderVal).valueOf() : 0xffffff);
+            const borderNum = tmpl?.borderColor ?? (typeof foundry?.utils?.Color?.from === "function"
+                ? foundry.utils.Color.from(borderVal)
+                : (typeof Color !== "undefined" && Color.from ? Color.from(borderVal) : 0xffffff));
 
             const dxGrid = ((canvas.grid?.sizeX ?? canvas.grid?.size ?? 100) / 2);
             const dyGrid = ((canvas.grid?.sizeY ?? canvas.grid?.size ?? 100) / 2);
@@ -1390,6 +1534,12 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                     }
                 }
             }
+        }
+
+        const finalHl = canvas.interface.grid.getHighlightLayer?.(highlightId);
+        if (finalHl) {
+            finalHl.visible = true;
+            finalHl.renderable = true;
         }
     }
 }
