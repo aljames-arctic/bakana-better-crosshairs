@@ -2,7 +2,6 @@ import { BaseFoundryVTTAdapter } from "./base-foundryvtt-adapter.js";
 import { systemAdapter } from "../system/index.js";
 import { log } from "../../lib/logger.js";
 import { localize } from "../../lib/utils.js";
-import { Ray } from "../../lib/compat.js";
 import { activePlacementTracker } from "../../crosshair/util.js";
 
 /**
@@ -757,9 +756,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                     if (typeof canvas.interface.grid.addHighlightLayer === "function") {
                         try { canvas.interface.grid.addHighlightLayer(highlightId); } catch (e) {}
                     }
-                    if (typeof canvas.interface.grid.clearHighlightLayer === "function") {
-                        try { canvas.interface.grid.clearHighlightLayer(highlightId); } catch (e) {}
-                    }
+                    this.clearHighlightLayer(highlightId);
                     const hl = canvas.interface.grid.getHighlightLayer?.(highlightId);
                     if (hl) hl.visible = true;
 
@@ -1079,7 +1076,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                         if (targetY !== undefined) { try { this.y = targetY; } catch (e) {} }
                         if (effectiveDir !== undefined) { try { this.direction = effectiveDir; } catch (e) {} }
 
-                        if (this.ray && typeof Ray?.fromAngle === "function") {
+                        if (this.ray) {
                             const rad = ((effectiveDir ?? 0) * Math.PI) / 180;
                             const ox = targetX ?? this.x ?? 0;
                             const oy = targetY ?? this.y ?? 0;
@@ -1087,7 +1084,8 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                             const dist = isRect && !isRegion && this.document?.distance
                                 ? this.document.distance * pxPerFoot
                                 : (this.ray.distance ?? 1000);
-                            this.ray = Ray.fromAngle(ox, oy, rad, dist);
+                            const newRay = self.createRayFromAngle(ox, oy, rad, dist);
+                            if (newRay) this.ray = newRay;
                         }
 
                         if (typeof this._refreshPosition === "function") {
@@ -1455,9 +1453,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         if (typeof canvas.interface.grid.addHighlightLayer === "function") {
             try { canvas.interface.grid.addHighlightLayer(highlightId); } catch (e) {}
         }
-        if (typeof canvas.interface.grid.clearHighlightLayer === "function") {
-            try { canvas.interface.grid.clearHighlightLayer(highlightId); } catch (e) {}
-        }
+        this.clearHighlightLayer(highlightId);
         const hl = canvas.interface.grid.getHighlightLayer?.(highlightId);
         if (hl) hl.visible = true;
 

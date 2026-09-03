@@ -31,3 +31,61 @@ export function initializeFoundryAdapter() {
 
     return crosshairAdapter;
 }
+
+/**
+ * Reference to the Foundry VTT Token placeable class.
+ * @type {typeof foundry.canvas.placeables.Token}
+ */
+export const Token = foundry?.canvas?.placeables?.Token;
+
+/**
+ * Reference to the Foundry VTT MeasuredTemplate placeable class.
+ * @type {typeof foundry.canvas.placeables.MeasuredTemplate}
+ */
+export const MeasuredTemplate = foundry?.canvas?.placeables?.MeasuredTemplate;
+
+/**
+ * Reference to the Foundry VTT Region placeable class.
+ * @type {typeof foundry.canvas.placeables.Region}
+ */
+export const Region = foundry?.canvas?.placeables?.Region;
+
+/**
+ * Reference to the Foundry VTT Ray geometry class.
+ * @type {typeof foundry.canvas.geometry.Ray}
+ */
+export const Ray = foundry?.canvas?.geometry?.Ray;
+
+/**
+ * Reference to Foundry's mergeObject utility.
+ */
+export const mergeObject = (original, other, options) => crosshairAdapter.mergeObject(original, other, options);
+
+/**
+ * Reference to Foundry's deepClone utility.
+ */
+export const deepClone = (obj) => crosshairAdapter.deepClone(obj);
+
+/**
+ * Clears the specified grid highlight layer across Foundry canvas versions.
+ * @param {string} id - The identifier of the highlight layer to clear.
+ * @returns {void}
+ */
+export const clearHighlightLayer = (id) => crosshairAdapter.clearHighlightLayer(id);
+
+/**
+ * Destroys the specified grid highlight layer across Foundry canvas versions.
+ * @param {string} id - The identifier of the highlight layer to destroy.
+ * @returns {void}
+ */
+export const destroyHighlightLayer = (id) => crosshairAdapter.destroyHighlightLayer(id);
+
+/**
+ * Safely saves text or JSON string data to a file across Foundry VTT API versions.
+ * @param {string|Object} data - String payload or object to save
+ * @param {string} [type="application/json"] - MIME type (e.g. "text/json")
+ * @param {string} [filename="export.json"] - Output filename
+ * @returns {boolean} True if native Foundry save helper handled the request
+ */
+export const saveDataToFile = (data, type, filename) => crosshairAdapter.saveDataToFile(data, type, filename);
+

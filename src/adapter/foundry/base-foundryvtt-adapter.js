@@ -1,6 +1,5 @@
 import { systemAdapter } from "../system/index.js";
 import { log } from "../../lib/logger.js";
-import { Token, Ray, clearHighlightLayer, destroyHighlightLayer } from "../../lib/compat.js";
 import { TokenGeometry } from "../../lib/tokenGeometry.js";
 import { MODULE_ID } from "../../lib/constants.js";
 import { DEFAULT_AUTOREC_ENTRY, autorecManager } from "../../autorec/autorecManager.js";
@@ -31,6 +30,210 @@ export class BaseFoundryVTTAdapter {
      * @returns {void}
      */
     _patchDeprecations() {}
+
+    /**
+     * Reference to the Foundry VTT Token placeable class.
+     * @type {typeof foundry.canvas.placeables.Token}
+     */
+    get Token() {
+        return foundry?.canvas?.placeables?.Token ?? globalThis.Token;
+    }
+
+    static get Token() {
+        return foundry?.canvas?.placeables?.Token ?? globalThis.Token;
+    }
+
+    /**
+     * Reference to the Foundry VTT MeasuredTemplate placeable class.
+     * @type {typeof foundry.canvas.placeables.MeasuredTemplate}
+     */
+    get MeasuredTemplate() {
+        return foundry?.canvas?.placeables?.MeasuredTemplate;
+    }
+
+    static get MeasuredTemplate() {
+        return foundry?.canvas?.placeables?.MeasuredTemplate;
+    }
+
+    /**
+     * Reference to the Foundry VTT Region placeable class.
+     * @type {typeof foundry.canvas.placeables.Region}
+     */
+    get Region() {
+        return foundry?.canvas?.placeables?.Region;
+    }
+
+    static get Region() {
+        return foundry?.canvas?.placeables?.Region;
+    }
+
+    /**
+     * Reference to the Foundry VTT Ray geometry class.
+     * @type {typeof foundry.canvas.geometry.Ray}
+     */
+    get Ray() {
+        return foundry?.canvas?.geometry?.Ray;
+    }
+
+    static get Ray() {
+        return foundry?.canvas?.geometry?.Ray;
+    }
+
+    /**
+     * Construct a Ray instance between two coordinate points.
+     * @param {{x: number, y: number}} origin - Ray origin point
+     * @param {{x: number, y: number}} target - Ray target point
+     * @returns {Ray|null} Instantiated Ray object or null
+     */
+    createRay(origin, target) {
+        const RayClass = this.Ray;
+        return RayClass ? new RayClass(origin, target) : null;
+    }
+
+    static createRay(origin, target) {
+        const RayClass = BaseFoundryVTTAdapter.Ray;
+        return RayClass ? new RayClass(origin, target) : null;
+    }
+
+    /**
+     * Construct a Ray instance from origin coordinates, angle in radians, and distance.
+     * @param {number} x - Origin X
+     * @param {number} y - Origin Y
+     * @param {number} rad - Angle in radians
+     * @param {number} dist - Ray distance
+     * @returns {Ray|null} Instantiated Ray object or null
+     */
+    createRayFromAngle(x, y, rad, dist) {
+        const RayClass = this.Ray;
+        return RayClass?.fromAngle ? RayClass.fromAngle(x, y, rad, dist) : null;
+    }
+
+    static createRayFromAngle(x, y, rad, dist) {
+        const RayClass = BaseFoundryVTTAdapter.Ray;
+        return RayClass?.fromAngle ? RayClass.fromAngle(x, y, rad, dist) : null;
+    }
+
+    /**
+     * Clears the specified grid highlight layer across Foundry canvas versions.
+     * @param {string} id - The identifier of the highlight layer to clear.
+     * @returns {void}
+     */
+    clearHighlightLayer(id) {
+        if (!id || typeof id !== "string") {
+            log.debug("BaseFoundryVTTAdapter.clearHighlightLayer | Called with invalid or empty identifier.");
+            return;
+        }
+        const cleanId = id.trim();
+        if (!cleanId) return;
+
+        const gridApi = canvas?.interface?.grid ?? canvas?.grid;
+        if (gridApi?.clearHighlightLayer) {
+            try { return gridApi.clearHighlightLayer(cleanId); } catch (e) {}
+        }
+
+        const legacyLayer = canvas?.grid?.highlightLayers?.[cleanId];
+        if (legacyLayer?.clear) {
+            try { legacyLayer.clear(); return; } catch (e) {}
+        }
+
+        log.debug(`BaseFoundryVTTAdapter.clearHighlightLayer | No highlight layer available for key "${cleanId}".`);
+    }
+
+    static clearHighlightLayer(id) {
+        return new BaseFoundryVTTAdapter().clearHighlightLayer(id);
+    }
+
+    /**
+     * Destroys the specified grid highlight layer across Foundry canvas versions.
+     * @param {string} id - The identifier of the highlight layer to destroy.
+     * @returns {void}
+     */
+    destroyHighlightLayer(id) {
+        if (!id || typeof id !== "string") return;
+        const cleanId = id.trim();
+        if (!cleanId) return;
+
+        const gridApi = canvas?.interface?.grid ?? canvas?.grid;
+        if (gridApi?.destroyHighlightLayer) {
+            try { gridApi.destroyHighlightLayer(cleanId); } catch (e) {}
+        }
+
+        const legacyLayer = canvas?.grid?.highlightLayers?.[cleanId];
+        if (legacyLayer?.destroy) {
+            try { legacyLayer.destroy({ children: true }); } catch (e) {}
+        }
+        if (canvas?.grid?.highlightLayers && cleanId in canvas.grid.highlightLayers) {
+            try { delete canvas.grid.highlightLayers[cleanId]; } catch (e) {}
+        }
+    }
+
+    static destroyHighlightLayer(id) {
+        return new BaseFoundryVTTAdapter().destroyHighlightLayer(id);
+    }
+
+    /**
+     * Safely saves text or JSON string data to a file across Foundry VTT API versions.
+     * Checks namespaced foundry.utils.saveDataToFile first to prevent global accessor deprecation warnings.
+     * @param {string|Object} data - String payload or object to save
+     * @param {string} [type="application/json"] - MIME type (e.g. "text/json")
+     * @param {string} [filename="export.json"] - Output filename
+     * @returns {boolean} True if native Foundry save helper handled the request
+     */
+    saveDataToFile(data, type = "application/json", filename = "export.json") {
+        const rawFilename = filename ?? "export.json";
+        const trimmedFilename = String(rawFilename).replace(/[/\\]/g, "_").trim();
+        const cleanFilename = trimmedFilename.length > 0 ? trimmedFilename : "export.json";
+        const rawType = type ?? "application/json";
+        const trimmedType = String(rawType).trim();
+        const cleanType = trimmedType.length > 0 ? trimmedType : "application/json";
+        const cleanData = typeof data === "string" ? data : JSON.stringify(data ?? {});
+
+        try {
+            const utilsFn = foundry?.utils?.saveDataToFile;
+            if (utilsFn) {
+                utilsFn(cleanData, cleanType, cleanFilename);
+                log.debug(`BaseFoundryVTTAdapter.saveDataToFile | File "${cleanFilename}" saved via foundry.utils.saveDataToFile.`);
+                return true;
+            }
+        } catch (err) {
+            log.warn(`BaseFoundryVTTAdapter.saveDataToFile | Error calling foundry.utils.saveDataToFile for "${cleanFilename}".`, err);
+        }
+
+        log.error(`BaseFoundryVTTAdapter.saveDataToFile | Failed to save file "${cleanFilename}": zero valid file writers available.`);
+        return false;
+    }
+
+    static saveDataToFile(data, type = "application/json", filename = "export.json") {
+        return new BaseFoundryVTTAdapter().saveDataToFile(data, type, filename);
+    }
+
+    /**
+     * Reference to Foundry's mergeObject utility.
+     * @param {Object} original - Target object
+     * @param {Object} other - Source object
+     * @param {Object} [options={}] - Merge options
+     * @returns {Object} Merged object
+     */
+    mergeObject(original, other = {}, options = {}) {
+        return foundry?.utils?.mergeObject ? foundry.utils.mergeObject(original, other, options) : Object.assign(original, other);
+    }
+
+    static mergeObject(original, other = {}, options = {}) {
+        return foundry?.utils?.mergeObject ? foundry.utils.mergeObject(original, other, options) : Object.assign(original, other);
+    }
+
+    /**
+     * Reference to Foundry's deepClone utility.
+     * @param {*} obj - Source object to clone
+     * @returns {*} Cloned object
+     */
+    deepClone(obj) {
+        return foundry?.utils?.deepClone ? foundry.utils.deepClone(obj) : JSON.parse(JSON.stringify(obj));
+    }
+
+    static deepClone(obj) {
+        return foundry?.utils?.deepClone ? foundry.utils.deepClone(obj) : JSON.parse(JSON.stringify(obj));
+    }
 
     /**
      * Return canonical document terminology string ("template" or "region").
@@ -309,6 +512,7 @@ export class BaseFoundryVTTAdapter {
         if (!placeable || placeable._bbcHighlightGridWrapped) return;
         placeable._bbcHighlightGridWrapped = true;
 
+        const self = this;
         const wrapMethod = (fnName) => {
             if (typeof placeable[fnName] === "function") {
                 const orig = placeable[fnName];
@@ -356,7 +560,7 @@ export class BaseFoundryVTTAdapter {
                         if (targetY !== undefined) { try { this.y = targetY; } catch (e) {} }
                         if (targetDir !== undefined) { try { this.direction = targetDir; } catch (e) {} }
 
-                        if (this.ray && typeof Ray?.fromAngle === "function") {
+                        if (this.ray) {
                             const rad = ((targetDir ?? 0) * Math.PI) / 180;
                             const ox = targetX ?? this.x ?? 0;
                             const oy = targetY ?? this.y ?? 0;
@@ -364,7 +568,8 @@ export class BaseFoundryVTTAdapter {
                             const dist = isRect && !isRegion && this.document?.distance
                                 ? this.document.distance * pxPerFoot
                                 : (this.ray.distance ?? 1000);
-                            this.ray = Ray.fromAngle(ox, oy, rad, dist);
+                            const newRay = self.createRayFromAngle(ox, oy, rad, dist);
+                            if (newRay) this.ray = newRay;
                         }
 
                         if (typeof this._refreshPosition === "function") {
@@ -471,15 +676,15 @@ export class BaseFoundryVTTAdapter {
 
         for (const hId of candidateIds) {
             if (hId !== primaryHId) {
-                clearHighlightLayer(hId);
-                destroyHighlightLayer(hId);
+                this.clearHighlightLayer(hId);
+                this.destroyHighlightLayer(hId);
             }
         }
 
         const fallbackRegionId = Boolean(pId) ? `Region.${pId}` : "Region.preview";
         const finalId = primaryHId ?? (isRegion ? fallbackRegionId : (placeable.id ?? "preview"));
-        clearHighlightLayer(finalId);
-        destroyHighlightLayer(finalId);
+        this.clearHighlightLayer(finalId);
+        this.destroyHighlightLayer(finalId);
 
         if (typeof canvas?.regions?.highlight?.clear === "function") {
             try { canvas.regions.highlight.clear(); } catch (e) {}

@@ -1,5 +1,3 @@
-import { Ray } from "./compat.js";
-
 /**
  * Unified geometric utilities for token bounding boxes, ray-casting perimeter intersections,
  * and 8-way sticky corner calculations.
@@ -89,15 +87,18 @@ export class TokenGeometry {
             }
         }
 
-        if (!intersection && Ray) {
-            const ray = new Ray(centerPoint, farPoint);
-            if (typeof ray.intersectSegment === "function") {
-                for (let i = 0; i < points.length; i += 2) {
-                    const p1 = { x: points[i], y: points[i + 1] };
-                    const p2Idx = (i + 2) >= points.length ? 0 : (i + 2);
-                    const p2 = { x: points[p2Idx], y: points[p2Idx + 1] };
-                    intersection = ray.intersectSegment([p1.x, p1.y, p2.x, p2.y]);
-                    if (intersection) break;
+        if (!intersection) {
+            const RayClass = foundry?.canvas?.geometry?.Ray;
+            if (RayClass) {
+                const ray = new RayClass(centerPoint, farPoint);
+                if (typeof ray.intersectSegment === "function") {
+                    for (let i = 0; i < points.length; i += 2) {
+                        const p1 = { x: points[i], y: points[i + 1] };
+                        const p2Idx = (i + 2) >= points.length ? 0 : (i + 2);
+                        const p2 = { x: points[p2Idx], y: points[p2Idx + 1] };
+                        intersection = ray.intersectSegment([p1.x, p1.y, p2.x, p2.y]);
+                        if (intersection) break;
+                    }
                 }
             }
         }

@@ -1,5 +1,17 @@
 import { systemAdapter, initializeSystemAdapter } from "./system/index.js";
-import { crosshairAdapter, initializeFoundryAdapter } from "./foundry/index.js";
+import {
+    crosshairAdapter,
+    initializeFoundryAdapter,
+    Token,
+    MeasuredTemplate,
+    Region,
+    Ray,
+    clearHighlightLayer,
+    destroyHighlightLayer,
+    saveDataToFile,
+    mergeObject,
+    deepClone
+} from "./foundry/index.js";
 import { autorecManager } from "../autorec/autorecManager.js";
 
 let hooksInitialized = false;
@@ -43,4 +55,18 @@ export function initializeHooks(options = {}) {
     }
 }
 
-export { systemAdapter, initializeSystemAdapter, crosshairAdapter, initializeFoundryAdapter };
+export {
+    systemAdapter,
+    initializeSystemAdapter,
+    crosshairAdapter,
+    initializeFoundryAdapter,
+    Token,
+    MeasuredTemplate,
+    Region,
+    Ray,
+    clearHighlightLayer,
+    destroyHighlightLayer,
+    saveDataToFile,
+    mergeObject,
+    deepClone
+};

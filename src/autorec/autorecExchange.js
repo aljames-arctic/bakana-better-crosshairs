@@ -1,6 +1,6 @@
 import { MODULE_ID } from "../lib/constants.js";
 import { log } from "../lib/logger.js";
-import { saveDataToFile } from "../lib/compat.js";
+import { crosshairAdapter } from "../adapter/foundry/index.js";
 import { DEFAULT_AUTOREC_ENTRY } from "./autorecManager.js";
 import { autorecCompatibilityUpdate } from "./autorecMigration.js";
 
@@ -450,7 +450,7 @@ export function analyzeImportDiff(validatedPackage, currentRegistrations, { defa
  */
 export function triggerFileDownload(jsonString, filename = "bbc-autorec-export.json") {
     try {
-        const saved = saveDataToFile(jsonString, "text/json", filename);
+        const saved = crosshairAdapter.saveDataToFile(jsonString, "text/json", filename);
         if (saved) {
             log.debug(`AutorecExchange.triggerFileDownload | Export file "${filename}" saved via Foundry saveDataToFile.`);
             return;

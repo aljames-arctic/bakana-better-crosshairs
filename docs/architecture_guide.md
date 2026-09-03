@@ -53,14 +53,14 @@ src/
 │   ├── index.js                           # Public crosshair shape factory & barrel exports
 │   ├── ray.js                             # Ray crosshair Sequencer builder
 │   ├── square.js                          # Square/Rect crosshair Sequencer builder
-│   └── util.js                            # Placement resolvers & precision mousewheel hooks
 ├── lib/
-│   ├── compat.js                          # Safe Foundry version compatibility wrappers
 │   ├── constants.js                       # Shared module constants
 │   ├── dependency.js                      # Module dependency validation engine
 │   ├── filemanager.js                     # Sequencer database path/asset resolution
 │   ├── logger.js                          # Structured logging system
 │   ├── notifier.js                        # UI notification batcher
+│   ├── scriptRunner.js                    # Safe script runner utility
+│   ├── tokenGeometry.js                   # Unified geometric token utilities
 │   └── utils.js                           # Localization and version helper utilities
 └── module.js                              # Main entrypoint & hook registration
 ```
@@ -71,7 +71,7 @@ src/
 
 ### Foundry Adapters (`BaseFoundryVTTAdapter` & Version Subclasses)
 Located in [`src/adapter/foundry/`](../src/adapter/foundry/), Foundry adapters isolate tabletop version differences and host preview interceptors:
-- **`BaseFoundryVTTAdapter`**: Implements shared lookup matching (`matchAutorecEntry`), candidate ordering, live default preview hiding (`hidePreview`), and core placement lifecycle handlers (`handleDrawPreview`, `handlePreCreate`, `handleCreateDocument`).
+- **`BaseFoundryVTTAdapter`**: Implements shared lookup matching (`matchAutorecEntry`), candidate ordering, live default preview hiding (`hidePreview`), core placement lifecycle handlers (`handleDrawPreview`, `handlePreCreate`, `handleCreateDocument`), platform compatibility accessors (`Token`, `MeasuredTemplate`, `Region`, `Ray`), grid highlight management, and file export helpers (`saveDataToFile`).
 - **`FoundryVTTV13Adapter`**: Handles V13 `MeasuredTemplate` placement hooks (`drawMeasuredTemplate` → `preCreateMeasuredTemplate` → `createMeasuredTemplate`) with legacy pixel sizing (`getTemplatePixelFactor` returning `{ factor: 1, gridUnits: false }`).
 - **`FoundryVTTV14Adapter`**: Handles V14+ `Region` placement hooks (`drawMeasuredTemplate` → `preCreateRegion` → `createRegion`). Converts game feet (`distance`, `width`) to canvas pixels (`* pxPerFoot`) inside `_formatRegionShapeUpdate` and returns `{ factor: 1 / gridSize, gridUnits: true }` so Sequencer effects render accurate grid unit dimensions.
 

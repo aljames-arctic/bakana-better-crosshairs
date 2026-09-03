@@ -2,7 +2,6 @@ import { BaseFoundryVTTAdapter } from "./base-foundryvtt-adapter.js";
 import { systemAdapter } from "../system/index.js";
 import { log } from "../../lib/logger.js";
 import { localize } from "../../lib/utils.js";
-import { Ray } from "../../lib/compat.js";
 
 /**
  * Adapter subclass encapsulating Foundry VTT v13 MeasuredTemplate placement behavior.
@@ -514,12 +513,13 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         }
         if (tmpl.shape?.clear) tmpl.shape.clear();
 
-        if (tmpl.ray && typeof Ray?.fromAngle === "function") {
+        if (tmpl.ray) {
             const ox = targetX ?? tmpl.ray.origin?.x ?? tmpl.x ?? 0;
             const oy = targetY ?? tmpl.ray.origin?.y ?? tmpl.y ?? 0;
             const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
             const dist = isRect && doc?.distance ? doc.distance * pxPerFoot : (tmpl.ray.distance ?? 1000);
-            tmpl.ray = Ray.fromAngle(ox, oy, rad, dist);
+            const newRay = this.createRayFromAngle(ox, oy, rad, dist);
+            if (newRay) tmpl.ray = newRay;
         }
 
         if (typeof tmpl._refreshPosition === "function") {

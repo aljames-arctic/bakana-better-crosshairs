@@ -2,12 +2,24 @@ import '../setup.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { closest } from '../../src/lib/filemanager.js';
-import { initializeFoundryAdapter, crosshairAdapter, BaseFoundryVTTAdapter } from '../../src/adapter/foundry/index.js';
+import {
+    initializeFoundryAdapter,
+    crosshairAdapter,
+    BaseFoundryVTTAdapter,
+    Token,
+    MeasuredTemplate,
+    Region,
+    Ray,
+    clearHighlightLayer,
+    destroyHighlightLayer,
+    saveDataToFile,
+    mergeObject,
+    deepClone
+} from '../../src/adapter/foundry/index.js';
 import { initializeSystemAdapter, systemAdapter } from '../../src/adapter/system/index.js';
 import { registerPlacementHooks, initializeHooks } from '../../src/adapter/index.js';
 import { snapCoordinates, attachWheelRotation, detachWheelRotation, resolveCrosshairPlacement, alignCrosshairAndEffects, shouldStickToToken, activePlacementTracker } from '../../src/crosshair/util.js';
 import { BaseCrosshairShape } from '../../src/crosshair/base.js';
-import { Token } from '../../src/lib/compat.js';
 import { autorecManager } from '../../src/autorec/autorecManager.js';
 import { FoundryVTTV13Adapter } from '../../src/adapter/foundry/foundryvtt-v13-adapter.js';
 import { FoundryVTTV14Adapter } from '../../src/adapter/foundry/foundryvtt-v14-adapter.js';
@@ -3320,5 +3332,170 @@ test('FoundryVTTV14Adapter.refreshTemplateHighlights does not highlight extra un
     }
 });
 
+test('Foundry adapter absorbs Token, MeasuredTemplate, Region, and Ray references on class and instance', () => {
+    const adapter = new BaseFoundryVTTAdapter();
+    const adapterV13 = new FoundryVTTV13Adapter();
+    const adapterV14 = new FoundryVTTV14Adapter();
 
+    assert.ok(adapter.Token, 'adapter.Token must be defined');
+    assert.equal(adapter.Token, BaseFoundryVTTAdapter.Token);
+    assert.equal(adapterV13.Token, BaseFoundryVTTAdapter.Token);
+    assert.equal(adapterV14.Token, BaseFoundryVTTAdapter.Token);
+    assert.equal(Token, BaseFoundryVTTAdapter.Token);
 
+    assert.ok(adapter.MeasuredTemplate, 'adapter.MeasuredTemplate must be defined');
+    assert.equal(adapter.MeasuredTemplate, BaseFoundryVTTAdapter.MeasuredTemplate);
+    assert.equal(adapterV13.MeasuredTemplate, BaseFoundryVTTAdapter.MeasuredTemplate);
+    assert.equal(adapterV14.MeasuredTemplate, BaseFoundryVTTAdapter.MeasuredTemplate);
+    assert.equal(MeasuredTemplate, BaseFoundryVTTAdapter.MeasuredTemplate);
+
+    assert.ok(adapter.Region, 'adapter.Region must be defined');
+    assert.equal(adapter.Region, BaseFoundryVTTAdapter.Region);
+    assert.equal(adapterV13.Region, BaseFoundryVTTAdapter.Region);
+    assert.equal(adapterV14.Region, BaseFoundryVTTAdapter.Region);
+    assert.equal(Region, BaseFoundryVTTAdapter.Region);
+
+    assert.ok(adapter.Ray, 'adapter.Ray must be defined');
+    assert.equal(adapter.Ray, BaseFoundryVTTAdapter.Ray);
+    assert.equal(adapterV13.Ray, BaseFoundryVTTAdapter.Ray);
+    assert.equal(adapterV14.Ray, BaseFoundryVTTAdapter.Ray);
+    assert.equal(Ray, BaseFoundryVTTAdapter.Ray);
+});
+
+test('Foundry adapter provides createRay and createRayFromAngle helpers', () => {
+    const adapter = new FoundryVTTV14Adapter();
+
+    const ray1 = adapter.createRay({ x: 10, y: 20 }, { x: 40, y: 60 });
+    assert.ok(ray1, 'createRay must instantiate a Ray object');
+    assert.equal(ray1.A.x, 10);
+    assert.equal(ray1.A.y, 20);
+    assert.equal(ray1.B.x, 40);
+    assert.equal(ray1.B.y, 60);
+
+    const staticRay = BaseFoundryVTTAdapter.createRay({ x: 0, y: 0 }, { x: 100, y: 0 });
+    assert.ok(staticRay);
+    assert.equal(staticRay.distance, 100);
+
+    const rayFromAngle = adapter.createRayFromAngle(50, 50, 0, 100);
+    assert.ok(rayFromAngle, 'createRayFromAngle must instantiate a Ray object');
+    assert.equal(rayFromAngle.A.x, 50);
+    assert.equal(rayFromAngle.A.y, 50);
+    assert.equal(Math.round(rayFromAngle.B.x), 150);
+
+    const staticRayFromAngle = BaseFoundryVTTAdapter.createRayFromAngle(0, 0, Math.PI / 2, 50);
+    assert.ok(staticRayFromAngle);
+    assert.equal(Math.round(staticRayFromAngle.B.y), 50);
+});
+
+test('Foundry adapter encapsulates clearHighlightLayer and destroyHighlightLayer across instances and barrels', () => {
+    const adapter = new FoundryVTTV14Adapter();
+    const clearedLayers = [];
+    const destroyedLayers = [];
+
+    const origClear = globalThis.canvas?.interface?.grid?.clearHighlightLayer;
+    const origDestroy = globalThis.canvas?.interface?.grid?.destroyHighlightLayer;
+
+    try {
+        globalThis.canvas.interface.grid.clearHighlightLayer = (id) => clearedLayers.push(id);
+        globalThis.canvas.interface.grid.destroyHighlightLayer = (id) => destroyedLayers.push(id);
+
+        // Instance methods
+        adapter.clearHighlightLayer('layer-inst-1');
+        adapter.destroyHighlightLayer('layer-inst-1');
+        assert.deepEqual(clearedLayers, ['layer-inst-1']);
+        assert.deepEqual(destroyedLayers, ['layer-inst-1']);
+
+        // Static methods
+        BaseFoundryVTTAdapter.clearHighlightLayer('layer-stat-2');
+        BaseFoundryVTTAdapter.destroyHighlightLayer('layer-stat-2');
+        assert.deepEqual(clearedLayers, ['layer-inst-1', 'layer-stat-2']);
+        assert.deepEqual(destroyedLayers, ['layer-inst-1', 'layer-stat-2']);
+
+        // Barrel re-exports
+        clearHighlightLayer('layer-barrel-3');
+        destroyHighlightLayer('layer-barrel-3');
+        assert.deepEqual(clearedLayers, ['layer-inst-1', 'layer-stat-2', 'layer-barrel-3']);
+        assert.deepEqual(destroyedLayers, ['layer-inst-1', 'layer-stat-2', 'layer-barrel-3']);
+
+        // Empty/invalid input contract handling
+        adapter.clearHighlightLayer('');
+        adapter.clearHighlightLayer(null);
+        adapter.destroyHighlightLayer('');
+        adapter.destroyHighlightLayer(null);
+        assert.equal(clearedLayers.length, 3, 'Invalid highlight layer IDs must be safely ignored');
+        assert.equal(destroyedLayers.length, 3, 'Invalid highlight layer IDs must be safely ignored');
+    } finally {
+        if (origClear) globalThis.canvas.interface.grid.clearHighlightLayer = origClear;
+        if (origDestroy) globalThis.canvas.interface.grid.destroyHighlightLayer = origDestroy;
+    }
+});
+
+test('Foundry adapter encapsulates saveDataToFile across instances, statics, and barrel exports', () => {
+    const adapter = new FoundryVTTV14Adapter();
+    const savedCalls = [];
+
+    const origSave = globalThis.foundry?.utils?.saveDataToFile;
+    try {
+        globalThis.foundry.utils.saveDataToFile = (data, type, filename) => {
+            savedCalls.push({ data, type, filename });
+        };
+
+        const res1 = adapter.saveDataToFile('{"name":"Fireball"}', 'text/json', 'export1.json');
+        assert.equal(res1, true);
+        assert.deepEqual(savedCalls[0], {
+            data: '{"name":"Fireball"}',
+            type: 'text/json',
+            filename: 'export1.json'
+        });
+
+        const res2 = BaseFoundryVTTAdapter.saveDataToFile({ a: 1 }, 'application/json', 'nested/export2.json');
+        assert.equal(res2, true);
+        assert.deepEqual(savedCalls[1], {
+            data: '{"a":1}',
+            type: 'application/json',
+            filename: 'nested_export2.json'
+        });
+
+        const res3 = saveDataToFile('raw text', 'text/plain', 'text.txt');
+        assert.equal(res3, true);
+        assert.deepEqual(savedCalls[2], {
+            data: 'raw text',
+            type: 'text/plain',
+            filename: 'text.txt'
+        });
+
+        // Error handling when underlying writer throws
+        globalThis.foundry.utils.saveDataToFile = () => { throw new Error('Disk full'); };
+        const resErr = adapter.saveDataToFile('data', 'text/plain', 'fail.txt');
+        assert.equal(resErr, false, 'saveDataToFile must catch underlying errors and return false');
+    } finally {
+        if (origSave) globalThis.foundry.utils.saveDataToFile = origSave;
+        else delete globalThis.foundry.utils.saveDataToFile;
+    }
+});
+
+test('Foundry adapter encapsulates mergeObject and deepClone utilities', () => {
+    const adapter = new BaseFoundryVTTAdapter();
+
+    const original = { a: 1, nested: { b: 2 } };
+    const cloned = adapter.deepClone(original);
+    assert.deepEqual(cloned, original);
+    assert.notEqual(cloned, original);
+    assert.notEqual(cloned.nested, original.nested);
+
+    const staticCloned = BaseFoundryVTTAdapter.deepClone(original);
+    assert.deepEqual(staticCloned, original);
+
+    const barrelCloned = deepClone(original);
+    assert.deepEqual(barrelCloned, original);
+
+    const target = { a: 1, b: 2 };
+    const merged = adapter.mergeObject(target, { b: 3, c: 4 });
+    assert.deepEqual(merged, { a: 1, b: 3, c: 4 });
+
+    const staticMerged = BaseFoundryVTTAdapter.mergeObject({ x: 10 }, { y: 20 });
+    assert.deepEqual(staticMerged, { x: 10, y: 20 });
+
+    const barrelMerged = mergeObject({ p: 1 }, { q: 2 });
+    assert.deepEqual(barrelMerged, { p: 1, q: 2 });
+});
