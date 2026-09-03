@@ -2778,3 +2778,188 @@ test('FoundryVTTV14Adapter.refreshTemplateHighlights calculates rotated bounding
         }
     }
 });
+
+test('FoundryVTTV14Adapter.refreshTemplateHighlights calculates rotated bounding box and highlights rotated MeasuredTemplate rect cells', () => {
+    const origClear = globalThis.canvas?.interface?.grid?.clearHighlightLayer;
+    const origAdd = globalThis.canvas?.interface?.grid?.addHighlightLayer;
+    const origHighlight = globalThis.canvas?.interface?.grid?.highlightPosition;
+    const origOffsetRange = globalThis.canvas?.grid?.getOffsetRange;
+    const origCenterPoint = globalThis.canvas?.grid?.getCenterPoint;
+    const origTopLeftPoint = globalThis.canvas?.grid?.getTopLeftPoint;
+
+    const highlightedCells = [];
+    let receivedBounds = null;
+    let highlightGridCalled = false;
+    let applyRenderFlagsCalled = false;
+    let setRenderFlags = null;
+
+    if (globalThis.canvas?.interface?.grid) {
+        globalThis.canvas.interface.grid.addHighlightLayer = () => {};
+        globalThis.canvas.interface.grid.clearHighlightLayer = () => {};
+        globalThis.canvas.interface.grid.highlightPosition = (id, pos) => {
+            highlightedCells.push({ id, ...pos });
+        };
+    }
+    if (globalThis.canvas?.grid) {
+        globalThis.canvas.grid.getOffsetRange = (bounds) => {
+            receivedBounds = bounds;
+            const x0 = Math.floor(bounds.x / 100);
+            const y0 = Math.floor(bounds.y / 100);
+            const x1 = Math.ceil((bounds.x + bounds.width) / 100);
+            const y1 = Math.ceil((bounds.y + bounds.height) / 100);
+            return [x0, y0, x1, y1];
+        };
+        globalThis.canvas.grid.getCenterPoint = (coords) => ({
+            x: (coords.i + 0.5) * 100,
+            y: (coords.j + 0.5) * 100
+        });
+        globalThis.canvas.grid.getTopLeftPoint = (coords) => ({
+            x: coords.i * 100,
+            y: coords.j * 100
+        });
+    }
+
+    try {
+        const adapterV14 = new FoundryVTTV14Adapter();
+
+        const mockDoc = {
+            id: 'tmpl-rect-rotated',
+            documentName: 'MeasuredTemplate',
+            t: 'rect',
+            distance: 10,
+            width: 10,
+            direction: 0,
+            x: 100,
+            y: 100,
+            updateSource(data) { Object.assign(this, data); }
+        };
+        const mockTmpl = {
+            document: mockDoc,
+            t: 'rect',
+            direction: 0,
+            x: 100,
+            y: 100,
+            highlightId: 'Template.tmpl-rect-rotated',
+            renderFlags: {
+                set: (flags) => { setRenderFlags = flags; }
+            },
+            applyRenderFlags() { applyRenderFlagsCalled = true; },
+            highlightGrid() { highlightGridCalled = true; }
+        };
+
+        // Rotate square MeasuredTemplate to 45 degrees
+        adapterV14.refreshTemplateHighlights(mockTmpl, 45);
+
+        assert.equal(applyRenderFlagsCalled, true);
+        assert.equal(highlightGridCalled, false, 'MeasuredTemplate core highlightGrid must NOT be called for rotated rect');
+        assert.equal(mockDoc.direction, 45, 'Document direction must be 45 degrees');
+        assert.equal(mockTmpl.direction, 45, 'Placeable direction must be 45 degrees');
+        assert.equal(setRenderFlags?.refreshGrid, false, 'refreshGrid flag must be false to avoid unrotated core highlightGrid execution');
+
+        // Verify bounding box passed to getOffsetRange covers rotated geometry
+        assert.ok(receivedBounds, 'getOffsetRange must receive rotated bounding box');
+        assert.ok(receivedBounds.x < 100, `receivedBounds.x (${receivedBounds.x}) must extend left of origin due to 45 deg rotation`);
+        assert.ok(receivedBounds.y + receivedBounds.height > 200, `receivedBounds height must extend past 200 due to 45 deg rotation`);
+
+        // Check highlighted cells
+        assert.ok(highlightedCells.length > 0, 'Must highlight grid cells for rotated MeasuredTemplate');
+        assert.ok(highlightedCells.every(c => c.id === 'Template.tmpl-rect-rotated'));
+
+        // Cell far outside should NOT be highlighted
+        const hasOutsideCell = highlightedCells.some(c => c.x >= 500 || c.y >= 500);
+        assert.equal(hasOutsideCell, false, 'Far outside cells must not be highlighted');
+    } finally {
+        if (globalThis.canvas?.interface?.grid) {
+            if (origClear) globalThis.canvas.interface.grid.clearHighlightLayer = origClear;
+            if (origAdd) globalThis.canvas.interface.grid.addHighlightLayer = origAdd;
+            if (origHighlight) globalThis.canvas.interface.grid.highlightPosition = origHighlight;
+        }
+        if (globalThis.canvas?.grid) {
+            if (origOffsetRange) globalThis.canvas.grid.getOffsetRange = origOffsetRange;
+            if (origCenterPoint) globalThis.canvas.grid.getCenterPoint = origCenterPoint;
+            if (origTopLeftPoint) globalThis.canvas.grid.getTopLeftPoint = origTopLeftPoint;
+        }
+    }
+});
+
+test('FoundryVTTV14Adapter._wrapHighlightGrid intercepts rotated MeasuredTemplate and delegates to refreshTemplateHighlights', () => {
+    const adapterV14 = new FoundryVTTV14Adapter();
+    let origHighlightGridCalled = false;
+    let refreshTemplateHighlightsCalled = false;
+    let refreshDirection = null;
+
+    const mockDoc = {
+        id: 'wrap-test-rect',
+        documentName: 'MeasuredTemplate',
+        t: 'rect',
+        distance: 20,
+        width: 20,
+        direction: 0,
+        x: 100,
+        y: 100,
+        updateSource(data) { Object.assign(this, data); }
+    };
+
+    const mockShape = {
+        direction: 60,
+        x: 100,
+        y: 100
+    };
+
+    const mockTmpl = {
+        document: mockDoc,
+        t: 'rect',
+        direction: 0,
+        x: 100,
+        y: 100,
+        highlightId: 'Template.wrap-test-rect',
+        crosshair: { shapeInstance: mockShape },
+        highlightGrid() { origHighlightGridCalled = true; },
+        renderFlags: { set: () => {} },
+        applyRenderFlags() {}
+    };
+
+    const origRefresh = adapterV14.refreshTemplateHighlights.bind(adapterV14);
+    adapterV14.refreshTemplateHighlights = (tmpl, dir) => {
+        refreshTemplateHighlightsCalled = true;
+        refreshDirection = dir;
+    };
+
+    adapterV14._wrapHighlightGrid(mockTmpl);
+    mockTmpl.highlightGrid();
+
+    assert.equal(refreshTemplateHighlightsCalled, true, 'Wrapped highlightGrid must invoke refreshTemplateHighlights for rotated rect');
+    assert.equal(refreshDirection, 60, 'refreshTemplateHighlights must receive shape rotation direction');
+    assert.equal(origHighlightGridCalled, false, 'Core highlightGrid must NOT be called for rotated rect');
+
+    // Test unrotated rect: shape.direction = 0
+    mockShape.direction = 0;
+    origHighlightGridCalled = false;
+    refreshTemplateHighlightsCalled = false;
+
+    mockTmpl.highlightGrid();
+    assert.equal(origHighlightGridCalled, true, 'Core highlightGrid must be called for unrotated rect');
+    assert.equal(refreshTemplateHighlightsCalled, false, 'refreshTemplateHighlights must NOT be called for unrotated rect');
+
+    adapterV14.refreshTemplateHighlights = origRefresh;
+});
+
+test('FoundryVTTV14Adapter.updatePreviewShape preserves rotated direction and handles unrotated diagonal angle', () => {
+    const adapterV14 = new FoundryVTTV14Adapter();
+
+    // 1. Rotated rect: direction = 90
+    const rotatedDoc = { documentName: 'MeasuredTemplate', t: 'rect', direction: 0, distance: 20, width: 20 };
+    adapterV14.updatePreviewShape(rotatedDoc, { x: 100, y: 100, direction: 90, distance: 20, width: 20 });
+    assert.equal(rotatedDoc.direction, 90, 'updatePreviewShape must preserve rotated direction (90)');
+
+    // 2. Rotated rect: direction = 45
+    const rotated45Doc = { documentName: 'MeasuredTemplate', t: 'rect', direction: 0, distance: 20, width: 20 };
+    adapterV14.updatePreviewShape(rotated45Doc, { x: 100, y: 100, direction: 45, distance: 20, width: 20 });
+    assert.equal(rotated45Doc.direction, 45, 'updatePreviewShape must preserve rotated direction (45)');
+
+    // 3. Unrotated rect: direction = 0 -> calculates diagonal angle 45 for 20x20 square
+    const unrotatedDoc = { documentName: 'MeasuredTemplate', t: 'rect', direction: 0, distance: 20, width: 20 };
+    adapterV14.updatePreviewShape(unrotatedDoc, { x: 100, y: 100, direction: 0, distance: 20, width: 20 });
+    assert.equal(Math.round(unrotatedDoc.direction), 45, 'updatePreviewShape must calculate 45 deg diagonal angle when unrotated');
+});
+
