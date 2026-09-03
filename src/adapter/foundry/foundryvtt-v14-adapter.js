@@ -659,9 +659,47 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         const doc = tmpl.document ?? tmpl;
         if (!doc) return;
 
-        const isRegion = doc.documentName === "Region";
+        const isRegion = doc.documentName === "Region" || Boolean(tmpl.shapes || doc.shapes);
 
         if (isRegion) {
+            const highlightId = tmpl.highlightId ?? `Region.${doc.id ?? "preview"}`;
+            if (canvas?.interface?.grid) {
+                if (typeof canvas.interface.grid.addHighlightLayer === "function") {
+                    try { canvas.interface.grid.addHighlightLayer(highlightId); } catch (e) {}
+                }
+                if (typeof canvas.interface.grid.clearHighlightLayer === "function") {
+                    try { canvas.interface.grid.clearHighlightLayer(highlightId); } catch (e) {}
+                }
+                const hl = canvas.interface.grid.getHighlightLayer?.(highlightId);
+                if (hl) hl.visible = true;
+
+                if (canvas.grid && typeof canvas.grid.getOffsetRange === "function" && tmpl.bounds && typeof tmpl.testPoint === "function") {
+                    const [i0, j0, i1, j1] = canvas.grid.getOffsetRange(tmpl.bounds);
+                    const colorVal = doc.color ?? "#ffaa00";
+                    const colorNum = typeof foundry?.utils?.Color?.from === "function"
+                        ? foundry.utils.Color.from(colorVal).valueOf()
+                        : (typeof Color !== "undefined" && Color.from ? Color.from(colorVal).valueOf() : 0xffaa00);
+                    const borderNum = 0xffffff;
+
+                    for (let i = i0; i <= i1; i++) {
+                        for (let j = j0; j <= j1; j++) {
+                            const center = canvas.grid.getCenterPoint({ i, j });
+                            if (tmpl.testPoint(center)) {
+                                const pt = canvas.grid.getTopLeftPoint({ i, j });
+                                if (typeof canvas.interface.grid.highlightPosition === "function") {
+                                    canvas.interface.grid.highlightPosition(highlightId, {
+                                        x: pt.x,
+                                        y: pt.y,
+                                        color: colorNum,
+                                        border: borderNum
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             this._safeSetRenderFlags(tmpl, {
                 refreshShape: true,
                 refreshGrid: true,
@@ -670,8 +708,6 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 refresh: true
             });
             if (typeof tmpl.applyRenderFlags === "function") tmpl.applyRenderFlags();
-            if (typeof tmpl.highlightGrid === "function") tmpl.highlightGrid();
-            this.hidePreview(tmpl);
             return;
         }
 
@@ -679,24 +715,54 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         const rad = direction * (Math.PI / 180);
         tmpl.direction = direction;
 
-        doc.direction = direction;
+        const targetX = doc?.x ?? tmpl.x;
+        const targetY = doc?.y ?? tmpl.y;
+
+        const updateData = { direction };
+        if (targetX !== undefined) updateData.x = targetX;
+        if (targetY !== undefined) updateData.y = targetY;
         if (typeof doc?.updateSource === "function") {
-            doc.updateSource({ direction });
+            doc.updateSource(updateData);
+        } else {
+            Object.assign(doc, updateData);
         }
+        if (targetX !== undefined) {
+            try { tmpl.x = targetX; } catch (e) {}
+        }
+        if (targetY !== undefined) {
+            try { tmpl.y = targetY; } catch (e) {}
+        }
+
         if (doc.shape?.clear) doc.shape.clear();
         if (tmpl.shape?.clear) tmpl.shape.clear();
+
+        if (typeof tmpl._refreshPosition === "function") {
+            try { tmpl._refreshPosition(); } catch (e) {}
+        }
+        if (typeof tmpl._refreshShape === "function") {
+            try { tmpl._refreshShape(); } catch (e) {}
+        }
+        if (typeof tmpl._refreshTemplate === "function") {
+            try { tmpl._refreshTemplate(); } catch (e) {}
+        }
+        if (tmpl.ruler && typeof tmpl._refreshRulerText === "function") {
+            try { tmpl._refreshRulerText(); } catch (e) {}
+        }
 
         this._safeSetRenderFlags(tmpl, {
             refreshTemplate: true,
             refreshShape: true,
             refreshGrid: true,
             refreshState: true,
+            refreshVisibility: true,
             refresh: true
         });
         if (typeof tmpl.applyRenderFlags === "function") tmpl.applyRenderFlags();
         if (typeof tmpl.highlightGrid === "function") tmpl.highlightGrid();
 
-        this.hidePreview(tmpl);
+        const hId = tmpl.highlightId ?? tmpl.objectId ?? "preview";
+        const hl = canvas?.interface?.grid?.getHighlightLayer?.(hId);
+        if (hl) hl.visible = true;
     }
 
     /**

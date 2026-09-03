@@ -779,5 +779,109 @@ test('BaseCrosshairShape plays item icon effect smoothly when showItemIcon is tr
     }
 });
 
+test('BaseCrosshairShape.refreshTemplateHighlights updates document, coordinates, and triggers placeable highlightGrid without clearing', async () => {
+    let clearCalled = false;
+    const origClear = canvas?.interface?.grid?.clearHighlightLayer;
+    if (canvas?.interface?.grid) {
+        canvas.interface.grid.clearHighlightLayer = () => { clearCalled = true; };
+    }
+
+    try {
+        const { CircleCrosshairShape } = await import('../../src/crosshair/circle.js');
+        let highlightGridCalled = false;
+        let applyRenderFlagsCalled = false;
+
+        const mockDoc = {
+            x: 0,
+            y: 0,
+            direction: 0,
+            t: 'circle',
+            distance: 20,
+            updateSource(d) { Object.assign(this, d); }
+        };
+
+        const mockPlaceable = {
+            x: 0,
+            y: 0,
+            direction: 0,
+            document: mockDoc,
+            renderFlags: { set: () => {} },
+            applyRenderFlags() { applyRenderFlagsCalled = true; },
+            highlightGrid() { highlightGridCalled = true; }
+        };
+
+        const shape = new CircleCrosshairShape(mockPlaceable, { radius: 20 });
+        shape.x = 400;
+        shape.y = 600;
+        shape.direction = 90;
+
+        shape.refreshTemplateHighlights();
+
+        assert.equal(mockDoc.x, 400, 'mockDoc.x should be 400');
+        assert.equal(mockDoc.y, 600, 'mockDoc.y should be 600');
+        assert.equal(mockPlaceable.x, 400, 'mockPlaceable.x should be 400');
+        assert.equal(mockPlaceable.y, 600, 'mockPlaceable.y should be 600');
+        assert.equal(highlightGridCalled, true, 'highlightGrid should be called');
+        assert.equal(clearCalled, false, 'refreshTemplateHighlights must not clear highlight layer');
+    } finally {
+        if (canvas?.interface?.grid && origClear) {
+            canvas.interface.grid.clearHighlightLayer = origClear;
+        }
+    }
+});
+
+test('BaseCrosshairShape.move triggers refreshTemplateHighlights when direction changes even if position is unchanged', async () => {
+    const { ConeCrosshairShape } = await import('../../src/crosshair/cone.js');
+
+    const mockDoc = {
+        x: 100,
+        y: 100,
+        direction: 0,
+        t: 'cone',
+        distance: 30,
+        angle: 53.13,
+        updateSource(d) { Object.assign(this, d); }
+    };
+    const mockPlaceable = {
+        x: 100,
+        y: 100,
+        direction: 0,
+        document: mockDoc,
+        renderFlags: { set: () => {} },
+        applyRenderFlags: () => {},
+        highlightGrid: () => {}
+    };
+
+    const mockToken = {
+        id: 'token-caster-1',
+        x: 100,
+        y: 100,
+        w: 100,
+        h: 100,
+        center: { x: 150, y: 150 }
+    };
+
+    const shape = new ConeCrosshairShape(mockPlaceable, {
+        type: 'cone',
+        token: mockToken,
+        stickToToken: true
+    });
+
+    let refreshCalledCount = 0;
+    shape.refreshTemplateHighlights = () => {
+        refreshCalledCount++;
+    };
+
+    // Move to first coordinate
+    shape.move(300, 150);
+    const initialRefreshCount = refreshCalledCount;
+    assert.ok(initialRefreshCount > 0, 'First move must refresh highlights');
+
+    // Move to another coordinate that keeps token edge anchor on the same side but changes direction
+    shape.move(300, 180);
+    assert.ok(refreshCalledCount > initialRefreshCount, 'Direction change must trigger refreshTemplateHighlights even if position remains on same token edge');
+});
+
+
 
 

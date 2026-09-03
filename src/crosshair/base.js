@@ -628,6 +628,7 @@ export class BaseCrosshairShape {
 
         let targetX = x;
         let targetY = y;
+        const prevDirection = this.direction;
 
         if (this.stickToToken && this.token && !this.config?.isRemote) {
             if (this.type === "circle") {
@@ -660,7 +661,8 @@ export class BaseCrosshairShape {
             }
         }
 
-        const snappedChanged = (this.x !== targetX || this.y !== targetY);
+        const posChanged = (this.x !== targetX || this.y !== targetY);
+        const dirChanged = (this.direction !== prevDirection);
         this.x = targetX;
         this.y = targetY;
 
@@ -669,7 +671,7 @@ export class BaseCrosshairShape {
             this.sequencerCrosshair.y = targetY;
         }
 
-        if (snappedChanged) {
+        if (posChanged || dirChanged) {
             this._updateRangeText();
             this.refreshTemplateHighlights();
         }

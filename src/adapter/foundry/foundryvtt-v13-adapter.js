@@ -280,13 +280,57 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             const h = distFoot ?? w;
             targetDoc.distance = Math.round(Math.sqrt(w * w + h * h) * 100) / 100;
             targetDoc.width = w;
+
+            const updateObj = {
+                t: "rect",
+                distance: targetDoc.distance,
+                width: w
+            };
+            if (targetX !== undefined) updateObj.x = targetX;
+            if (targetY !== undefined) updateObj.y = targetY;
+            if (coords.direction !== undefined) updateObj.direction = coords.direction;
+
+            if (typeof targetDoc.updateSource === "function") {
+                try { targetDoc.updateSource(updateObj); } catch (e) { Object.assign(targetDoc, updateObj); }
+            } else {
+                Object.assign(targetDoc, updateObj);
+            }
         } else {
-            if (coords.x !== undefined) targetDoc.x = coords.x;
-            if (coords.y !== undefined) targetDoc.y = coords.y;
-            if (coords.direction !== undefined) targetDoc.direction = coords.direction;
-            if (coords.t !== undefined) targetDoc.t = coords.t;
-            if (coords.distance !== undefined) targetDoc.distance = coords.distance;
-            if (coords.angle !== undefined) targetDoc.angle = coords.angle;
+            const updateObj = {};
+            if (coords.x !== undefined) {
+                targetDoc.x = coords.x;
+                updateObj.x = coords.x;
+            }
+            if (coords.y !== undefined) {
+                targetDoc.y = coords.y;
+                updateObj.y = coords.y;
+            }
+            if (coords.direction !== undefined) {
+                targetDoc.direction = coords.direction;
+                updateObj.direction = coords.direction;
+            }
+            if (coords.t !== undefined) {
+                targetDoc.t = coords.t;
+                updateObj.t = coords.t;
+            }
+            if (coords.distance !== undefined) {
+                targetDoc.distance = coords.distance;
+                updateObj.distance = coords.distance;
+            }
+            if (coords.angle !== undefined) {
+                targetDoc.angle = coords.angle;
+                updateObj.angle = coords.angle;
+            }
+            if (coords.width !== undefined) {
+                targetDoc.width = coords.width;
+                updateObj.width = coords.width;
+            }
+
+            if (typeof targetDoc.updateSource === "function") {
+                try { targetDoc.updateSource(updateObj); } catch (e) { Object.assign(targetDoc, updateObj); }
+            } else {
+                Object.assign(targetDoc, updateObj);
+            }
         }
     }
 
@@ -424,19 +468,47 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         tmpl.direction = direction;
 
         const doc = tmpl.document;
+        const targetX = doc?.x ?? tmpl.x;
+        const targetY = doc?.y ?? tmpl.y;
+
         if (doc) {
             doc.direction = direction;
+            const updateData = { direction };
+            if (targetX !== undefined) updateData.x = targetX;
+            if (targetY !== undefined) updateData.y = targetY;
             if (typeof doc?.updateSource === "function") {
-                doc.updateSource({ direction });
+                doc.updateSource(updateData);
+            } else {
+                Object.assign(doc, updateData);
             }
             if (doc.shape?.clear) doc.shape.clear();
         }
+        if (targetX !== undefined) {
+            try { tmpl.x = targetX; } catch (e) {}
+        }
+        if (targetY !== undefined) {
+            try { tmpl.y = targetY; } catch (e) {}
+        }
         if (tmpl.shape?.clear) tmpl.shape.clear();
 
-        if (tmpl.ray && Ray) {
-            const ox = tmpl.ray.origin?.x ?? tmpl.x;
-            const oy = tmpl.ray.origin?.y ?? tmpl.y;
-            tmpl.ray = Ray.fromAngle(ox, oy, rad, tmpl.ray.distance ?? 1000);
+        if (tmpl.ray && typeof Ray?.fromAngle === "function") {
+            const ox = targetX ?? tmpl.ray.origin?.x ?? tmpl.x ?? 0;
+            const oy = targetY ?? tmpl.ray.origin?.y ?? tmpl.y ?? 0;
+            const dist = tmpl.ray.distance ?? 1000;
+            tmpl.ray = Ray.fromAngle(ox, oy, rad, dist);
+        }
+
+        if (typeof tmpl._refreshPosition === "function") {
+            try { tmpl._refreshPosition(); } catch (e) {}
+        }
+        if (typeof tmpl._refreshShape === "function") {
+            try { tmpl._refreshShape(); } catch (e) {}
+        }
+        if (typeof tmpl._refreshTemplate === "function") {
+            try { tmpl._refreshTemplate(); } catch (e) {}
+        }
+        if (tmpl.ruler && typeof tmpl._refreshRulerText === "function") {
+            try { tmpl._refreshRulerText(); } catch (e) {}
         }
 
         this._safeSetRenderFlags(tmpl, {
@@ -448,8 +520,6 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         });
         if (typeof tmpl.applyRenderFlags === "function") tmpl.applyRenderFlags();
         if (typeof tmpl.highlightGrid === "function") tmpl.highlightGrid();
-
-        this.hidePreview(tmpl);
     }
 
     _snapPoint(x, y, numMode) {

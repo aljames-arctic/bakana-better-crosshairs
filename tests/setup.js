@@ -78,6 +78,11 @@ globalThis.foundry = {
                 constructor(pt1, pt2) {
                     this.A = pt1;
                     this.B = pt2;
+                    this.origin = pt1;
+                    this.distance = Math.hypot(pt2.x - pt1.x, pt2.y - pt1.y);
+                }
+                static fromAngle(x, y, rad, dist) {
+                    return new Ray({ x, y }, { x: x + Math.cos(rad) * dist, y: y + Math.sin(rad) * dist });
                 }
             }
         },
@@ -220,6 +225,9 @@ globalThis.canvas = {
             options: { dimensions: { distance: 5 } }
         },
         getCenter(x, y) { return [x, y]; },
+        getOffsetRange(bounds) { return [0, 0, 1, 1]; },
+        getCenterPoint(coords) { return { x: (coords.i + 0.5) * 100, y: (coords.j + 0.5) * 100 }; },
+        getTopLeftPoint(coords) { return { x: coords.i * 100, y: coords.j * 100 }; },
         getSnappedPosition(x, y, mode = 7) {
             const size = this.size ?? 100;
             if (mode === 2) return { x: Math.round(x / size) * size, y: Math.round(y / size) * size };
@@ -230,7 +238,11 @@ globalThis.canvas = {
     },
     interface: {
         grid: {
-            clearHighlightLayer(id) {}
+            clearHighlightLayer(id) {},
+            destroyHighlightLayer(id) {},
+            addHighlightLayer(id) {},
+            highlightPosition(id, options) {},
+            getHighlightLayer(id) { return { visible: true }; }
         }
     },
     scene: {

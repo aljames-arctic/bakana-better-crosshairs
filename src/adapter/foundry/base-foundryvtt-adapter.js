@@ -261,9 +261,6 @@ export class BaseFoundryVTTAdapter {
                     }
                 }
             }
-
-            const hId = obj.highlightId ?? obj.id ?? "preview";
-            clearHighlightLayer(hId);
         };
 
         try { Object.defineProperty(placeable, "visible", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
@@ -273,8 +270,7 @@ export class BaseFoundryVTTAdapter {
         const methodsToIntercept = [
             "refresh", "_refresh",
             "applyRenderFlags", "_applyRenderFlags",
-            "_refreshState", "_refreshShape", "_refreshBorder", "_refreshMeasurements", "_updateMeasurements",
-            "highlightGrid", "_highlightGrid", "highlight", "_highlight"
+            "_refreshState", "_refreshShape", "_refreshBorder", "_refreshMeasurements", "_updateMeasurements"
         ];
 
         for (const methodName of methodsToIntercept) {
@@ -291,6 +287,75 @@ export class BaseFoundryVTTAdapter {
                 } catch (e) {}
             }
         }
+
+        this._wrapHighlightGrid(placeable);
+    }
+
+    /**
+     * Wrap the preview placeable's highlightGrid and _highlightGrid methods to synchronize
+     * coordinates, rotation, and geometry with the active crosshair shape instance before calculating grid highlights.
+     * @param {PlaceableObject} placeable - Preview placeable
+     * @returns {void}
+     */
+    _wrapHighlightGrid(placeable) {
+        if (!placeable || placeable._bbcHighlightGridWrapped) return;
+        placeable._bbcHighlightGridWrapped = true;
+
+        const wrapMethod = (fnName) => {
+            if (typeof placeable[fnName] === "function") {
+                const orig = placeable[fnName];
+                placeable[fnName] = function (...args) {
+                    const shape = this.crosshair?.shapeInstance ?? activePlacementTracker.crosshair?.shapeInstance;
+                    if (shape) {
+                        const targetX = shape.x;
+                        const targetY = shape.y;
+                        const targetDir = shape.direction;
+
+                        if (this.document) {
+                            const updateData = {};
+                            if (targetX !== undefined) updateData.x = targetX;
+                            if (targetY !== undefined) updateData.y = targetY;
+                            if (targetDir !== undefined) updateData.direction = targetDir;
+                            if (typeof this.document.updateSource === "function") {
+                                this.document.updateSource(updateData);
+                            } else {
+                                Object.assign(this.document, updateData);
+                            }
+                        }
+                        if (targetX !== undefined) { try { this.x = targetX; } catch (e) {} }
+                        if (targetY !== undefined) { try { this.y = targetY; } catch (e) {} }
+                        if (targetDir !== undefined) { try { this.direction = targetDir; } catch (e) {} }
+
+                        if (this.ray && typeof Ray?.fromAngle === "function") {
+                            const rad = ((targetDir ?? 0) * Math.PI) / 180;
+                            const ox = targetX ?? this.x ?? 0;
+                            const oy = targetY ?? this.y ?? 0;
+                            const dist = this.ray.distance ?? 1000;
+                            this.ray = Ray.fromAngle(ox, oy, rad, dist);
+                        }
+
+                        if (typeof this._refreshPosition === "function") {
+                            try { this._refreshPosition(); } catch (e) {}
+                        }
+                        if (typeof this._refreshShape === "function") {
+                            try { this._refreshShape(); } catch (e) {}
+                        }
+                        if (typeof this._refreshTemplate === "function") {
+                            try { this._refreshTemplate(); } catch (e) {}
+                        }
+                    }
+
+                    const hId = this.highlightId ?? this.objectId ?? "preview";
+                    const hl = canvas?.interface?.grid?.getHighlightLayer?.(hId);
+                    if (hl) hl.visible = true;
+
+                    return orig.apply(this, args);
+                };
+            }
+        };
+
+        wrapMethod("highlightGrid");
+        wrapMethod("_highlightGrid");
     }
 
     /**
@@ -327,6 +392,15 @@ export class BaseFoundryVTTAdapter {
         try { Object.defineProperty(placeable, 'isPreview', { get: () => false, configurable: true }); } catch (e) {}
         try { Object.defineProperty(placeable, 'visible', { get: () => false, configurable: true }); } catch (e) {}
         try { Object.defineProperty(placeable, 'renderable', { get: () => false, configurable: true }); } catch (e) {}
+
+        const hId = placeable.highlightId ?? placeable.id ?? "preview";
+        clearHighlightLayer(hId);
+        if (typeof canvas?.interface?.grid?.destroyHighlightLayer === "function") {
+            try { canvas.interface.grid.destroyHighlightLayer(hId); } catch (e) {}
+        }
+        if (typeof canvas?.regions?.highlight?.clear === "function") {
+            try { canvas.regions.highlight.clear(); } catch (e) {}
+        }
 
         if (placeable.renderFlags && typeof placeable.renderFlags.clear === "function") {
             try { placeable.renderFlags.clear(); } catch (e) {}

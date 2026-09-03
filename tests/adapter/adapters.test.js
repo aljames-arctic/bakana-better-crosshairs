@@ -5,7 +5,7 @@ import { closest } from '../../src/lib/filemanager.js';
 import { initializeFoundryAdapter, crosshairAdapter, BaseFoundryVTTAdapter } from '../../src/adapter/foundry/index.js';
 import { initializeSystemAdapter, systemAdapter } from '../../src/adapter/system/index.js';
 import { registerPlacementHooks, initializeHooks } from '../../src/adapter/index.js';
-import { snapCoordinates, attachWheelRotation, detachWheelRotation, resolveCrosshairPlacement, alignCrosshairAndEffects, shouldStickToToken } from '../../src/crosshair/util.js';
+import { snapCoordinates, attachWheelRotation, detachWheelRotation, resolveCrosshairPlacement, alignCrosshairAndEffects, shouldStickToToken, activePlacementTracker } from '../../src/crosshair/util.js';
 import { BaseCrosshairShape } from '../../src/crosshair/base.js';
 import { Token } from '../../src/lib/compat.js';
 import { autorecManager } from '../../src/autorec/autorecManager.js';
@@ -1571,19 +1571,27 @@ test('REGRESSION: detached crosshair placement preserves user rotation angle exa
     };
 
     const attachedConeShape = new ConeCrosshairShape(mockPlaceable, attachedConeConfig);
-    // Token center is (150, 150), mouse position at (500, 500)
-    globalThis.canvas = { mousePosition: { x: 500, y: 500 } };
-    attachedConeShape.move(500, 500);
+    const origMousePos = globalThis.canvas?.mousePosition;
+    try {
+        if (!globalThis.canvas) globalThis.canvas = {};
+        globalThis.canvas.mousePosition = { x: 500, y: 500 };
+        attachedConeShape.move(500, 500);
 
-    // Simulate clicking to place attached cone
-    attachedConeShape.onPlacedCallback({ x: 500, y: 500 });
+        // Simulate clicking to place attached cone
+        attachedConeShape.onPlacedCallback({ x: 500, y: 500 });
 
-    assert.ok(resolvedAttachedCone, 'Attached cone placement must resolve');
-    assert.equal(resolvedAttachedCone.x, 200, 'Attached cone X must anchor to token edge (x: 200)');
-    assert.equal(resolvedAttachedCone.y, 200, 'Attached cone Y must anchor to token edge (y: 200)');
-    const expectedAttachedAngle = (Math.atan2(500 - 200, 500 - 200) * (180 / Math.PI) + 360) % 360; // 45 deg
-    assert.equal(Math.round(resolvedAttachedCone.direction * 100) / 100, Math.round(expectedAttachedAngle * 100) / 100, 'Attached cone direction must point towards mouse cursor (45 deg)');
-    assert.equal(Math.round(resolvedAttachedCone.rotation * 100) / 100, Math.round(expectedAttachedAngle * 100) / 100, 'Attached cone rotation must match direction');
+        assert.ok(resolvedAttachedCone, 'Attached cone placement must resolve');
+        assert.equal(resolvedAttachedCone.x, 200, 'Attached cone X must anchor to token edge (x: 200)');
+        assert.equal(resolvedAttachedCone.y, 200, 'Attached cone Y must anchor to token edge (y: 200)');
+        const expectedAttachedAngle = (Math.atan2(500 - 200, 500 - 200) * (180 / Math.PI) + 360) % 360; // 45 deg
+        assert.equal(Math.round(resolvedAttachedCone.direction * 100) / 100, Math.round(expectedAttachedAngle * 100) / 100, 'Attached cone direction must point towards mouse cursor (45 deg)');
+        assert.equal(Math.round(resolvedAttachedCone.rotation * 100) / 100, Math.round(expectedAttachedAngle * 100) / 100, 'Attached cone rotation must match direction');
+    } finally {
+        if (globalThis.canvas) {
+            if (origMousePos !== undefined) globalThis.canvas.mousePosition = origMousePos;
+            else delete globalThis.canvas.mousePosition;
+        }
+    }
 });
 
 test('REGRESSION: FoundryVTTV14Adapter.createDeferredDocument strips shape IDs and creates valid Region cone shapes with angle and rotation', async () => {
@@ -1665,74 +1673,79 @@ test('REGRESSION: full attached and detached placement lifecycle preserves exact
             return payloads;
         }
     };
-    globalThis.canvas.scene = mockScene;
+    const origScene = globalThis.canvas?.scene;
+    try {
+        globalThis.canvas.scene = mockScene;
 
-    const mockRegionDoc = {
-        id: 'region-lifecycle-test',
-        documentName: 'Region',
-        shapes: [
-            {
-                type: 'cone',
-                radius: 600,
-                angle: 53.13,
-                x: 100,
-                y: 100,
-                rotation: 0
+        const mockRegionDoc = {
+            id: 'region-lifecycle-test',
+            documentName: 'Region',
+            shapes: [
+                {
+                    type: 'cone',
+                    radius: 600,
+                    angle: 53.13,
+                    x: 100,
+                    y: 100,
+                    rotation: 0
+                }
+            ],
+            toObject: function() {
+                return {
+                    id: this.id,
+                    documentName: this.documentName,
+                    shapes: foundry.utils.deepClone(this.shapes)
+                };
             }
-        ],
-        toObject: function() {
-            return {
-                id: this.id,
-                documentName: this.documentName,
-                shapes: foundry.utils.deepClone(this.shapes)
-            };
-        }
-    };
+        };
 
-    const mockPlaceable = {
-        document: mockRegionDoc,
-        x: 100,
-        y: 100,
-        destroy: () => {}
-    };
+        const mockPlaceable = {
+            document: mockRegionDoc,
+            x: 100,
+            y: 100,
+            destroy: () => {}
+        };
 
-    // 1. Simulate handlePreCreate deferral
-    const pendingPlacementKey = `Cone of Cold_${game.user.id}`;
-    const pending = {
-        itemName: 'Cone of Cold',
-        resolved: false,
-        cancelled: false,
-        coords: null,
-        config: { stickToToken: true },
-        placeable: mockPlaceable
-    };
-    adapterV14.pendingPlacements.set(pendingPlacementKey, pending);
+        // 1. Simulate handlePreCreate deferral
+        const pendingPlacementKey = `Cone of Cold_${game.user.id}`;
+        const pending = {
+            itemName: 'Cone of Cold',
+            resolved: false,
+            cancelled: false,
+            coords: null,
+            config: { stickToToken: true },
+            placeable: mockPlaceable
+        };
+        adapterV14.pendingPlacements.set(pendingPlacementKey, pending);
 
-    const preCreateResult = adapterV14.handlePreCreate(mockRegionDoc, {}, {}, game.user.id);
-    assert.equal(preCreateResult, false, 'PreCreate must defer document creation while interactive placement is pending');
-    assert.ok(pending.deferredCreateData, 'Deferred create data must be captured');
+        const preCreateResult = adapterV14.handlePreCreate(mockRegionDoc, {}, {}, game.user.id);
+        assert.equal(preCreateResult, false, 'PreCreate must defer document creation while interactive placement is pending');
+        assert.ok(pending.deferredCreateData, 'Deferred create data must be captured');
 
-    // 2. Resolve placement with coordinates from Sequencer
-    const placedCoords = {
-        x: 200,
-        y: 150,
-        direction: 90,
-        rotation: 90,
-        radius: 30,
-        angle: 53.13,
-        type: 'cone',
-        gridUnits: true
-    };
+        // 2. Resolve placement with coordinates from Sequencer
+        const placedCoords = {
+            x: 200,
+            y: 150,
+            direction: 90,
+            rotation: 90,
+            radius: 30,
+            angle: 53.13,
+            type: 'cone',
+            gridUnits: true
+        };
 
-    await adapterV14.createDeferredDocument(mockScene, pending.deferredCreateData, placedCoords, pending.documentName, pending.config);
+        await adapterV14.createDeferredDocument(mockScene, pending.deferredCreateData, placedCoords, pending.documentName, pending.config);
 
-    assert.equal(createdDocName, 'Region');
-    assert.ok(createdPayloads);
-    const placedRegion = createdPayloads[0];
-    assert.equal(placedRegion.shapes[0].x, 200);
-    assert.equal(placedRegion.shapes[0].y, 150);
-    assert.equal(placedRegion.shapes[0].rotation, 90);
-    assert.equal(placedRegion.shapes[0].type, 'cone');
+        assert.equal(createdDocName, 'Region');
+        assert.ok(createdPayloads);
+        const placedRegion = createdPayloads[0];
+        assert.equal(placedRegion.shapes[0].x, 200);
+        assert.equal(placedRegion.shapes[0].y, 150);
+        assert.equal(placedRegion.shapes[0].rotation, 90);
+        assert.equal(placedRegion.shapes[0].type, 'cone');
+    } finally {
+        if (globalThis.canvas) globalThis.canvas.scene = origScene;
+    }
 });
 
 test('BaseSystemAdapter and Dnd5eSystemAdapter item and activity sheet & context menu integration', async (t) => {
@@ -1930,4 +1943,246 @@ test('FoundryVTTV13Adapter and FoundryVTTV14Adapter apply 50% opacity and game.u
         }
     }
 });
+
+test('BaseFoundryVTTAdapter._wrapHighlightGrid synchronizes document, coordinates, ray, and ensures highlightLayer visible', () => {
+    let clearHighlightCalled = false;
+    const origClear = globalThis.canvas?.interface?.grid?.clearHighlightLayer;
+    if (globalThis.canvas?.interface?.grid) {
+        globalThis.canvas.interface.grid.clearHighlightLayer = () => { clearHighlightCalled = true; };
+    }
+
+    try {
+        const adapter = new BaseFoundryVTTAdapter();
+        let origHighlightCalled = false;
+        let mockDoc = {
+            x: 0,
+            y: 0,
+            direction: 0,
+            updateSource(data) { Object.assign(this, data); }
+        };
+        const mockRay = { origin: { x: 0, y: 0 }, distance: 50 };
+        const mockPlaceable = {
+            document: mockDoc,
+            x: 0,
+            y: 0,
+            direction: 0,
+            ray: mockRay,
+            highlightId: 'test-layer-1',
+            highlightGrid() { origHighlightCalled = true; }
+        };
+
+        adapter.hidePreview(mockPlaceable);
+
+        activePlacementTracker.crosshair = {
+            shapeInstance: {
+                x: 350,
+                y: 450,
+                direction: 135
+            }
+        };
+
+        mockPlaceable.highlightGrid();
+
+        assert.equal(origHighlightCalled, true, 'Original highlightGrid must execute');
+        assert.equal(mockDoc.x, 350, 'mockDoc.x must align with crosshair shape x');
+        assert.equal(mockDoc.y, 450, 'mockDoc.y must align with crosshair shape y');
+        assert.equal(mockDoc.direction, 135, 'mockDoc.direction must align with crosshair shape direction');
+        assert.equal(mockPlaceable.x, 350, 'mockPlaceable.x must align with crosshair shape x');
+        assert.equal(mockPlaceable.y, 450, 'mockPlaceable.y must align with crosshair shape y');
+        assert.equal(mockPlaceable.direction, 135, 'mockPlaceable.direction must align with crosshair shape direction');
+        assert.equal(clearHighlightCalled, false, 'highlightGrid must not clear the highlight layer');
+    } finally {
+        activePlacementTracker.crosshair = null;
+        if (globalThis.canvas?.interface?.grid && origClear) {
+            globalThis.canvas.interface.grid.clearHighlightLayer = origClear;
+        }
+    }
+});
+
+test('BaseFoundryVTTAdapter.dismissPreview clears and destroys highlight layer on teardown', () => {
+    let clearedLayerId = null;
+    let destroyedLayerId = null;
+    const origClear = globalThis.canvas?.interface?.grid?.clearHighlightLayer;
+    const origDestroy = globalThis.canvas?.interface?.grid?.destroyHighlightLayer;
+    if (globalThis.canvas?.interface?.grid) {
+        globalThis.canvas.interface.grid.clearHighlightLayer = (id) => { clearedLayerId = id; };
+        globalThis.canvas.interface.grid.destroyHighlightLayer = (id) => { destroyedLayerId = id; };
+    }
+
+    try {
+        const adapter = new BaseFoundryVTTAdapter();
+        const mockPlaceable = {
+            highlightId: 'preview-spell-template-42',
+            destroy: () => {}
+        };
+
+        adapter.dismissPreview(mockPlaceable);
+        assert.equal(clearedLayerId, 'preview-spell-template-42', 'dismissPreview must clear the highlight layer');
+        assert.equal(destroyedLayerId, 'preview-spell-template-42', 'dismissPreview must destroy the highlight layer');
+    } finally {
+        if (globalThis.canvas?.interface?.grid) {
+            if (origClear) globalThis.canvas.interface.grid.clearHighlightLayer = origClear;
+            if (origDestroy) globalThis.canvas.interface.grid.destroyHighlightLayer = origDestroy;
+        }
+    }
+});
+
+test('FoundryVTTV13Adapter.refreshTemplateHighlights updates document and placeable coordinates and invokes highlightGrid without clearing', () => {
+    let clearHighlightCalled = false;
+    const origClear = globalThis.canvas?.interface?.grid?.clearHighlightLayer;
+    if (globalThis.canvas?.interface?.grid) {
+        globalThis.canvas.interface.grid.clearHighlightLayer = () => { clearHighlightCalled = true; };
+    }
+
+    try {
+        const adapterV13 = new FoundryVTTV13Adapter();
+        let highlightGridCalled = false;
+        let applyRenderFlagsCalled = false;
+        let refreshPosCalled = false;
+        let refreshShapeCalled = false;
+
+        const mockDoc = {
+            direction: 0,
+            x: 100,
+            y: 200,
+            updateSource(data) { Object.assign(this, data); }
+        };
+        const mockTmpl = {
+            document: mockDoc,
+            direction: 0,
+            x: 100,
+            y: 200,
+            renderFlags: { set: () => {} },
+            _refreshPosition() { refreshPosCalled = true; },
+            _refreshShape() { refreshShapeCalled = true; },
+            applyRenderFlags() { applyRenderFlagsCalled = true; },
+            highlightGrid() { highlightGridCalled = true; }
+        };
+
+        adapterV13.refreshTemplateHighlights(mockTmpl, 180);
+
+        assert.equal(mockTmpl.direction, 180);
+        assert.equal(mockDoc.direction, 180);
+        assert.equal(mockDoc.x, 100);
+        assert.equal(mockDoc.y, 200);
+        assert.equal(refreshPosCalled, true, '_refreshPosition must be called');
+        assert.equal(refreshShapeCalled, true, '_refreshShape must be called');
+        assert.equal(applyRenderFlagsCalled, true, 'applyRenderFlags must be called');
+        assert.equal(highlightGridCalled, true, 'highlightGrid must be called');
+        assert.equal(clearHighlightCalled, false, 'refreshTemplateHighlights must not clear highlight layer');
+    } finally {
+        if (globalThis.canvas?.interface?.grid && origClear) {
+            globalThis.canvas.interface.grid.clearHighlightLayer = origClear;
+        }
+    }
+});
+
+test('FoundryVTTV14Adapter.refreshTemplateHighlights computes grid cell highlights for Region using testPoint and highlightPosition', () => {
+    const origClear = globalThis.canvas?.interface?.grid?.clearHighlightLayer;
+    const origAdd = globalThis.canvas?.interface?.grid?.addHighlightLayer;
+    const origHighlight = globalThis.canvas?.interface?.grid?.highlightPosition;
+    const origOffsetRange = globalThis.canvas?.grid?.getOffsetRange;
+
+    const highlightedCells = [];
+    let layerAdded = null;
+    let layerCleared = null;
+
+    if (globalThis.canvas?.interface?.grid) {
+        globalThis.canvas.interface.grid.addHighlightLayer = (id) => { layerAdded = id; };
+        globalThis.canvas.interface.grid.clearHighlightLayer = (id) => { layerCleared = id; };
+        globalThis.canvas.interface.grid.highlightPosition = (id, pos) => {
+            highlightedCells.push({ id, ...pos });
+        };
+    }
+    if (globalThis.canvas?.grid) {
+        globalThis.canvas.grid.getOffsetRange = () => [0, 0, 1, 1];
+    }
+
+    try {
+        const adapterV14 = new FoundryVTTV14Adapter();
+        let applyRenderFlagsCalled = false;
+
+        const mockRegionDoc = {
+            id: 'region-42',
+            documentName: 'Region',
+            color: '#336699',
+            shapes: [{ type: 'rectangle' }]
+        };
+        const mockRegion = {
+            document: mockRegionDoc,
+            bounds: { x: 0, y: 0, width: 200, height: 200 },
+            renderFlags: { set: () => {} },
+            applyRenderFlags() { applyRenderFlagsCalled = true; },
+            testPoint(pt) {
+                // Return true for points within bounds
+                return pt.x <= 150 && pt.y <= 150;
+            }
+        };
+
+        adapterV14.refreshTemplateHighlights(mockRegion, 0);
+
+        assert.equal(layerAdded, 'Region.region-42');
+        assert.equal(layerCleared, 'Region.region-42');
+        assert.equal(applyRenderFlagsCalled, true);
+        assert.ok(highlightedCells.length > 0, 'Must highlight matching grid cells under region');
+        assert.equal(highlightedCells[0].id, 'Region.region-42');
+    } finally {
+        if (globalThis.canvas?.interface?.grid) {
+            if (origClear) globalThis.canvas.interface.grid.clearHighlightLayer = origClear;
+            if (origAdd) globalThis.canvas.interface.grid.addHighlightLayer = origAdd;
+            if (origHighlight) globalThis.canvas.interface.grid.highlightPosition = origHighlight;
+        }
+        if (globalThis.canvas?.grid && origOffsetRange) {
+            globalThis.canvas.grid.getOffsetRange = origOffsetRange;
+        }
+    }
+});
+
+test('FoundryVTTV14Adapter.refreshTemplateHighlights ensures highlightLayer visibility is preserved for MeasuredTemplate', () => {
+    let clearHighlightCalled = false;
+    const origClear = globalThis.canvas?.interface?.grid?.clearHighlightLayer;
+    if (globalThis.canvas?.interface?.grid) {
+        globalThis.canvas.interface.grid.clearHighlightLayer = () => { clearHighlightCalled = true; };
+    }
+
+    try {
+        const adapterV14 = new FoundryVTTV14Adapter();
+        let highlightGridCalled = false;
+        let applyRenderFlagsCalled = false;
+
+        const mockRay = { origin: { x: 50, y: 50 }, distance: 100 };
+        const mockTemplateDoc = {
+            documentName: 'MeasuredTemplate',
+            direction: 0,
+            x: 50,
+            y: 50,
+            updateSource(data) { Object.assign(this, data); }
+        };
+        const mockTemplate = {
+            document: mockTemplateDoc,
+            direction: 0,
+            ray: mockRay,
+            x: 50,
+            y: 50,
+            highlightId: 'test-v14-tmpl',
+            renderFlags: { set: () => {} },
+            applyRenderFlags() { applyRenderFlagsCalled = true; },
+            highlightGrid() { highlightGridCalled = true; }
+        };
+
+        adapterV14.refreshTemplateHighlights(mockTemplate, 270);
+
+        assert.equal(mockTemplate.direction, 270);
+        assert.equal(mockTemplateDoc.direction, 270);
+        assert.strictEqual(mockTemplate.ray, mockRay, 'V14 MeasuredTemplate must not overwrite tmpl.ray');
+        assert.equal(applyRenderFlagsCalled, true);
+        assert.equal(highlightGridCalled, true, 'MeasuredTemplate highlightGrid must be called');
+        assert.equal(clearHighlightCalled, false, 'MeasuredTemplate refresh must not clear highlight layer');
+    } finally {
+        if (globalThis.canvas?.interface?.grid && origClear) {
+            globalThis.canvas.interface.grid.clearHighlightLayer = origClear;
+        }
+    }
+});
+
 

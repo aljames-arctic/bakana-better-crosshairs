@@ -256,18 +256,20 @@ export class CrosshairRotationListener {
             const scheduleFrame = typeof requestAnimationFrame === "function" ? requestAnimationFrame : (fn) => { fn(); return null; };
             this.pendingPointerRaf = scheduleFrame(() => {
                 this.pendingPointerRaf = null;
+                let pt = canvas?.mousePosition;
+                if (!pt && event && canvas?.stage?.toLocal) {
+                    try { pt = canvas.stage.toLocal(event); } catch (e) {}
+                }
                 if (isShapeInstance) {
-                    if (canvas?.mousePosition) {
-                        const pt = canvas.mousePosition;
+                    if (pt) {
                         if (isAttached && shape.token) {
                             const anchored = crosshairAdapter.resolveAnchorPlacement(shape.token, pt);
-                            shape.rotate(anchored.direction, false);
+                            shape.rotate(anchored.direction, true);
                         }
                         shape.move(pt.x, pt.y);
                     }
                 } else {
-                    if (isAttached && crosshair && canvas?.mousePosition) {
-                        const pt = canvas.mousePosition;
+                    if (isAttached && crosshair && pt) {
                         const anchored = crosshairAdapter.resolveAnchorPlacement(config.token, pt);
                         config.currentDirection = anchored.direction;
                         alignCrosshairAndEffects(crosshair, config, anchored.direction * (Math.PI / 180));
