@@ -2434,3 +2434,108 @@ test('BaseCrosshairShape.onCancelCallback dismisses preview placeable and clears
         activePlacementTracker.crosshair = null;
     }
 });
+
+test('FoundryVTTV14Adapter patches CONST.MEASURED_TEMPLATE_TYPES deprecation getter and provides static enum without warnings', () => {
+    const origDesc = Object.getOwnPropertyDescriptor(globalThis.CONST, 'MEASURED_TEMPLATE_TYPES');
+
+    try {
+        let warningCount = 0;
+        Object.defineProperty(globalThis.CONST, 'MEASURED_TEMPLATE_TYPES', {
+            get() {
+                warningCount++;
+                return {
+                    CIRCLE: 'circle',
+                    CONE: 'cone',
+                    RECTANGLE: 'rect',
+                    RAY: 'ray'
+                };
+            },
+            configurable: true,
+            enumerable: true
+        });
+
+        // Verify initial read triggers warning getter
+        const initial = globalThis.CONST.MEASURED_TEMPLATE_TYPES;
+        assert.equal(initial.CIRCLE, 'circle');
+        assert.equal(warningCount, 1, 'Deprecation getter must have been triggered once before patch');
+
+        // Reset warning counter and re-attach getter
+        warningCount = 0;
+        Object.defineProperty(globalThis.CONST, 'MEASURED_TEMPLATE_TYPES', {
+            get() {
+                warningCount++;
+                return {
+                    CIRCLE: 'circle',
+                    CONE: 'cone',
+                    RECTANGLE: 'rect',
+                    RAY: 'ray'
+                };
+            },
+            configurable: true,
+            enumerable: true
+        });
+
+        // Instantiating FoundryVTTV14Adapter must patch CONST.MEASURED_TEMPLATE_TYPES without invoking getter
+        const adapterV14 = new FoundryVTTV14Adapter();
+        assert.equal(warningCount, 0, 'Deprecation getter must NOT be called during adapter instantiation or patching');
+
+        // Reading properties from CONST.MEASURED_TEMPLATE_TYPES must now return values without calling getter
+        const types = globalThis.CONST.MEASURED_TEMPLATE_TYPES;
+        assert.equal(types.CIRCLE, 'circle');
+        assert.equal(types.CONE, 'cone');
+        assert.equal(types.RECTANGLE, 'rect');
+        assert.equal(types.RAY, 'ray');
+        assert.equal(warningCount, 0, 'Subsequent reads to CONST.MEASURED_TEMPLATE_TYPES must not invoke deprecation getter');
+
+        // Idempotency check: calling _patchDeprecations again does not throw or regress
+        assert.doesNotThrow(() => {
+            adapterV14._patchDeprecations();
+        });
+        assert.equal(warningCount, 0);
+
+        // Test missing case: when MEASURED_TEMPLATE_TYPES is deleted, _patchDeprecations defines static enum
+        delete globalThis.CONST.MEASURED_TEMPLATE_TYPES;
+        assert.equal(globalThis.CONST.MEASURED_TEMPLATE_TYPES, undefined);
+        adapterV14._patchDeprecations();
+        assert.ok(globalThis.CONST.MEASURED_TEMPLATE_TYPES);
+        assert.equal(globalThis.CONST.MEASURED_TEMPLATE_TYPES.CIRCLE, 'circle');
+        assert.equal(globalThis.CONST.MEASURED_TEMPLATE_TYPES.CONE, 'cone');
+        assert.equal(globalThis.CONST.MEASURED_TEMPLATE_TYPES.RECTANGLE, 'rect');
+        assert.equal(globalThis.CONST.MEASURED_TEMPLATE_TYPES.RAY, 'ray');
+    } finally {
+        if (origDesc) {
+            Object.defineProperty(globalThis.CONST, 'MEASURED_TEMPLATE_TYPES', origDesc);
+        } else {
+            delete globalThis.CONST.MEASURED_TEMPLATE_TYPES;
+        }
+    }
+});
+
+test('FoundryVTTV13Adapter preserves legacy NOP rule and does not touch CONST.MEASURED_TEMPLATE_TYPES', () => {
+    const origDesc = Object.getOwnPropertyDescriptor(globalThis.CONST, 'MEASURED_TEMPLATE_TYPES');
+
+    try {
+        let getterRan = false;
+        Object.defineProperty(globalThis.CONST, 'MEASURED_TEMPLATE_TYPES', {
+            get() {
+                getterRan = true;
+                return { CIRCLE: 'circle' };
+            },
+            configurable: true
+        });
+
+        const adapterV13 = new FoundryVTTV13Adapter();
+        assert.equal(getterRan, false);
+
+        // The descriptor should still be the getter on V13
+        const descAfter = Object.getOwnPropertyDescriptor(globalThis.CONST, 'MEASURED_TEMPLATE_TYPES');
+        assert.ok(descAfter?.get, 'V13 adapter must not mutate or patch CONST descriptor');
+    } finally {
+        if (origDesc) {
+            Object.defineProperty(globalThis.CONST, 'MEASURED_TEMPLATE_TYPES', origDesc);
+        } else {
+            delete globalThis.CONST.MEASURED_TEMPLATE_TYPES;
+        }
+    }
+});
+

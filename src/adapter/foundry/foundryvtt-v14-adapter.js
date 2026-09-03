@@ -14,6 +14,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
     constructor() {
         super();
         this.version = 14;
+        this._patchDeprecations();
     }
 
     /**
@@ -826,6 +827,48 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
      */
     async handleCreateDocument(doc, _options, userId) {
         await super.handleCreateDocument(doc, _options, userId);
+    }
+
+    /**
+     * Handle placeable draw preview in V14, ensuring upstream deprecation shims are active.
+     * @param {PlaceableObject} placeable - Preview placeable
+     * @returns {Promise<void>}
+     */
+    async handleDrawPreview(placeable) {
+        this._patchDeprecations();
+        return super.handleDrawPreview(placeable);
+    }
+
+    /**
+     * Patch V14-specific deprecated constants to prevent upstream Sequencer deprecation warnings.
+     * Replaces the deprecation warning getter on CONST.MEASURED_TEMPLATE_TYPES with a static frozen
+     * object containing the canonical template types so upstream crosshair calls evaluate cleanly.
+     * @protected
+     * @returns {void}
+     */
+    _patchDeprecations() {
+        if (typeof CONST === "undefined") return;
+        try {
+            const desc = Object.getOwnPropertyDescriptor(CONST, "MEASURED_TEMPLATE_TYPES");
+            const hasWarningGetter = Boolean(desc?.get);
+            const isMissing = !hasWarningGetter && !CONST?.MEASURED_TEMPLATE_TYPES;
+            if (hasWarningGetter || isMissing) {
+                Object.defineProperty(CONST, "MEASURED_TEMPLATE_TYPES", {
+                    value: Object.freeze({
+                        CIRCLE: "circle",
+                        CONE: "cone",
+                        RECTANGLE: "rect",
+                        RAY: "ray"
+                    }),
+                    writable: false,
+                    configurable: true,
+                    enumerable: true
+                });
+                log.debug("FoundryVTTV14Adapter._patchDeprecations | Defined static CONST.MEASURED_TEMPLATE_TYPES enum.");
+            }
+        } catch (err) {
+            log.debug("FoundryVTTV14Adapter._patchDeprecations | Could not redefine CONST.MEASURED_TEMPLATE_TYPES:", err);
+        }
     }
 
     _snapPoint(x, y, numMode) {

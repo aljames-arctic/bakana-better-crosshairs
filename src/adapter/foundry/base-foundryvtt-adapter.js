@@ -22,7 +22,15 @@ export class BaseFoundryVTTAdapter {
     constructor() {
         this.version = 0;
         this.pendingPlacements = new Map();
+        this._patchDeprecations();
     }
+
+    /**
+     * Hook for version-specific adapter deprecation patching. Default NOP.
+     * @protected
+     * @returns {void}
+     */
+    _patchDeprecations() {}
 
     /**
      * Return canonical document terminology string ("template" or "region").
@@ -1014,6 +1022,7 @@ export class BaseFoundryVTTAdapter {
                 activePlacementTracker.config = finalConfig;
                 activePlacementTracker.sticky = Boolean(finalConfig.stickToToken);
 
+                this._patchDeprecations();
                 await builder.play(placeable, finalConfig);
             }
 
