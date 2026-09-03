@@ -271,24 +271,23 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
                 targetY = Math.round(targetY - (wPx / 2) * Math.cos(rad));
             }
 
-            if (targetX !== undefined) targetDoc.x = targetX;
-            if (targetY !== undefined) targetDoc.y = targetY;
-            if (coords.direction !== undefined) targetDoc.direction = coords.direction;
-
             targetDoc.t = "rect";
             const w = widthFoot ?? 20;
             const h = distFoot ?? w;
-            targetDoc.distance = Math.round(Math.sqrt(w * w + h * h) * 100) / 100;
+            const diagDist = Math.round(Math.sqrt(w * w + h * h) * 100) / 100;
+            const diagAngle = Math.atan2(h, w) * (180 / Math.PI);
+            targetDoc.distance = diagDist;
             targetDoc.width = w;
+            targetDoc.direction = diagAngle;
 
             const updateObj = {
                 t: "rect",
-                distance: targetDoc.distance,
-                width: w
+                distance: diagDist,
+                width: w,
+                direction: diagAngle
             };
             if (targetX !== undefined) updateObj.x = targetX;
             if (targetY !== undefined) updateObj.y = targetY;
-            if (coords.direction !== undefined) updateObj.direction = coords.direction;
 
             if (typeof targetDoc.updateSource === "function") {
                 try { targetDoc.updateSource(updateObj); } catch (e) { Object.assign(targetDoc, updateObj); }
@@ -374,14 +373,15 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
 
             if (targetX !== undefined) updateData.x = targetX;
             if (targetY !== undefined) updateData.y = targetY;
-            if (coords.direction !== undefined) updateData.direction = coords.direction;
-            else if (coords.rotation !== undefined) updateData.direction = coords.rotation;
 
             updateData.t = "rect";
             const w = widthFoot ?? 20;
             const h = distFoot ?? w;
-            updateData.distance = Math.round(Math.sqrt(w * w + h * h) * 100) / 100;
+            const diagDist = Math.round(Math.hypot(w, h) * 100) / 100;
+            const diagAngle = Math.atan2(h, w) * (180 / Math.PI);
+            updateData.distance = diagDist;
             updateData.width = w;
+            updateData.direction = diagAngle;
         } else {
             if (coords.x !== undefined) updateData.x = coords.x;
             if (coords.y !== undefined) updateData.y = coords.y;
@@ -429,8 +429,6 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
     _applyDeferredCoordinates(data, coords, docName) {
         if (coords.x !== undefined) data.x = coords.x;
         if (coords.y !== undefined) data.y = coords.y;
-        if (coords.direction !== undefined) data.direction = coords.direction;
-        else if (coords.rotation !== undefined) data.direction = coords.rotation;
         const isRect = data.t === "rect" || coords.type === "square" || coords.type === "rect" || coords.originalType === "square" || coords.t === "rect";
         if (isRect) {
             data.t = "rect";
@@ -443,9 +441,12 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             }
             const w = widthFoot ?? 20;
             const h = distFoot ?? w;
-            data.distance = Math.round(Math.sqrt(w * w + h * h) * 100) / 100;
+            data.distance = Math.round(Math.hypot(w, h) * 100) / 100;
             data.width = w;
+            data.direction = Math.atan2(h, w) * (180 / Math.PI);
         } else {
+            if (coords.direction !== undefined) data.direction = coords.direction;
+            else if (coords.rotation !== undefined) data.direction = coords.rotation;
             if (coords.distance !== undefined) data.distance = coords.distance;
             else if (coords.radius !== undefined) data.distance = coords.radius;
             if (coords.t !== undefined) data.t = coords.t;
@@ -464,16 +465,38 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
     refreshTemplateHighlights(tmpl, direction) {
         if (!tmpl) return;
 
-        const rad = direction * (Math.PI / 180);
-        tmpl.direction = direction;
-
         const doc = tmpl.document;
+        const isRect = doc?.t === "rect" || tmpl.t === "rect";
+        let effectiveDirection = direction;
+
+        if (isRect) {
+            const w = doc?.width ?? 20;
+            let distFoot = doc?.distance ?? w;
+            if (w > 0 && distFoot > w) {
+                const isSquareDiagonal = distFoot <= w * 1.6;
+                distFoot = isSquareDiagonal ? w : Math.round(Math.sqrt(Math.max(0, distFoot * distFoot - w * w)));
+            }
+            const h = distFoot ?? w;
+            effectiveDirection = Math.atan2(h, w) * (180 / Math.PI);
+            if (doc) {
+                doc.distance = Math.round(Math.hypot(w, h) * 100) / 100;
+                doc.width = w;
+            }
+        }
+
+        const rad = effectiveDirection * (Math.PI / 180);
+        tmpl.direction = effectiveDirection;
+
         const targetX = doc?.x ?? tmpl.x;
         const targetY = doc?.y ?? tmpl.y;
 
         if (doc) {
-            doc.direction = direction;
-            const updateData = { direction };
+            doc.direction = effectiveDirection;
+            const updateData = { direction: effectiveDirection };
+            if (isRect) {
+                updateData.distance = doc.distance;
+                updateData.width = doc.width;
+            }
             if (targetX !== undefined) updateData.x = targetX;
             if (targetY !== undefined) updateData.y = targetY;
             if (typeof doc?.updateSource === "function") {
@@ -494,7 +517,8 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         if (tmpl.ray && typeof Ray?.fromAngle === "function") {
             const ox = targetX ?? tmpl.ray.origin?.x ?? tmpl.x ?? 0;
             const oy = targetY ?? tmpl.ray.origin?.y ?? tmpl.y ?? 0;
-            const dist = tmpl.ray.distance ?? 1000;
+            const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
+            const dist = isRect && doc?.distance ? doc.distance * pxPerFoot : (tmpl.ray.distance ?? 1000);
             tmpl.ray = Ray.fromAngle(ox, oy, rad, dist);
         }
 

@@ -2185,4 +2185,137 @@ test('FoundryVTTV14Adapter.refreshTemplateHighlights ensures highlightLayer visi
     }
 });
 
+test('FoundryVTTV13Adapter.refreshTemplateHighlights calculates 45 degree diagonal angle and diagonal distance for rect MeasuredTemplates', () => {
+    const adapterV13 = new FoundryVTTV13Adapter();
+    const mockDoc = {
+        t: 'rect',
+        distance: 20,
+        width: 20,
+        direction: 0,
+        x: 100,
+        y: 100,
+        updateSource(data) { Object.assign(this, data); }
+    };
+    const mockTmpl = {
+        document: mockDoc,
+        t: 'rect',
+        direction: 0,
+        x: 100,
+        y: 100,
+        ray: { origin: { x: 100, y: 100 }, distance: 100 },
+        renderFlags: { set: () => {} },
+        _refreshPosition() {},
+        _refreshShape() {},
+        applyRenderFlags() {},
+        highlightGrid() {}
+    };
+
+    adapterV13.refreshTemplateHighlights(mockTmpl, 0);
+
+    assert.equal(Math.round(mockDoc.direction), 45);
+    assert.equal(Math.round(mockTmpl.direction), 45);
+    assert.equal(mockDoc.width, 20);
+    assert.equal(mockDoc.distance, 28.28);
+    assert.ok(mockTmpl.ray);
+    // At 45 degrees on 100px/5ft grid, dx and dy should both be 400px (20ft * 20px/ft)
+    assert.equal(Math.round(mockTmpl.ray.B.x - mockTmpl.ray.A.x), 400);
+    assert.equal(Math.round(mockTmpl.ray.B.y - mockTmpl.ray.A.y), 400);
+});
+
+test('FoundryVTTV14Adapter.refreshTemplateHighlights calculates 45 degree diagonal angle and diagonal distance for rect MeasuredTemplates without mutating ray', () => {
+    const adapterV14 = new FoundryVTTV14Adapter();
+    const mockRay = { origin: { x: 100, y: 100 }, distance: 100 };
+    const mockDoc = {
+        documentName: 'MeasuredTemplate',
+        t: 'rect',
+        distance: 20,
+        width: 20,
+        direction: 0,
+        x: 100,
+        y: 100,
+        updateSource(data) { Object.assign(this, data); }
+    };
+    const mockTmpl = {
+        document: mockDoc,
+        t: 'rect',
+        direction: 0,
+        x: 100,
+        y: 100,
+        ray: mockRay,
+        renderFlags: { set: () => {} },
+        _refreshPosition() {},
+        _refreshShape() {},
+        applyRenderFlags() {},
+        highlightGrid() {}
+    };
+
+    adapterV14.refreshTemplateHighlights(mockTmpl, 0);
+
+    assert.equal(Math.round(mockDoc.direction), 45);
+    assert.equal(Math.round(mockTmpl.direction), 45);
+    assert.equal(mockDoc.width, 20);
+    assert.equal(mockDoc.distance, 28.28);
+    assert.strictEqual(mockTmpl.ray, mockRay, 'V14 MeasuredTemplate must not overwrite tmpl.ray');
+});
+
+test('BaseFoundryVTTAdapter._wrapHighlightGrid updates rect MeasuredTemplate with diagonal direction and distance before calculating highlights', () => {
+    const adapter = new BaseFoundryVTTAdapter();
+    const mockDoc = {
+        t: 'rect',
+        distance: 20,
+        width: 20,
+        direction: 0,
+        x: 100,
+        y: 100,
+        updateSource(data) { Object.assign(this, data); }
+    };
+    let origHighlightCalled = false;
+    const mockTmpl = {
+        document: mockDoc,
+        t: 'rect',
+        direction: 0,
+        x: 100,
+        y: 100,
+        ray: { origin: { x: 100, y: 100 }, distance: 100 },
+        crosshair: {
+            shapeInstance: {
+                x: 100,
+                y: 100,
+                direction: 0,
+                config: { width: 20, distance: 20 }
+            }
+        },
+        highlightGrid() { origHighlightCalled = true; }
+    };
+
+    adapter._wrapHighlightGrid(mockTmpl);
+    mockTmpl.highlightGrid();
+
+    assert.equal(origHighlightCalled, true);
+    assert.equal(Math.round(mockDoc.direction), 45);
+    assert.equal(Math.round(mockTmpl.direction), 45);
+    assert.equal(mockDoc.width, 20);
+    assert.equal(mockDoc.distance, 28.28);
+    assert.equal(Math.round(mockTmpl.ray.B.x - mockTmpl.ray.A.x), 400);
+    assert.equal(Math.round(mockTmpl.ray.B.y - mockTmpl.ray.A.y), 400);
+});
+
+test('FoundryVTTV13Adapter and FoundryVTTV14Adapter applyDocumentPlacement assign 45 degree diagonal direction for square MeasuredTemplates', () => {
+    const adapterV13 = new FoundryVTTV13Adapter();
+    const adapterV14 = new FoundryVTTV14Adapter();
+
+    const docV13 = { t: 'rect', direction: 0, updateSource(d) { Object.assign(this, d); } };
+    adapterV13.applyDocumentPlacement(docV13, { x: 100, y: 100, direction: 0, width: 20, distance: 20, type: 'square' });
+    assert.equal(Math.round(docV13.direction), 45);
+    assert.equal(docV13.width, 20);
+    assert.equal(docV13.distance, 28.28);
+
+    const docV14 = { documentName: 'MeasuredTemplate', t: 'rect', direction: 0, updateSource(d) { Object.assign(this, d); } };
+    adapterV14.applyDocumentPlacement(docV14, { x: 100, y: 100, direction: 0, width: 20, distance: 20, type: 'square' });
+    assert.equal(Math.round(docV14.direction), 45);
+    assert.equal(docV14.width, 20);
+    assert.equal(docV14.distance, 28.28);
+});
+
+
 

@@ -309,13 +309,35 @@ export class BaseFoundryVTTAdapter {
                     if (shape) {
                         const targetX = shape.x;
                         const targetY = shape.y;
-                        const targetDir = shape.direction;
+                        let targetDir = shape.direction;
+
+                        const isRect = this.document?.t === "rect" || this.t === "rect";
+                        const isRegion = this.document?.documentName === "Region";
+
+                        if (isRect && !isRegion) {
+                            const w = this.document?.width ?? shape.config?.width ?? 20;
+                            let distFoot = this.document?.distance ?? shape.config?.distance ?? w;
+                            if (w > 0 && distFoot > w) {
+                                const isSquareDiagonal = distFoot <= w * 1.6;
+                                distFoot = isSquareDiagonal ? w : Math.round(Math.sqrt(Math.max(0, distFoot * distFoot - w * w)));
+                            }
+                            const h = distFoot ?? w;
+                            targetDir = Math.atan2(h, w) * (180 / Math.PI);
+                            if (this.document) {
+                                this.document.distance = Math.round(Math.hypot(w, h) * 100) / 100;
+                                this.document.width = w;
+                            }
+                        }
 
                         if (this.document) {
                             const updateData = {};
                             if (targetX !== undefined) updateData.x = targetX;
                             if (targetY !== undefined) updateData.y = targetY;
                             if (targetDir !== undefined) updateData.direction = targetDir;
+                            if (isRect && !isRegion) {
+                                updateData.distance = this.document.distance;
+                                updateData.width = this.document.width;
+                            }
                             if (typeof this.document.updateSource === "function") {
                                 this.document.updateSource(updateData);
                             } else {
@@ -330,7 +352,10 @@ export class BaseFoundryVTTAdapter {
                             const rad = ((targetDir ?? 0) * Math.PI) / 180;
                             const ox = targetX ?? this.x ?? 0;
                             const oy = targetY ?? this.y ?? 0;
-                            const dist = this.ray.distance ?? 1000;
+                            const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
+                            const dist = isRect && !isRegion && this.document?.distance
+                                ? this.document.distance * pxPerFoot
+                                : (this.ray.distance ?? 1000);
                             this.ray = Ray.fromAngle(ox, oy, rad, dist);
                         }
 
