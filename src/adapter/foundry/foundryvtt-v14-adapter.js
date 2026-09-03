@@ -689,13 +689,8 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         const isRegion = doc.documentName === "Region" || Boolean(tmpl.shapes || doc.shapes);
 
         if (isRegion) {
-            const highlightId = tmpl.highlightId ?? `Region.${doc.id ?? "preview"}`;
-            tmpl.highlightId = highlightId;
+            const highlightId = tmpl.highlightId ?? tmpl._bbcHighlightId ?? (doc.id ? `Region.${doc.id}` : "Region.preview");
             tmpl._bbcHighlightId = highlightId;
-            if (doc) {
-                doc.highlightId = highlightId;
-                doc._bbcHighlightId = highlightId;
-            }
             if (canvas?.interface?.grid) {
                 if (typeof canvas.interface.grid.addHighlightLayer === "function") {
                     try { canvas.interface.grid.addHighlightLayer(highlightId); } catch (e) {}
@@ -815,13 +810,8 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         if (typeof tmpl.applyRenderFlags === "function") tmpl.applyRenderFlags();
         if (typeof tmpl.highlightGrid === "function") tmpl.highlightGrid();
 
-        const hId = tmpl.highlightId ?? `Template.${doc?.id ?? "preview"}`;
-        tmpl.highlightId = hId;
+        const hId = tmpl.highlightId ?? tmpl.objectId ?? `Template.${doc?.id ?? "preview"}`;
         tmpl._bbcHighlightId = hId;
-        if (doc) {
-            doc.highlightId = hId;
-            doc._bbcHighlightId = hId;
-        }
         const hl = canvas?.interface?.grid?.getHighlightLayer?.(hId);
         if (hl) hl.visible = true;
     }

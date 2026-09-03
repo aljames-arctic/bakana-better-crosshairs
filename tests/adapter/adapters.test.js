@@ -2361,26 +2361,46 @@ test('BaseFoundryVTTAdapter.dismissPreview clears and destroys Region highlight 
     }
 });
 
-test('BaseFoundryVTTAdapter wraps placeable.destroy so native right-click/ESC destruction triggers dismissPreview', () => {
-    let dismissCalled = false;
-    const adapter = new BaseFoundryVTTAdapter();
-    let origDestroyCalled = false;
-    const mockPlaceable = {
-        id: 'tmpl-cancel-test',
-        document: { id: 'tmpl-cancel-test', documentName: 'MeasuredTemplate' },
-        destroy() { origDestroyCalled = true; }
-    };
+test('BaseFoundryVTTAdapter and version adapters do not throw on getter-only highlightId during grid highlighting', () => {
+    const adapterV13 = new FoundryVTTV13Adapter();
+    const adapterV14 = new FoundryVTTV14Adapter();
 
-    adapter.dismissPreview = (p) => {
-        dismissCalled = true;
-    };
-    adapter.hidePreview(mockPlaceable);
+    let v13HighlightRan = false;
+    let v14HighlightRan = false;
 
-    assert.equal(typeof mockPlaceable.destroy, 'function');
-    mockPlaceable.destroy();
+    class GetterOnlyMeasuredTemplate {
+        get highlightId() { return 'Template.null'; }
+        get objectId() { return 'Template.null'; }
+        highlightGrid() { v13HighlightRan = true; }
+        applyRenderFlags() {}
+    }
 
-    assert.equal(dismissCalled, true, 'dismissPreview must be called when placeable is destroyed');
-    assert.equal(origDestroyCalled, true, 'original destroy method must be invoked');
+    const mockTmplV13 = new GetterOnlyMeasuredTemplate();
+    mockTmplV13.document = { t: 'circle', distance: 20, updateSource() {} };
+
+    adapterV13._wrapHighlightGrid(mockTmplV13);
+    assert.doesNotThrow(() => {
+        mockTmplV13.highlightGrid();
+    });
+    assert.equal(v13HighlightRan, true, 'Wrapped highlightGrid must invoke original highlightGrid without throwing');
+
+    assert.doesNotThrow(() => {
+        adapterV13.refreshTemplateHighlights(mockTmplV13, 0);
+    });
+
+    const mockTmplV14 = new GetterOnlyMeasuredTemplate();
+    mockTmplV14.highlightGrid = () => { v14HighlightRan = true; };
+    mockTmplV14.document = { documentName: 'MeasuredTemplate', t: 'circle', distance: 20, updateSource() {} };
+
+    adapterV14._wrapHighlightGrid(mockTmplV14);
+    assert.doesNotThrow(() => {
+        mockTmplV14.highlightGrid();
+    });
+    assert.equal(v14HighlightRan, true, 'V14 wrapped highlightGrid must invoke original highlightGrid without throwing');
+
+    assert.doesNotThrow(() => {
+        adapterV14.refreshTemplateHighlights(mockTmplV14, 0);
+    });
 });
 
 test('BaseCrosshairShape.onCancelCallback dismisses preview placeable and clears activePlacementTracker', () => {

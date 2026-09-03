@@ -544,13 +544,8 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         });
         if (typeof tmpl.applyRenderFlags === "function") tmpl.applyRenderFlags();
         if (typeof tmpl.highlightGrid === "function") tmpl.highlightGrid();
-        const hId = tmpl.highlightId ?? `Template.${doc?.id ?? "preview"}`;
-        tmpl.highlightId = hId;
+        const hId = tmpl.highlightId ?? tmpl.objectId ?? `Template.${doc?.id ?? "preview"}`;
         tmpl._bbcHighlightId = hId;
-        if (doc) {
-            doc.highlightId = hId;
-            doc._bbcHighlightId = hId;
-        }
     }
 
     _snapPoint(x, y, numMode) {

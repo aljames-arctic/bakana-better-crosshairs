@@ -288,18 +288,6 @@ export class BaseFoundryVTTAdapter {
             }
         }
 
-        if (!placeable._bbcDestroyWrapped && typeof placeable.destroy === "function") {
-            placeable._bbcDestroyWrapped = true;
-            const origDestroy = placeable.destroy;
-            const self = this;
-            placeable.destroy = function (...args) {
-                if (!this._bbcDismissed) {
-                    try { self.dismissPreview(this); } catch (e) {}
-                }
-                return origDestroy.apply(this, args);
-            };
-        }
-
         this._wrapHighlightGrid(placeable);
     }
 
@@ -383,13 +371,8 @@ export class BaseFoundryVTTAdapter {
                     }
 
                     const isRegion = this.document?.documentName === "Region" || Boolean(this.shapes || this.document?.shapes);
-                    const hId = this.highlightId ?? `${isRegion ? "Region" : "Template"}.${this.document?.id ?? "preview"}`;
-                    this.highlightId = hId;
+                    const hId = this.highlightId ?? this.objectId ?? (isRegion ? (this.document?.id ? `Region.${this.document.id}` : "Region.preview") : "preview");
                     this._bbcHighlightId = hId;
-                    if (this.document) {
-                        this.document.highlightId = hId;
-                        this.document._bbcHighlightId = hId;
-                    }
                     const hl = canvas?.interface?.grid?.getHighlightLayer?.(hId);
                     if (hl) hl.visible = true;
 
@@ -453,6 +436,9 @@ export class BaseFoundryVTTAdapter {
             candidateIds.add(placeable.objectId);
             candidateIds.add(`Region.${placeable.objectId}`);
             candidateIds.add(`Template.${placeable.objectId}`);
+        }
+        if (placeable._bbcHighlightId) {
+            candidateIds.add(placeable._bbcHighlightId);
         }
         candidateIds.add("preview");
         candidateIds.add("Region.preview");
@@ -945,25 +931,10 @@ export class BaseFoundryVTTAdapter {
         this.hidePreview(placeable);
 
         const isRegion = doc.documentName === "Region" || Boolean(placeable.shapes || doc.shapes);
-        const defaultHlId = `${isRegion ? "Region" : "Template"}.${doc.id ?? "preview"}`;
-        if (!placeable.highlightId) placeable.highlightId = defaultHlId;
+        const defaultHlId = isRegion
+            ? (doc.id ? `Region.${doc.id}` : "Region.preview")
+            : (placeable.highlightId ?? placeable.objectId ?? (doc.id ? `Template.${doc.id}` : "Template.preview"));
         placeable._bbcHighlightId = defaultHlId;
-        if (doc) {
-            if (!doc.highlightId) doc.highlightId = defaultHlId;
-            doc._bbcHighlightId = defaultHlId;
-        }
-
-        if (!placeable._bbcDestroyWrapped && typeof placeable.destroy === "function") {
-            placeable._bbcDestroyWrapped = true;
-            const origDestroy = placeable.destroy;
-            const self = this;
-            placeable.destroy = function (...args) {
-                if (!this._bbcDismissed) {
-                    try { self.dismissPreview(this); } catch (e) {}
-                }
-                return origDestroy.apply(this, args);
-            };
-        }
 
         // 2. Resolve token and item context deterministically through version adapter
         const callingContext = this.extractCallingContext(doc);
