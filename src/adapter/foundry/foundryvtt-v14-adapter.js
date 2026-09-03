@@ -841,49 +841,87 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
 
     /**
      * Patch V14-specific deprecated constants to prevent upstream Sequencer deprecation warnings.
-     * Wraps foundry.utils.logCompatibilityWarning to suppress CONST.MEASURED_TEMPLATE_TYPES deprecation
-     * warnings from upstream Sequencer calls, and defines a fallback static enum if missing.
+     * Silences CONST.MEASURED_TEMPLATE_TYPES deprecation warnings from upstream Sequencer calls
+     * without mutating read-only core properties or throwing during module initialization.
      * @protected
      * @returns {void}
      */
     _patchDeprecations() {
-        if (typeof foundry !== "undefined" && typeof foundry?.utils?.logCompatibilityWarning === "function") {
-            if (!foundry.utils.logCompatibilityWarning._bbcPatched) {
-                const origLog = foundry.utils.logCompatibilityWarning;
-                const wrappedLog = function (message, ...args) {
-                    const msgStr = typeof message === "string" ? message : (message?.message ?? "");
-                    if (msgStr.includes("MEASURED_TEMPLATE_TYPES")) {
-                        return;
-                    }
-                    return origLog.call(this, message, ...args);
-                };
-                wrappedLog._bbcPatched = true;
-                foundry.utils.logCompatibilityWarning = wrappedLog;
-                log.debug("FoundryVTTV14Adapter._patchDeprecations | Wrapped foundry.utils.logCompatibilityWarning to suppress MEASURED_TEMPLATE_TYPES warnings.");
-            }
-        }
-
-        if (typeof CONST === "undefined") return;
         try {
-            const desc = Object.getOwnPropertyDescriptor(CONST, "MEASURED_TEMPLATE_TYPES");
-            const hasWarningGetter = Boolean(desc?.get);
-            const isMissing = !hasWarningGetter && !CONST?.MEASURED_TEMPLATE_TYPES;
-            if (hasWarningGetter || isMissing) {
-                Object.defineProperty(CONST, "MEASURED_TEMPLATE_TYPES", {
-                    value: Object.freeze({
-                        CIRCLE: "circle",
-                        CONE: "cone",
-                        RECTANGLE: "rect",
-                        RAY: "ray"
-                    }),
-                    writable: false,
-                    configurable: true,
-                    enumerable: true
-                });
-                log.debug("FoundryVTTV14Adapter._patchDeprecations | Defined static CONST.MEASURED_TEMPLATE_TYPES enum.");
+            if (typeof console !== "undefined") {
+                if (typeof console.warn === "function" && !console.warn._bbcPatched) {
+                    const origWarn = console.warn;
+                    const wrappedWarn = function (...args) {
+                        const first = args[0];
+                        const msg = typeof first === "string" ? first : (first?.message ?? String(first ?? ""));
+                        if (msg.includes("MEASURED_TEMPLATE_TYPES")) {
+                            return;
+                        }
+                        return origWarn.apply(this, args);
+                    };
+                    wrappedWarn._bbcPatched = true;
+                    console.warn = wrappedWarn;
+                    log.debug("FoundryVTTV14Adapter._patchDeprecations | Intercepted console.warn for MEASURED_TEMPLATE_TYPES deprecation.");
+                }
+
+                if (typeof console.error === "function" && !console.error._bbcPatched) {
+                    const origError = console.error;
+                    const wrappedError = function (...args) {
+                        const first = args[0];
+                        const msg = typeof first === "string" ? first : (first?.message ?? String(first ?? ""));
+                        if (msg.includes("MEASURED_TEMPLATE_TYPES")) {
+                            return;
+                        }
+                        return origError.apply(this, args);
+                    };
+                    wrappedError._bbcPatched = true;
+                    console.error = wrappedError;
+                }
             }
         } catch (err) {
-            log.debug("FoundryVTTV14Adapter._patchDeprecations | Could not redefine CONST.MEASURED_TEMPLATE_TYPES:", err);
+            log.debug("FoundryVTTV14Adapter._patchDeprecations | Could not wrap console logger:", err);
+        }
+
+        try {
+            if (typeof foundry !== "undefined" && typeof foundry?.utils?.logCompatibilityWarning === "function") {
+                if (!foundry.utils.logCompatibilityWarning._bbcPatched) {
+                    const origLog = foundry.utils.logCompatibilityWarning;
+                    const wrappedLog = function (message, ...args) {
+                        const msgStr = typeof message === "string" ? message : (message?.message ?? "");
+                        if (msgStr.includes("MEASURED_TEMPLATE_TYPES")) {
+                            return;
+                        }
+                        return origLog.call(this, message, ...args);
+                    };
+                    wrappedLog._bbcPatched = true;
+                    foundry.utils.logCompatibilityWarning = wrappedLog;
+                }
+            }
+        } catch (err) {
+            // Suppressed: foundry.utils is read-only in Foundry V14
+        }
+
+        try {
+            if (typeof CONST !== "undefined") {
+                const desc = Object.getOwnPropertyDescriptor(CONST, "MEASURED_TEMPLATE_TYPES");
+                const hasWarningGetter = Boolean(desc?.get);
+                const isMissing = !hasWarningGetter && !CONST?.MEASURED_TEMPLATE_TYPES;
+                if (hasWarningGetter || isMissing) {
+                    Object.defineProperty(CONST, "MEASURED_TEMPLATE_TYPES", {
+                        value: Object.freeze({
+                            CIRCLE: "circle",
+                            CONE: "cone",
+                            RECTANGLE: "rect",
+                            RAY: "ray"
+                        }),
+                        writable: false,
+                        configurable: true,
+                        enumerable: true
+                    });
+                }
+            }
+        } catch (err) {
+            // Suppressed: CONST is frozen in Foundry V14
         }
     }
 

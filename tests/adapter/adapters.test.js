@@ -2593,4 +2593,47 @@ test('FoundryVTTV14Adapter suppresses MEASURED_TEMPLATE_TYPES warnings even when
     }
 });
 
+test('FoundryVTTV14Adapter initializes cleanly when foundry.utils.logCompatibilityWarning is read-only', () => {
+    const origLogDesc = Object.getOwnPropertyDescriptor(globalThis.foundry.utils, 'logCompatibilityWarning');
+    const origWarn = console.warn;
+
+    try {
+        let warnCalled = false;
+        console.warn = (...args) => {
+            warnCalled = true;
+        };
+
+        // Make logCompatibilityWarning strictly read-only and non-configurable
+        Object.defineProperty(globalThis.foundry.utils, 'logCompatibilityWarning', {
+            value: (msg, opts) => {
+                console.warn(new Error(msg));
+            },
+            writable: false,
+            configurable: true
+        });
+
+        // Instantiating adapter must NOT throw TypeError
+        assert.doesNotThrow(() => {
+            const adapter = new FoundryVTTV14Adapter();
+            adapter._patchDeprecations();
+        });
+
+        // Triggering the read-only logCompatibilityWarning for MEASURED_TEMPLATE_TYPES must be intercepted by console.warn
+        warnCalled = false;
+        globalThis.foundry.utils.logCompatibilityWarning('CONST.MEASURED_TEMPLATE_TYPES is deprecated without replacement.', {});
+        assert.equal(warnCalled, false, 'Warning must be suppressed by console.warn interceptor');
+
+        // Other warnings must pass through
+        warnCalled = false;
+        globalThis.foundry.utils.logCompatibilityWarning('Other warning', {});
+        assert.equal(warnCalled, true, 'Other warnings must pass through');
+    } finally {
+        if (origLogDesc) {
+            Object.defineProperty(globalThis.foundry.utils, 'logCompatibilityWarning', origLogDesc);
+        }
+        console.warn = origWarn;
+    }
+});
+
+
 
