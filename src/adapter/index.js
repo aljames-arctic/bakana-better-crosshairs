@@ -1,25 +1,6 @@
-import {
-    systemAdapter,
-    initializeSystemAdapter,
-    BaseSystemAdapter,
-    Dnd5eSystemAdapter,
-    Pf2eSystemAdapter,
-    Pf1SystemAdapter
-} from "./system/index.js";
-import {
-    crosshairAdapter,
-    initializeFoundryAdapter,
-    BaseFoundryVTTAdapter,
-    FoundryVTTV13Adapter,
-    FoundryVTTV14Adapter
-} from "./foundry/index.js";
-import {
-    canvasAdapter,
-    initializeCanvasAdapter,
-    BaseCanvasAdapter,
-    CanvasV13Adapter,
-    CanvasV14Adapter
-} from "./canvas/index.js";
+import { systemAdapter, initializeSystemAdapter } from "./system/index.js";
+import { crosshairAdapter, initializeFoundryAdapter } from "./foundry/index.js";
+import { canvasAdapter, initializeCanvasAdapter } from "./canvas/index.js";
 import { autorecManager } from "../autorec/autorecManager.js";
 
 let hooksInitialized = false;
@@ -64,16 +45,6 @@ export function initializeHooks(options = {}) {
 }
 
 export {
-    BaseFoundryVTTAdapter,
-    FoundryVTTV13Adapter,
-    FoundryVTTV14Adapter,
-    BaseCanvasAdapter,
-    CanvasV13Adapter,
-    CanvasV14Adapter,
-    BaseSystemAdapter,
-    Dnd5eSystemAdapter,
-    Pf2eSystemAdapter,
-    Pf1SystemAdapter,
     systemAdapter,
     initializeSystemAdapter,
     crosshairAdapter,
