@@ -84,6 +84,10 @@ export function sanitizeEntryForExchange(entry) {
     const broadcast = optionsRaw.broadcast !== undefined
         ? Boolean(optionsRaw.broadcast)
         : Boolean(raw.broadcast ?? DEFAULT_AUTOREC_ENTRY.broadcast ?? true);
+    const borderPlayerColor = Boolean(optionsRaw.borderPlayerColor ?? previewBorder.playerColor ?? raw.borderPlayerColor ?? false);
+    const fillPlayerColor = Boolean(optionsRaw.fillPlayerColor ?? previewFill.playerColor ?? raw.fillPlayerColor ?? false);
+    const placedFillPlayerColor = Boolean(optionsRaw.placedFillPlayerColor ?? placedFill.playerColor ?? raw.placedFillPlayerColor ?? false);
+    const placedBorderPlayerColor = Boolean(optionsRaw.placedBorderPlayerColor ?? placedBorder.playerColor ?? raw.placedBorderPlayerColor ?? false);
 
     const sanitized = {
         itemName,
@@ -104,6 +108,10 @@ export function sanitizeEntryForExchange(entry) {
             enablePreviewPlacement,
             enablePlacedStyling,
             enablePostPlacement,
+            borderPlayerColor,
+            fillPlayerColor,
+            placedFillPlayerColor,
+            placedBorderPlayerColor,
             persist
         },
         file: {
@@ -117,21 +125,25 @@ export function sanitizeEntryForExchange(entry) {
         preview: {
             fill: {
                 color: String(previewFill.color ?? raw.fillColor ?? DEFAULT_AUTOREC_ENTRY.fillColor),
-                alpha: Number(previewFill.alpha ?? raw.fillAlpha ?? DEFAULT_AUTOREC_ENTRY.fillAlpha)
+                alpha: Number(previewFill.alpha ?? raw.fillAlpha ?? DEFAULT_AUTOREC_ENTRY.fillAlpha),
+                playerColor: fillPlayerColor
             },
             border: {
                 color: String(previewBorder.color ?? raw.borderColor ?? DEFAULT_AUTOREC_ENTRY.borderColor),
-                alpha: Number(previewBorder.alpha ?? raw.borderAlpha ?? DEFAULT_AUTOREC_ENTRY.borderAlpha)
+                alpha: Number(previewBorder.alpha ?? raw.borderAlpha ?? DEFAULT_AUTOREC_ENTRY.borderAlpha),
+                playerColor: borderPlayerColor
             }
         },
         placed: {
             fill: {
                 color: String(placedFill.color ?? raw.placedFillColor ?? DEFAULT_AUTOREC_ENTRY.placedFillColor),
-                alpha: Number(placedFill.alpha ?? raw.placedFillAlpha ?? DEFAULT_AUTOREC_ENTRY.placedFillAlpha)
+                alpha: Number(placedFill.alpha ?? raw.placedFillAlpha ?? DEFAULT_AUTOREC_ENTRY.placedFillAlpha),
+                playerColor: placedFillPlayerColor
             },
             border: {
                 color: String(placedBorder.color ?? raw.placedBorderColor ?? DEFAULT_AUTOREC_ENTRY.placedBorderColor),
-                alpha: Number(placedBorder.alpha ?? raw.placedBorderAlpha ?? DEFAULT_AUTOREC_ENTRY.placedBorderAlpha)
+                alpha: Number(placedBorder.alpha ?? raw.placedBorderAlpha ?? DEFAULT_AUTOREC_ENTRY.placedBorderAlpha),
+                playerColor: placedBorderPlayerColor
             },
             persist
         },
@@ -144,6 +156,10 @@ export function sanitizeEntryForExchange(entry) {
     sanitized.persist = persist;
     sanitized.showItemIcon = showItemIcon;
     sanitized.broadcast = broadcast;
+    sanitized.borderPlayerColor = borderPlayerColor;
+    sanitized.fillPlayerColor = fillPlayerColor;
+    sanitized.placedFillPlayerColor = placedFillPlayerColor;
+    sanitized.placedBorderPlayerColor = placedBorderPlayerColor;
     if (raw.distance !== undefined && raw.distance !== null) sanitized.distance = Number(raw.distance);
     if (raw.width !== undefined && raw.width !== null) sanitized.width = Number(raw.width);
     if (raw.angle !== undefined && raw.angle !== null) sanitized.angle = Number(raw.angle);

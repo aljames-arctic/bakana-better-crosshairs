@@ -28,8 +28,10 @@ export const DEFAULT_AUTOREC_ENTRY = {
     limitRange: true,
     borderColor: "#ffffff",
     borderAlpha: 0,
+    borderPlayerColor: false,
     fillColor: "#000000",
     fillAlpha: 0,
+    fillPlayerColor: false,
     circleFile: "eskie.crosshair.circle.fantasy_01.white",
     coneFile: "eskie.crosshair.cone.thin.fantasy_01.white",
     rayFile: "eskie.crosshair.ray.fantasy_01.white",
@@ -47,8 +49,10 @@ export const DEFAULT_AUTOREC_ENTRY = {
         });
     },
     placedFillAlpha: 0.5,
+    placedFillPlayerColor: false,
     placedBorderColor: "#ffffff",
     placedBorderAlpha: 0.25,
+    placedBorderPlayerColor: false,
     persist: false,
 
     enablePrePlacement: false,
@@ -259,13 +263,17 @@ export class AutorecManager {
 
         const borderColor = String(baseConfig.borderColor ?? previewBorder.color ?? DEFAULT_AUTOREC_ENTRY.borderColor).trim();
         const borderAlpha = Number(baseConfig.borderAlpha ?? previewBorder.alpha ?? DEFAULT_AUTOREC_ENTRY.borderAlpha);
+        const borderPlayerColor = Boolean(baseConfig.borderPlayerColor ?? previewBorder.playerColor ?? optionsRaw.borderPlayerColor ?? DEFAULT_AUTOREC_ENTRY.borderPlayerColor);
         const fillColor = String(baseConfig.fillColor ?? previewFill.color ?? DEFAULT_AUTOREC_ENTRY.fillColor).trim();
         const fillAlpha = Number(baseConfig.fillAlpha ?? previewFill.alpha ?? DEFAULT_AUTOREC_ENTRY.fillAlpha);
+        const fillPlayerColor = Boolean(baseConfig.fillPlayerColor ?? previewFill.playerColor ?? optionsRaw.fillPlayerColor ?? DEFAULT_AUTOREC_ENTRY.fillPlayerColor);
 
         const placedFillColor = String(baseConfig.placedFillColor ?? placedFill.color ?? DEFAULT_AUTOREC_ENTRY.placedFillColor).trim();
         const placedFillAlpha = Number(baseConfig.placedFillAlpha ?? placedFill.alpha ?? DEFAULT_AUTOREC_ENTRY.placedFillAlpha);
+        const placedFillPlayerColor = Boolean(baseConfig.placedFillPlayerColor ?? placedFill.playerColor ?? optionsRaw.placedFillPlayerColor ?? DEFAULT_AUTOREC_ENTRY.placedFillPlayerColor);
         const placedBorderColor = String(baseConfig.placedBorderColor ?? placedBorder.color ?? DEFAULT_AUTOREC_ENTRY.placedBorderColor).trim();
         const placedBorderAlpha = Number(baseConfig.placedBorderAlpha ?? placedBorder.alpha ?? DEFAULT_AUTOREC_ENTRY.placedBorderAlpha);
+        const placedBorderPlayerColor = Boolean(baseConfig.placedBorderPlayerColor ?? placedBorder.playerColor ?? optionsRaw.placedBorderPlayerColor ?? DEFAULT_AUTOREC_ENTRY.placedBorderPlayerColor);
         const persist = Boolean(baseConfig.persist ?? optionsRaw.persist ?? placedRaw.persist ?? DEFAULT_AUTOREC_ENTRY.persist);
 
         const concurrentCode = String(baseConfig.concurrentCode ?? macroRaw.pre ?? "").trim();
@@ -303,12 +311,16 @@ export class AutorecManager {
             limitRange,
             borderColor,
             borderAlpha,
+            borderPlayerColor,
             fillColor,
             fillAlpha,
+            fillPlayerColor,
             placedFillColor,
             placedFillAlpha,
+            placedFillPlayerColor,
             placedBorderColor,
             placedBorderAlpha,
+            placedBorderPlayerColor,
             persist,
             concurrentCode,
             postPlacementCode,
@@ -900,9 +912,13 @@ export class AutorecManager {
             const lineFile = config.lineFile ?? DEFAULT_AUTOREC_ENTRY.lineFile;
             const borderColor = config.borderColor ?? DEFAULT_AUTOREC_ENTRY.borderColor;
             const borderAlpha = config.borderAlpha ?? DEFAULT_AUTOREC_ENTRY.borderAlpha;
+            const borderPlayerColor = Boolean(config.borderPlayerColor);
             const fillColor = config.fillColor ?? DEFAULT_AUTOREC_ENTRY.fillColor;
             const fillAlpha = config.fillAlpha ?? DEFAULT_AUTOREC_ENTRY.fillAlpha;
-            const hasCustomStyling = Boolean(config.borderColor && config.borderColor !== DEFAULT_AUTOREC_ENTRY.borderColor)
+            const fillPlayerColor = Boolean(config.fillPlayerColor);
+            const hasCustomStyling = borderPlayerColor
+                || fillPlayerColor
+                || Boolean(config.borderColor && config.borderColor !== DEFAULT_AUTOREC_ENTRY.borderColor)
                 || (config.borderAlpha !== undefined && config.borderAlpha !== 0)
                 || Boolean(config.fillColor && config.fillColor !== DEFAULT_AUTOREC_ENTRY.fillColor)
                 || (config.fillAlpha !== undefined && config.fillAlpha !== 0);
@@ -910,10 +926,14 @@ export class AutorecManager {
             const defaultUserColor = getUserColor("#000000");
             const placedFillColor = config.placedFillColor ?? defaultUserColor;
             const placedFillAlpha = config.placedFillAlpha ?? 0.5;
+            const placedFillPlayerColor = Boolean(config.placedFillPlayerColor);
             const placedBorderColor = config.placedBorderColor ?? DEFAULT_AUTOREC_ENTRY.placedBorderColor;
             const placedBorderAlpha = config.placedBorderAlpha ?? DEFAULT_AUTOREC_ENTRY.placedBorderAlpha;
+            const placedBorderPlayerColor = Boolean(config.placedBorderPlayerColor);
             const persist = Boolean(config.persist ?? config.options?.persist ?? config.placed?.persist);
-            const hasPlacedStyling = Boolean(config.placedFillColor && config.placedFillColor !== defaultUserColor)
+            const hasPlacedStyling = placedFillPlayerColor
+                || placedBorderPlayerColor
+                || Boolean(config.placedFillColor && config.placedFillColor !== defaultUserColor)
                 || (config.placedFillAlpha !== undefined && config.placedFillAlpha !== 0.5)
                 || Boolean(config.placedBorderColor && config.placedBorderColor !== "#ffffff")
                 || (config.placedBorderAlpha !== undefined && config.placedBorderAlpha !== 0.25)
@@ -976,13 +996,17 @@ export class AutorecManager {
                 lineFile,
                 borderColor,
                 borderAlpha,
+                borderPlayerColor,
                 fillColor,
                 fillAlpha,
+                fillPlayerColor,
                 hasCustomStyling,
                 placedFillColor,
                 placedFillAlpha,
+                placedFillPlayerColor,
                 placedBorderColor,
                 placedBorderAlpha,
+                placedBorderPlayerColor,
                 persist,
                 hasPlacedStyling,
                 concurrentCode,

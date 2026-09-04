@@ -1,6 +1,7 @@
 import { MODULE_ID, BROADCAST_INTERVAL_MS } from "../lib/constants.js";
 import { closest } from "../lib/filemanager.js";
 import { log } from "../lib/logger.js";
+import { getUserColor } from "../lib/utils.js";
 import { crosshairAdapter, systemAdapter } from "../adapter/index.js";
 import { resolveCrosshairPlacement, attachWheelRotation, detachWheelRotation, shouldStickToToken, alignCrosshairAndEffects, getGridSnapMode, snapCoordinates, activePlacementTracker } from "./util.js";
 import { CrosshairController } from "./crosshairController.js";
@@ -65,9 +66,13 @@ export class BaseCrosshairShape {
         this.type = (rawType === "square") ? "rect" : rawType;
         this.stickToToken = shouldStickToToken(config, this.type);
         this.context = config.context ?? null;
-        this.borderColor = config.borderColor ?? "#ffffff";
+        this.borderColor = config.borderPlayerColor
+            ? getUserColor("#ffffff")
+            : (config.borderColor ?? "#ffffff");
         this.borderAlpha = config.borderAlpha ?? 0;
-        this.fillColor = config.fillColor ?? "#000000";
+        this.fillColor = config.fillPlayerColor
+            ? getUserColor("#000000")
+            : (config.fillColor ?? "#000000");
         this.fillAlpha = config.fillAlpha ?? 0;
         this.showLine = config.showLine !== false;
         this._rawLineFile = config.lineFile ?? "eskie.crosshair.line.generic_01.white";

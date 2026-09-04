@@ -264,3 +264,35 @@ test('broadcast property is preserved across exchange export and import package 
     autorecManager.unregister('Invisibility Sphere', { local: true });
 });
 
+test('playerColor properties are preserved across exchange export and import package validation', () => {
+    autorecManager.register('Player Aura', {
+        itemName: 'Player Aura',
+        fillPlayerColor: true,
+        borderPlayerColor: true,
+        placedFillPlayerColor: true,
+        placedBorderPlayerColor: true
+    }, { local: true });
+
+    const exported = autorecManager.exportAutorecs({ sourceModule: 'world' });
+    const aura = exported.entries.find(e => e.itemName === 'Player Aura');
+    assert.ok(aura);
+    assert.equal(aura.fillPlayerColor, true);
+    assert.equal(aura.borderPlayerColor, true);
+    assert.equal(aura.placedFillPlayerColor, true);
+    assert.equal(aura.placedBorderPlayerColor, true);
+    assert.equal(aura.preview.fill.playerColor, true);
+    assert.equal(aura.preview.border.playerColor, true);
+    assert.equal(aura.placed.fill.playerColor, true);
+    assert.equal(aura.placed.border.playerColor, true);
+
+    const validated = validateImportPackage(exported);
+    const validatedAura = validated.entries.find(e => e.itemName === 'Player Aura');
+    assert.ok(validatedAura);
+    assert.equal(validatedAura.fillPlayerColor, true);
+    assert.equal(validatedAura.borderPlayerColor, true);
+    assert.equal(validatedAura.placedFillPlayerColor, true);
+    assert.equal(validatedAura.placedBorderPlayerColor, true);
+
+    autorecManager.unregister('Player Aura', { local: true });
+});
+

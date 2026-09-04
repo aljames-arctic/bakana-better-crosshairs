@@ -49,18 +49,22 @@ export class CrosshairConfiguration {
         this.borderColor = String(source.borderColor ?? previewBorder.color ?? defaults.borderColor).trim();
         const borderAlphaVal = Number(source.borderAlpha ?? previewBorder.alpha ?? defaults.borderAlpha);
         this.borderAlpha = Number.isFinite(borderAlphaVal) ? borderAlphaVal : defaults.borderAlpha;
+        this.borderPlayerColor = Boolean(source.borderPlayerColor ?? previewBorder.playerColor ?? options.borderPlayerColor ?? false);
         this.fillColor = String(source.fillColor ?? previewFill.color ?? defaults.fillColor).trim();
         const fillAlphaVal = Number(source.fillAlpha ?? previewFill.alpha ?? defaults.fillAlpha);
         this.fillAlpha = Number.isFinite(fillAlphaVal) ? fillAlphaVal : defaults.fillAlpha;
+        this.fillPlayerColor = Boolean(source.fillPlayerColor ?? previewFill.playerColor ?? options.fillPlayerColor ?? false);
 
         // Placed document styling options
         const defaultColor = defaults.placedFillColor ?? getUserColor("#000000");
         this.placedFillColor = String(source.placedFillColor ?? placedFill.color ?? defaultColor).trim();
         const placedFillAlphaVal = Number(source.placedFillAlpha ?? placedFill.alpha ?? defaults.placedFillAlpha);
         this.placedFillAlpha = Number.isFinite(placedFillAlphaVal) ? placedFillAlphaVal : defaults.placedFillAlpha;
+        this.placedFillPlayerColor = Boolean(source.placedFillPlayerColor ?? placedFill.playerColor ?? options.placedFillPlayerColor ?? false);
         this.placedBorderColor = String(source.placedBorderColor ?? placedBorder.color ?? defaults.placedBorderColor).trim();
         const placedBorderAlphaVal = Number(source.placedBorderAlpha ?? placedBorder.alpha ?? defaults.placedBorderAlpha);
         this.placedBorderAlpha = Number.isFinite(placedBorderAlphaVal) ? placedBorderAlphaVal : defaults.placedBorderAlpha;
+        this.placedBorderPlayerColor = Boolean(source.placedBorderPlayerColor ?? placedBorder.playerColor ?? options.placedBorderPlayerColor ?? false);
         this.persist = Boolean(source.persist ?? options.persist ?? defaults.persist ?? false);
 
         // Custom script hooks
@@ -139,8 +143,12 @@ export class CrosshairConfiguration {
 
         const isPreOverride = hasGranularFlags ? Boolean(customSource.enablePrePlacement) : Boolean(customSource.concurrentCode);
         const isAnimOverride = hasGranularFlags ? Boolean(customSource.enableAnimation) : Boolean(customSource.enabled !== false);
-        const isPreviewOverride = hasGranularFlags ? Boolean(customSource.enablePreviewPlacement) : (Boolean(customSource.fillColor) || Boolean(customSource.borderColor));
-        const isPlacedOverride = hasGranularFlags ? Boolean(customSource.enablePlacedStyling) : (Boolean(customSource.placedFillColor) || Boolean(customSource.placedBorderColor));
+        const isPreviewOverride = hasGranularFlags
+            ? Boolean(customSource.enablePreviewPlacement)
+            : (Boolean(customSource.fillColor) || Boolean(customSource.borderColor) || Boolean(customSource.fillPlayerColor) || Boolean(customSource.borderPlayerColor));
+        const isPlacedOverride = hasGranularFlags
+            ? Boolean(customSource.enablePlacedStyling)
+            : (Boolean(customSource.placedFillColor) || Boolean(customSource.placedBorderColor) || Boolean(customSource.placedFillPlayerColor) || Boolean(customSource.placedBorderPlayerColor));
         const isPostOverride = hasGranularFlags ? Boolean(customSource.enablePostPlacement) : Boolean(customSource.postPlacementCode);
 
         if (!isPreOverride && !isAnimOverride && !isPreviewOverride && !isPlacedOverride && !isPostOverride && !hasExplicitEnabled && !hasExplicitBroadcast) {
@@ -182,6 +190,8 @@ export class CrosshairConfiguration {
 
         if (isPreviewOverride) {
             merged.enablePreviewPlacement = true;
+            merged.fillPlayerColor = Boolean(customSource.fillPlayerColor ?? this.fillPlayerColor);
+            merged.borderPlayerColor = Boolean(customSource.borderPlayerColor ?? this.borderPlayerColor);
             merged.borderColor = customSource.borderColor ?? this.borderColor;
             merged.borderAlpha = customSource.borderAlpha ?? this.borderAlpha;
             merged.fillColor = customSource.fillColor ?? this.fillColor;
@@ -190,6 +200,8 @@ export class CrosshairConfiguration {
 
         if (isPlacedOverride) {
             merged.enablePlacedStyling = true;
+            merged.placedFillPlayerColor = Boolean(customSource.placedFillPlayerColor ?? this.placedFillPlayerColor);
+            merged.placedBorderPlayerColor = Boolean(customSource.placedBorderPlayerColor ?? this.placedBorderPlayerColor);
             merged.persist = customSource.persist !== undefined ? Boolean(customSource.persist) : this.persist;
             merged.placedFillColor = customSource.placedFillColor ?? this.placedFillColor;
             merged.placedFillAlpha = customSource.placedFillAlpha ?? this.placedFillAlpha;
@@ -206,8 +218,8 @@ export class CrosshairConfiguration {
     }
 
     /**
-     * Convert this instance to a clean plain Object schema for serialization or UI preparation.
-     * @returns {Object} Plain object dictionary representing this configuration
+     * Convert this configuration into a pure JSON-safe serializable object.
+     * @returns {object} Pure plain object representation of the configuration.
      */
     toJSON() {
         return {
@@ -217,24 +229,29 @@ export class CrosshairConfiguration {
             isCustom: this.isCustom,
             enabled: this.enabled,
             broadcast: this.broadcast,
-            circleFile: this.circleFile,
-            coneFile: this.coneFile,
-            rayFile: this.rayFile,
-            rectangleFile: this.rectangleFile,
-            lineFile: this.lineFile,
+            sourceModule: this.sourceModule,
             stickToToken: this.stickToToken,
             showLine: this.showLine,
             showRange: this.showRange,
             showItemIcon: this.showItemIcon,
             limitRange: this.limitRange,
+            circleFile: this.circleFile,
+            coneFile: this.coneFile,
+            rayFile: this.rayFile,
+            rectangleFile: this.rectangleFile,
+            lineFile: this.lineFile,
             borderColor: this.borderColor,
             borderAlpha: this.borderAlpha,
+            borderPlayerColor: this.borderPlayerColor,
             fillColor: this.fillColor,
             fillAlpha: this.fillAlpha,
+            fillPlayerColor: this.fillPlayerColor,
             placedFillColor: this.placedFillColor,
             placedFillAlpha: this.placedFillAlpha,
+            placedFillPlayerColor: this.placedFillPlayerColor,
             placedBorderColor: this.placedBorderColor,
             placedBorderAlpha: this.placedBorderAlpha,
+            placedBorderPlayerColor: this.placedBorderPlayerColor,
             persist: this.persist,
             concurrentCode: this.concurrentCode,
             postPlacementCode: this.postPlacementCode,

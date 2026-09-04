@@ -612,6 +612,15 @@
     font-style: italic;
 }
 
+.bbc-pill.player-color {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
 .bbc-color-swatch {
     display: inline-block;
     width: 16px;
@@ -772,6 +781,30 @@
     color: #ffffff;
     background: rgba(51, 65, 85, 0.9);
     border-color: rgba(148, 163, 184, 0.45);
+}
+
+.bbc-player-color-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.76rem;
+    font-weight: 500;
+    color: #cbd5e1;
+    cursor: pointer;
+    white-space: nowrap;
+    margin-left: 4px;
+    flex-shrink: 0;
+}
+
+.bbc-player-color-checkbox-label input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+}
+
+.bbc-edit-color-row input:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 .bbc-sidebar-footer {

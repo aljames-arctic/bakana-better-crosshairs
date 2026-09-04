@@ -60,12 +60,20 @@ function inspectScopeCustomState(customConfig) {
             (customConfig.fillColor && customConfig.fillColor !== "#000000") ||
             (customConfig.borderColor && customConfig.borderColor !== "#ffffff") ||
             (customConfig.fillAlpha !== undefined && customConfig.fillAlpha !== 0) ||
-            (customConfig.borderAlpha !== undefined && customConfig.borderAlpha !== 0)
+            (customConfig.borderAlpha !== undefined && customConfig.borderAlpha !== 0) ||
+            customConfig.fillPlayerColor ||
+            customConfig.borderPlayerColor
         );
 
     const enablePlacedStyling = hasGranularFlags
         ? Boolean(customConfig.enablePlacedStyling)
-        : Boolean(customConfig.placedFillColor || customConfig.placedBorderColor || customConfig.persist);
+        : Boolean(
+            customConfig.placedFillColor ||
+            customConfig.placedBorderColor ||
+            customConfig.persist ||
+            customConfig.placedFillPlayerColor ||
+            customConfig.placedBorderPlayerColor
+        );
 
     const enablePostPlacement = hasGranularFlags
         ? Boolean(customConfig.enablePostPlacement)
@@ -274,13 +282,17 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             limitRange: Boolean(source.limitRange),
             borderColor: source.borderColor ?? "#ffffff",
             borderAlpha: source.borderAlpha ?? 0,
+            borderPlayerColor: Boolean(source.borderPlayerColor),
             fillColor: source.fillColor ?? "#000000",
             fillAlpha: source.fillAlpha ?? 0,
+            fillPlayerColor: Boolean(source.fillPlayerColor),
 
             placedFillColor: source.placedFillColor ?? getUserColor("#000000"),
             placedFillAlpha: source.placedFillAlpha ?? 0.5,
+            placedFillPlayerColor: Boolean(source.placedFillPlayerColor),
             placedBorderColor: source.placedBorderColor ?? "#ffffff",
             placedBorderAlpha: source.placedBorderAlpha ?? 0.25,
+            placedBorderPlayerColor: Boolean(source.placedBorderPlayerColor),
             persist: Boolean(source.persist),
 
             borderColorPicker: normalizeHexColor(source.borderColor, "#ffffff"),
@@ -292,12 +304,16 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             isStickOn: stickToTokenValue === "true",
             isStickOff: stickToTokenValue === "false",
             hasCustomStyling: Boolean(
+                source.borderPlayerColor ||
+                source.fillPlayerColor ||
                 (source.borderColor && source.borderColor !== "#ffffff") ||
                 (source.borderAlpha !== undefined && source.borderAlpha !== 0) ||
                 (source.fillColor && source.fillColor !== "#000000") ||
                 (source.fillAlpha !== undefined && source.fillAlpha !== 0)
             ),
             hasPlacedStyling: Boolean(
+                source.placedFillPlayerColor ||
+                source.placedBorderPlayerColor ||
                 (source.placedFillColor && source.placedFillColor !== getUserColor("#000000")) ||
                 (source.placedFillAlpha !== undefined && source.placedFillAlpha !== 0.5) ||
                 (source.placedBorderColor && source.placedBorderColor !== "#ffffff") ||
@@ -316,6 +332,7 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             deleteCustomBtn: localize("BBC.itemConfigMenu.deleteCustomBtn", "Delete Custom Override"),
             saveCustomBtn: localize("BBC.itemConfigMenu.saveCustomBtn", "Save"),
             editMode: localize("BBC.autorecMenu.labels.editMode", "Edit Mode"),
+            playerColor: localize("BBC.autorecMenu.labels.playerColor", "Player Color"),
 
             overridePrePlacement: localize("BBC.itemConfigMenu.overridePrePlacement", "Override Pre-Placement Script"),
             overrideAnimation: localize("BBC.itemConfigMenu.overrideAnimation", "Override Animation Configuration"),
@@ -542,12 +559,16 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             limitRange: formData.get("limitRange") === "on",
             borderColor: String(formData.get("borderColor") ?? "#ffffff").trim(),
             borderAlpha: parseFloat(String(formData.get("borderAlpha") ?? "0")),
+            borderPlayerColor: formData.get("borderPlayerColor") === "on",
             fillColor: String(formData.get("fillColor") ?? "#000000").trim(),
             fillAlpha: parseFloat(String(formData.get("fillAlpha") ?? "0")),
+            fillPlayerColor: formData.get("fillPlayerColor") === "on",
             placedFillColor: String(formData.get("placedFillColor") ?? "").trim(),
             placedFillAlpha: parseFloat(String(formData.get("placedFillAlpha") ?? "0.5")),
+            placedFillPlayerColor: formData.get("placedFillPlayerColor") === "on",
             placedBorderColor: String(formData.get("placedBorderColor") ?? "").trim(),
             placedBorderAlpha: parseFloat(String(formData.get("placedBorderAlpha") ?? "0.25")),
+            placedBorderPlayerColor: formData.get("placedBorderPlayerColor") === "on",
             persist: formData.get("persist") === "on",
             concurrentCode: String(formData.get("concurrentCode") ?? "").trim(),
             postPlacementCode: String(formData.get("postPlacementCode") ?? "").trim()

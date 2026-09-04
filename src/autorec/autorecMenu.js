@@ -65,6 +65,8 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
             placedFillColorPicker: normalizeHexColor(e.placedFillColor, defaultUserColor),
             placedBorderColorPicker: normalizeHexColor(e.placedBorderColor, "#000000"),
             hasPlacedStyling: Boolean(
+                e.placedFillPlayerColor ||
+                e.placedBorderPlayerColor ||
                 (e.placedFillColor && e.placedFillColor !== defaultUserColor) ||
                 (e.placedFillAlpha !== undefined && e.placedFillAlpha !== 0.5) ||
                 (e.placedBorderColor && e.placedBorderColor !== "#ffffff") ||
@@ -72,6 +74,8 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
                 Boolean(e.persist)
             ),
             hasCustomStyling: Boolean(
+                e.borderPlayerColor ||
+                e.fillPlayerColor ||
                 (e.borderColor && e.borderColor !== "#ffffff") ||
                 (e.borderAlpha !== undefined && e.borderAlpha !== 0) ||
                 (e.fillColor && e.fillColor !== "#000000") ||
@@ -133,6 +137,7 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
             placedFill: localize("BBC.autorecMenu.labels.placedFill", "Placed Fill Styling"),
             placedBorder: localize("BBC.autorecMenu.labels.placedBorder", "Placed Border Styling"),
             usePlayerColor: localize("BBC.autorecMenu.labels.usePlayerColor", "Player Color"),
+            playerColor: localize("BBC.autorecMenu.labels.playerColor", "Player Color"),
             persistEffect: localize("BBC.autorecMenu.labels.persistEffect", "Persistent Animation"),
             defaultPlacementNote: localize("BBC.autorecMenu.labels.defaultPlacementNote", "Using default Foundry / Game System placement colors (Enable Edit Mode to customize)."),
             postSectionDesc: localize("BBC.autorecMenu.labels.postSectionDesc", `Executes custom Javascript code after final ${docTerm} document creation.`),

@@ -103,3 +103,41 @@ test('CrosshairConfiguration handles broadcast flag in constructor, overrideWith
     assert.equal(reenabled.toJSON().broadcast, true);
 });
 
+test('CrosshairConfiguration handles player color flags in constructor, overrideWith, and toJSON', () => {
+    const defaultConf = new CrosshairConfiguration();
+    assert.equal(defaultConf.borderPlayerColor, false);
+    assert.equal(defaultConf.fillPlayerColor, false);
+    assert.equal(defaultConf.placedFillPlayerColor, false);
+    assert.equal(defaultConf.placedBorderPlayerColor, false);
+
+    const jsonDefault = defaultConf.toJSON();
+    assert.equal(jsonDefault.borderPlayerColor, false);
+    assert.equal(jsonDefault.fillPlayerColor, false);
+    assert.equal(jsonDefault.placedFillPlayerColor, false);
+    assert.equal(jsonDefault.placedBorderPlayerColor, false);
+
+    const base = CrosshairConfiguration.fromSource({
+        itemName: 'Dynamic Aura'
+    });
+
+    const overridden = base.overrideWith({
+        fillPlayerColor: true,
+        borderPlayerColor: true,
+        placedFillPlayerColor: true,
+        placedBorderPlayerColor: true
+    });
+
+    assert.equal(overridden.fillPlayerColor, true);
+    assert.equal(overridden.borderPlayerColor, true);
+    assert.equal(overridden.enablePreviewPlacement, true);
+    assert.equal(overridden.placedFillPlayerColor, true);
+    assert.equal(overridden.placedBorderPlayerColor, true);
+    assert.equal(overridden.enablePlacedStyling, true);
+
+    const jsonOverridden = overridden.toJSON();
+    assert.equal(jsonOverridden.fillPlayerColor, true);
+    assert.equal(jsonOverridden.borderPlayerColor, true);
+    assert.equal(jsonOverridden.placedFillPlayerColor, true);
+    assert.equal(jsonOverridden.placedBorderPlayerColor, true);
+});
+

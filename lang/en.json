@@ -152,6 +152,7 @@
                 "placedFill": "Placed Fill Styling",
                 "placedBorder": "Placed Border Styling",
                 "usePlayerColor": "Player Color",
+                "playerColor": "Player Color",
                 "persistEffect": "Persistent Animation",
                 "defaultPlacementNote": "Using default Foundry / Game System placement colors (Enable Edit Mode to customize).",
                 "postSectionDesc": "Executes custom Javascript code after final document creation.",

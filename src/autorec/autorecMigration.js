@@ -64,15 +64,19 @@ export function migrateV1ToV2Entry(legacyEntry) {
     const previewBorderObj = previewObj.border ?? {};
     const previewFillColor = String(previewFillObj.color ?? legacyEntry.fillColor ?? DEFAULT_AUTOREC_ENTRY.fillColor);
     const previewFillAlpha = Number(previewFillObj.alpha ?? legacyEntry.fillAlpha ?? DEFAULT_AUTOREC_ENTRY.fillAlpha);
+    const previewFillPlayerColor = Boolean(previewFillObj.playerColor ?? optionsObj.fillPlayerColor ?? legacyEntry.fillPlayerColor ?? false);
     const previewBorderColor = String(previewBorderObj.color ?? legacyEntry.borderColor ?? DEFAULT_AUTOREC_ENTRY.borderColor);
     const previewBorderAlpha = Number(previewBorderObj.alpha ?? legacyEntry.borderAlpha ?? DEFAULT_AUTOREC_ENTRY.borderAlpha);
+    const previewBorderPlayerColor = Boolean(previewBorderObj.playerColor ?? optionsObj.borderPlayerColor ?? legacyEntry.borderPlayerColor ?? false);
 
     const placedFillObj = placedObj.fill ?? {};
     const placedBorderObj = placedObj.border ?? {};
     const placedFillColor = String(placedFillObj.color ?? legacyEntry.placedFillColor ?? DEFAULT_AUTOREC_ENTRY.placedFillColor);
     const placedFillAlpha = Number(placedFillObj.alpha ?? legacyEntry.placedFillAlpha ?? DEFAULT_AUTOREC_ENTRY.placedFillAlpha);
+    const placedFillPlayerColor = Boolean(placedFillObj.playerColor ?? optionsObj.placedFillPlayerColor ?? legacyEntry.placedFillPlayerColor ?? false);
     const placedBorderColor = String(placedBorderObj.color ?? legacyEntry.placedBorderColor ?? DEFAULT_AUTOREC_ENTRY.placedBorderColor);
     const placedBorderAlpha = Number(placedBorderObj.alpha ?? legacyEntry.placedBorderAlpha ?? DEFAULT_AUTOREC_ENTRY.placedBorderAlpha);
+    const placedBorderPlayerColor = Boolean(placedBorderObj.playerColor ?? optionsObj.placedBorderPlayerColor ?? legacyEntry.placedBorderPlayerColor ?? false);
 
     // Macro macro.pre and macro.post
     const macroObj = legacyEntry.macro ?? {};
@@ -96,6 +100,10 @@ export function migrateV1ToV2Entry(legacyEntry) {
             enablePreviewPlacement,
             enablePlacedStyling,
             enablePostPlacement,
+            borderPlayerColor: previewBorderPlayerColor,
+            fillPlayerColor: previewFillPlayerColor,
+            placedFillPlayerColor,
+            placedBorderPlayerColor,
             persist
         },
         file: {
@@ -107,12 +115,12 @@ export function migrateV1ToV2Entry(legacyEntry) {
             line
         },
         preview: {
-            fill: { color: previewFillColor, alpha: previewFillAlpha },
-            border: { color: previewBorderColor, alpha: previewBorderAlpha }
+            fill: { color: previewFillColor, alpha: previewFillAlpha, playerColor: previewFillPlayerColor },
+            border: { color: previewBorderColor, alpha: previewBorderAlpha, playerColor: previewBorderPlayerColor }
         },
         placed: {
-            fill: { color: placedFillColor, alpha: placedFillAlpha },
-            border: { color: placedBorderColor, alpha: placedBorderAlpha },
+            fill: { color: placedFillColor, alpha: placedFillAlpha, playerColor: placedFillPlayerColor },
+            border: { color: placedBorderColor, alpha: placedBorderAlpha, playerColor: placedBorderPlayerColor },
             persist
         },
         macro: {
@@ -123,6 +131,10 @@ export function migrateV1ToV2Entry(legacyEntry) {
 
     migrated.persist = persist;
     migrated.showItemIcon = showItemIcon;
+    migrated.borderPlayerColor = previewBorderPlayerColor;
+    migrated.fillPlayerColor = previewFillPlayerColor;
+    migrated.placedFillPlayerColor = placedFillPlayerColor;
+    migrated.placedBorderPlayerColor = placedBorderPlayerColor;
     if (legacyEntry.distance !== undefined && legacyEntry.distance !== null) migrated.distance = Number(legacyEntry.distance);
     if (legacyEntry.width !== undefined && legacyEntry.width !== null) migrated.width = Number(legacyEntry.width);
     if (legacyEntry.angle !== undefined && legacyEntry.angle !== null) migrated.angle = Number(legacyEntry.angle);

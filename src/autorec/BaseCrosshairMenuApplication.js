@@ -140,26 +140,18 @@ export class BaseCrosshairMenuApplication extends HandlebarsApplicationMixin(App
             textInput.addEventListener("change", syncToPicker);
         });
 
-        // 4. Populate player color button click handler
-        root.querySelectorAll("[data-action='use-player-color']").forEach(btn => {
-            btn.addEventListener("click", (ev) => {
-                ev.preventDefault();
-                ev.stopPropagation();
-                const row = ev.currentTarget.closest(".bbc-edit-color-row");
-                const userColor = getUserColor("#000000");
-                const textInput = row?.querySelector("input[type='text']");
-                const colorPicker = row?.querySelector("input[type='color']");
-                if (textInput) {
-                    textInput.value = userColor;
-                    textInput.dispatchEvent(new Event("input", { bubbles: true }));
-                    textInput.dispatchEvent(new Event("change", { bubbles: true }));
-                }
-                if (colorPicker && colorPicker.value !== userColor) {
-                    colorPicker.value = userColor;
-                    colorPicker.dispatchEvent(new Event("input", { bubbles: true }));
-                    colorPicker.dispatchEvent(new Event("change", { bubbles: true }));
-                }
-            });
+        // 4. Player color checkbox toggling disables/enables adjacent color picker and text input
+        root.querySelectorAll(".bbc-player-color-checkbox").forEach(chk => {
+            const updateState = () => {
+                const row = chk.closest(".bbc-edit-color-row");
+                if (!row) return;
+                const isChecked = Boolean(chk.checked);
+                row.querySelectorAll("input[type='color'], input[type='text']").forEach(input => {
+                    input.disabled = isChecked;
+                });
+            };
+            chk.addEventListener("change", updateState);
+            updateState();
         });
 
         // 5. Expandable section accordions

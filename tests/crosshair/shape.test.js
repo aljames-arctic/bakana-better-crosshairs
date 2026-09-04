@@ -883,6 +883,45 @@ test('BaseCrosshairShape.move triggers refreshTemplateHighlights when direction 
     assert.ok(refreshCalledCount > initialRefreshCount, 'Direction change must trigger refreshTemplateHighlights even if position remains on same token edge');
 });
 
+test('BaseCrosshairShape dynamically resolves player color when fillPlayerColor or borderPlayerColor is true', () => {
+    const origColor = globalThis.game?.user?.color;
+    try {
+        if (!globalThis.game) globalThis.game = { user: {} };
+        if (!globalThis.game.user) globalThis.game.user = {};
+        globalThis.game.user.color = '#e91e63';
+
+        const mockPlaceable = {
+            x: 0,
+            y: 0,
+            direction: 0,
+            document: { x: 0, y: 0, direction: 0 }
+        };
+
+        const shapeStatic = new CircleCrosshairShape(mockPlaceable, {
+            fillColor: '#123456',
+            borderColor: '#654321',
+            fillPlayerColor: false,
+            borderPlayerColor: false
+        });
+        assert.equal(shapeStatic.fillColor, '#123456');
+        assert.equal(shapeStatic.borderColor, '#654321');
+
+        const shapeDynamic = new CircleCrosshairShape(mockPlaceable, {
+            fillColor: '#123456',
+            borderColor: '#654321',
+            fillPlayerColor: true,
+            borderPlayerColor: true
+        });
+        assert.equal(shapeDynamic.fillColor, '#e91e63');
+        assert.equal(shapeDynamic.borderColor, '#e91e63');
+    } finally {
+        if (globalThis.game?.user) {
+            if (origColor !== undefined) globalThis.game.user.color = origColor;
+            else delete globalThis.game.user.color;
+        }
+    }
+});
+
 
 
 

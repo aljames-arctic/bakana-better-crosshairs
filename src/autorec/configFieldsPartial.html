@@ -195,16 +195,22 @@
                     <th>{{labels.previewFill}}</th>
                     <td>
                         <span class="view-only">
+                            {{#if fillPlayerColor}}
+                            <span class="bbc-pill player-color"><i class="fa-solid fa-palette"></i> {{labels.playerColor}}</span>
+                            {{else}}
                             <span class="bbc-color-swatch" data-color="{{fillColor}}"></span>
-                            <code>{{fillColor}}</code> ({{labels.alphaLabel}} {{fillAlpha}})
+                            <code>{{fillColor}}</code>
+                            {{/if}}
+                            ({{labels.alphaLabel}} {{fillAlpha}})
                         </span>
                         <div class="bbc-edit-color-row edit-only">
-                            <input type="color" class="bbc-edit-color" data-color-target="bbc-item-fillcolor" data-field="fillColor" value="{{fillColorPicker}}" />
-                            <input type="text" id="bbc-item-fillcolor" class="bbc-edit-input" name="fillColor" data-field="fillColor" value="{{fillColor}}" placeholder="#000000" />
+                            <input type="color" class="bbc-edit-color" data-color-target="bbc-item-fillcolor" data-field="fillColor" value="{{fillColorPicker}}" {{#if fillPlayerColor}}disabled{{/if}} />
+                            <input type="text" id="bbc-item-fillcolor" class="bbc-edit-input" name="fillColor" data-field="fillColor" value="{{fillColor}}" placeholder="#000000" {{#if fillPlayerColor}}disabled{{/if}} />
                             <label>{{labels.alphaLabel}} <input type="number" step="0.05" min="0" max="1" class="bbc-edit-input small" name="fillAlpha" data-field="fillAlpha" value="{{fillAlpha}}" /></label>
-                            <button type="button" class="bbc-player-color-btn" data-action="use-player-color" title="{{labels.usePlayerColor}}">
-                                <i class="fa-solid fa-palette"></i> {{labels.usePlayerColor}}
-                            </button>
+                            <label class="bbc-player-color-checkbox-label">
+                                <input type="checkbox" class="bbc-player-color-checkbox" name="fillPlayerColor" data-field="fillPlayerColor" {{#if fillPlayerColor}}checked{{/if}} />
+                                <span>{{labels.playerColor}}</span>
+                            </label>
                         </div>
                     </td>
                 </tr>
@@ -212,16 +218,22 @@
                     <th>{{labels.previewBorder}}</th>
                     <td>
                         <span class="view-only">
+                            {{#if borderPlayerColor}}
+                            <span class="bbc-pill player-color"><i class="fa-solid fa-palette"></i> {{labels.playerColor}}</span>
+                            {{else}}
                             <span class="bbc-color-swatch" data-color="{{borderColor}}"></span>
-                            <code>{{borderColor}}</code> ({{labels.alphaLabel}} {{borderAlpha}})
+                            <code>{{borderColor}}</code>
+                            {{/if}}
+                            ({{labels.alphaLabel}} {{borderAlpha}})
                         </span>
                         <div class="bbc-edit-color-row edit-only">
-                            <input type="color" class="bbc-edit-color" data-color-target="bbc-item-bordercolor" data-field="borderColor" value="{{borderColorPicker}}" />
-                            <input type="text" id="bbc-item-bordercolor" class="bbc-edit-input" name="borderColor" data-field="borderColor" value="{{borderColor}}" placeholder="#ffffff" />
+                            <input type="color" class="bbc-edit-color" data-color-target="bbc-item-bordercolor" data-field="borderColor" value="{{borderColorPicker}}" {{#if borderPlayerColor}}disabled{{/if}} />
+                            <input type="text" id="bbc-item-bordercolor" class="bbc-edit-input" name="borderColor" data-field="borderColor" value="{{borderColor}}" placeholder="#ffffff" {{#if borderPlayerColor}}disabled{{/if}} />
                             <label>{{labels.alphaLabel}} <input type="number" step="0.05" min="0" max="1" class="bbc-edit-input small" name="borderAlpha" data-field="borderAlpha" value="{{borderAlpha}}" /></label>
-                            <button type="button" class="bbc-player-color-btn" data-action="use-player-color" title="{{labels.usePlayerColor}}">
-                                <i class="fa-solid fa-palette"></i> {{labels.usePlayerColor}}
-                            </button>
+                            <label class="bbc-player-color-checkbox-label">
+                                <input type="checkbox" class="bbc-player-color-checkbox" name="borderPlayerColor" data-field="borderPlayerColor" {{#if borderPlayerColor}}checked{{/if}} />
+                                <span>{{labels.playerColor}}</span>
+                            </label>
                         </div>
                     </td>
                 </tr>
@@ -289,16 +301,22 @@
                     <th>{{labels.placedFill}}</th>
                     <td>
                         <span class="view-only">
+                            {{#if placedFillPlayerColor}}
+                            <span class="bbc-pill player-color"><i class="fa-solid fa-palette"></i> {{labels.playerColor}}</span>
+                            {{else}}
                             <span class="bbc-color-swatch" data-color="{{placedFillColor}}"></span>
-                            <code>{{placedFillColor}}</code> ({{labels.alphaLabel}} {{placedFillAlpha}})
+                            <code>{{placedFillColor}}</code>
+                            {{/if}}
+                            ({{labels.alphaLabel}} {{placedFillAlpha}})
                         </span>
                         <div class="bbc-edit-color-row edit-only">
-                            <input type="color" class="bbc-edit-color" data-color-target="bbc-item-placedfill" data-field="placedFillColor" value="{{placedFillColorPicker}}" />
-                            <input type="text" id="bbc-item-placedfill" class="bbc-edit-input" name="placedFillColor" data-field="placedFillColor" value="{{placedFillColor}}" placeholder="#000000" />
+                            <input type="color" class="bbc-edit-color" data-color-target="bbc-item-placedfill" data-field="placedFillColor" value="{{placedFillColorPicker}}" {{#if placedFillPlayerColor}}disabled{{/if}} />
+                            <input type="text" id="bbc-item-placedfill" class="bbc-edit-input" name="placedFillColor" data-field="placedFillColor" value="{{placedFillColor}}" placeholder="#000000" {{#if placedFillPlayerColor}}disabled{{/if}} />
                             <label>{{labels.alphaLabel}} <input type="number" step="0.05" min="0" max="1" class="bbc-edit-input small" name="placedFillAlpha" data-field="placedFillAlpha" value="{{placedFillAlpha}}" /></label>
-                            <button type="button" class="bbc-player-color-btn" data-action="use-player-color" title="{{labels.usePlayerColor}}">
-                                <i class="fa-solid fa-palette"></i> {{labels.usePlayerColor}}
-                            </button>
+                            <label class="bbc-player-color-checkbox-label">
+                                <input type="checkbox" class="bbc-player-color-checkbox" name="placedFillPlayerColor" data-field="placedFillPlayerColor" {{#if placedFillPlayerColor}}checked{{/if}} />
+                                <span>{{labels.playerColor}}</span>
+                            </label>
                         </div>
                     </td>
                 </tr>
@@ -306,16 +324,22 @@
                     <th>{{labels.placedBorder}}</th>
                     <td>
                         <span class="view-only">
+                            {{#if placedBorderPlayerColor}}
+                            <span class="bbc-pill player-color"><i class="fa-solid fa-palette"></i> {{labels.playerColor}}</span>
+                            {{else}}
                             <span class="bbc-color-swatch" data-color="{{placedBorderColor}}"></span>
-                            <code>{{placedBorderColor}}</code> ({{labels.alphaLabel}} {{placedBorderAlpha}})
+                            <code>{{placedBorderColor}}</code>
+                            {{/if}}
+                            ({{labels.alphaLabel}} {{placedBorderAlpha}})
                         </span>
                         <div class="bbc-edit-color-row edit-only">
-                            <input type="color" class="bbc-edit-color" data-color-target="bbc-item-placedborder" data-field="placedBorderColor" value="{{placedBorderColorPicker}}" />
-                            <input type="text" id="bbc-item-placedborder" class="bbc-edit-input" name="placedBorderColor" data-field="placedBorderColor" value="{{placedBorderColor}}" placeholder="#ffffff" />
+                            <input type="color" class="bbc-edit-color" data-color-target="bbc-item-placedborder" data-field="placedBorderColor" value="{{placedBorderColorPicker}}" {{#if placedBorderPlayerColor}}disabled{{/if}} />
+                            <input type="text" id="bbc-item-placedborder" class="bbc-edit-input" name="placedBorderColor" data-field="placedBorderColor" value="{{placedBorderColor}}" placeholder="#ffffff" {{#if placedBorderPlayerColor}}disabled{{/if}} />
                             <label>{{labels.alphaLabel}} <input type="number" step="0.05" min="0" max="1" class="bbc-edit-input small" name="placedBorderAlpha" data-field="placedBorderAlpha" value="{{placedBorderAlpha}}" /></label>
-                            <button type="button" class="bbc-player-color-btn" data-action="use-player-color" title="{{labels.usePlayerColor}}">
-                                <i class="fa-solid fa-palette"></i> {{labels.usePlayerColor}}
-                            </button>
+                            <label class="bbc-player-color-checkbox-label">
+                                <input type="checkbox" class="bbc-player-color-checkbox" name="placedBorderPlayerColor" data-field="placedBorderPlayerColor" {{#if placedBorderPlayerColor}}checked{{/if}} />
+                                <span>{{labels.playerColor}}</span>
+                            </label>
                         </div>
                     </td>
                 </tr>

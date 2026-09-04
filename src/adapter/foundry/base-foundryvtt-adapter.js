@@ -1005,13 +1005,17 @@ export class BaseFoundryVTTAdapter {
     extractPlacedStylingFlags(config = {}) {
         const userColor = getUserColor("#000000");
         const hasExplicitDisable = config.enablePlacedStyling === false;
-        const placedFillColor = (!hasExplicitDisable && config.placedFillColor !== undefined && config.placedFillColor !== null)
+        const placedFillPlayerColor = Boolean(config.placedFillPlayerColor);
+        const placedBorderPlayerColor = Boolean(config.placedBorderPlayerColor);
+        const placedFillColor = (!hasExplicitDisable && !placedFillPlayerColor && config.placedFillColor !== undefined && config.placedFillColor !== null)
             ? config.placedFillColor
             : userColor;
         const placedFillAlpha = (!hasExplicitDisable && config.placedFillAlpha !== undefined && config.placedFillAlpha !== null)
             ? config.placedFillAlpha
             : 0.5;
-        const placedBorderColor = config.placedBorderColor ?? "#ffffff";
+        const placedBorderColor = placedBorderPlayerColor
+            ? userColor
+            : (config.placedBorderColor ?? "#ffffff");
         const placedBorderAlpha = (config.placedBorderAlpha !== undefined && config.placedBorderAlpha !== null)
             ? config.placedBorderAlpha
             : 0.25;
@@ -1027,6 +1031,8 @@ export class BaseFoundryVTTAdapter {
                 placedFillAlpha,
                 placedBorderColor,
                 placedBorderAlpha,
+                placedFillPlayerColor,
+                placedBorderPlayerColor,
                 persist: Boolean(config.persist),
                 circleFile: config.circleFile,
                 coneFile: config.coneFile,

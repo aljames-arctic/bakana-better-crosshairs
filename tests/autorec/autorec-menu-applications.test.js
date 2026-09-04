@@ -45,35 +45,31 @@ test("BaseCrosshairMenuApplication & normalizeHexColor utility", async (t) => {
         assert.ok(typeof titles.postPlacementTitle === "string");
     });
 
-    await t.test("BaseCrosshairMenuApplication._onRender wires 'use-player-color' button to populate text and color inputs", () => {
+    await t.test("BaseCrosshairMenuApplication._onRender wires .bbc-player-color-checkbox to toggle disabled on adjacent color and text inputs", () => {
         const app = new BaseCrosshairMenuApplication();
-        const originalUserColor = game.user.color;
-        game.user.color = "#4a90e2";
 
-        const textEvents = [];
         const mockTextInput = {
-            value: "#000000",
-            dispatchEvent(ev) { textEvents.push(ev.type); }
+            disabled: false
         };
 
-        const colorEvents = [];
         const mockColorPicker = {
-            value: "#000000",
-            dispatchEvent(ev) { colorEvents.push(ev.type); }
+            disabled: false
         };
 
         const mockRow = {
-            querySelector(selector) {
-                if (selector === "input[type='text']") return mockTextInput;
-                if (selector === "input[type='color']") return mockColorPicker;
-                return null;
+            querySelectorAll(selector) {
+                if (selector === "input[type='color'], input[type='text']") {
+                    return [mockColorPicker, mockTextInput];
+                }
+                return [];
             }
         };
 
-        let clickHandler;
-        const mockBtn = {
+        let changeHandler;
+        const mockCheckbox = {
+            checked: true,
             addEventListener(event, fn) {
-                if (event === "click") clickHandler = fn;
+                if (event === "change") changeHandler = fn;
             },
             closest(selector) {
                 if (selector === ".bbc-edit-color-row") return mockRow;
@@ -84,7 +80,7 @@ test("BaseCrosshairMenuApplication & normalizeHexColor utility", async (t) => {
         const mockRoot = {
             nodeType: 1,
             querySelectorAll(selector) {
-                if (selector === "[data-action='use-player-color']") return [mockBtn];
+                if (selector === ".bbc-player-color-checkbox") return [mockCheckbox];
                 return [];
             },
             querySelector() { return null; }
@@ -93,28 +89,16 @@ test("BaseCrosshairMenuApplication & normalizeHexColor utility", async (t) => {
         app.element = mockRoot;
         app._onRender({}, {});
 
-        assert.ok(clickHandler, "Click handler should be registered");
+        assert.ok(changeHandler, "Change handler should be registered");
+        // On initial render, updateState should have disabled inputs because checkbox is checked
+        assert.equal(mockTextInput.disabled, true);
+        assert.equal(mockColorPicker.disabled, true);
 
-        let defaultPrevented = false;
-        let propagationStopped = false;
-        clickHandler({
-            currentTarget: mockBtn,
-            preventDefault() { defaultPrevented = true; },
-            stopPropagation() { propagationStopped = true; }
-        });
-
-        assert.equal(defaultPrevented, true);
-        assert.equal(propagationStopped, true);
-        assert.equal(mockTextInput.value, "#4a90e2");
-        assert.equal(mockColorPicker.value, "#4a90e2");
-        assert.deepEqual(textEvents, ["input", "change"]);
-        assert.deepEqual(colorEvents, ["input", "change"]);
-
-        if (originalUserColor !== undefined) {
-            game.user.color = originalUserColor;
-        } else {
-            delete game.user.color;
-        }
+        // When unchecked and change event fires, inputs should be re-enabled
+        mockCheckbox.checked = false;
+        changeHandler();
+        assert.equal(mockTextInput.disabled, false);
+        assert.equal(mockColorPicker.disabled, false);
     });
 });
 
@@ -196,6 +180,27 @@ test("AutorecMenuApplication lifecycle and context preparation", async (t) => {
         assert.equal(silentEntry.broadcast, false);
 
         autorecManager.unregister("Silent Spell", { local: true });
+    });
+
+    await t.test("_prepareContext includes playerColor flags and marks hasCustomStyling/hasPlacedStyling", async () => {
+        autorecManager.register("Player Color Spell", {
+            itemName: "Player Color Spell",
+            fillPlayerColor: true,
+            placedBorderPlayerColor: true
+        }, { local: true });
+
+        const app = new AutorecMenuApplication();
+        const context = await app._prepareContext({});
+        const entry = context.entries.find(e => e.itemName === "Player Color Spell");
+        assert.ok(entry);
+        assert.equal(entry.fillPlayerColor, true);
+        assert.equal(entry.borderPlayerColor, false);
+        assert.equal(entry.placedBorderPlayerColor, true);
+        assert.equal(entry.placedFillPlayerColor, false);
+        assert.equal(entry.hasCustomStyling, true);
+        assert.equal(entry.hasPlacedStyling, true);
+
+        autorecManager.unregister("Player Color Spell", { local: true });
     });
 });
 
@@ -415,6 +420,58 @@ test("ItemCrosshairConfigApplication lifecycle and item normalization", async (t
             assert.equal(flags.customConfig.fillAlpha, 0.45);
             assert.equal(flags.customConfig.borderColor, "#445566");
             assert.equal(flags.customConfig.borderAlpha, 0.85);
+        } finally {
+            globalThis.FormData = originalFormData;
+        }
+    });
+
+    await t.test("_saveConfiguration persists player color flags", async () => {
+        const flags = {};
+        const mockItem = {
+            id: "dynamic-color-item",
+            name: "Dynamic Color Spell",
+            getFlag: (scope, key) => flags[key] ?? null,
+            setFlag: async (scope, key, val) => { flags[key] = val; },
+            unsetFlag: async (scope, key) => { delete flags[key]; }
+        };
+
+        const app = new ItemCrosshairConfigApplication({ item: mockItem });
+
+        const formDataMap = new Map([
+            ["enabled", "on"],
+            ["broadcast", "on"],
+            ["enablePreviewPlacement", "on"],
+            ["enablePlacedStyling", "on"],
+            ["fillPlayerColor", "on"],
+            ["borderPlayerColor", "on"],
+            ["placedFillPlayerColor", "on"],
+            ["placedBorderPlayerColor", "on"]
+        ]);
+
+        const mockForm = {
+            tagName: "FORM",
+            nodeType: 1
+        };
+
+        const originalFormData = globalThis.FormData;
+        globalThis.FormData = class MockFormData {
+            constructor(form) {
+                this._map = formDataMap;
+            }
+            get(key) {
+                return this._map.get(key) ?? null;
+            }
+        };
+
+        try {
+            await app._saveConfiguration(mockForm);
+            assert.ok(flags.customConfig);
+            assert.equal(flags.customConfig.enablePreviewPlacement, true);
+            assert.equal(flags.customConfig.enablePlacedStyling, true);
+            assert.equal(flags.customConfig.fillPlayerColor, true);
+            assert.equal(flags.customConfig.borderPlayerColor, true);
+            assert.equal(flags.customConfig.placedFillPlayerColor, true);
+            assert.equal(flags.customConfig.placedBorderPlayerColor, true);
         } finally {
             globalThis.FormData = originalFormData;
         }

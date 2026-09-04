@@ -38,9 +38,13 @@ export class PixiGraphicsStyler {
         const docBorderColor = "borderColor" in doc ? doc.borderColor : undefined;
         const docBorderAlpha = "borderAlpha" in doc ? doc.borderAlpha : undefined;
 
-        const placedBorderColor = docBorderColor ?? bbcFlags.placedBorderColor ?? "#ffffff";
+        const placedBorderColor = bbcFlags.placedBorderPlayerColor
+            ? getUserColor("#ffffff")
+            : (docBorderColor ?? bbcFlags.placedBorderColor ?? "#ffffff");
         const placedBorderAlpha = docBorderAlpha ?? bbcFlags.placedBorderAlpha ?? 0.25;
-        const placedFillColor = docFillColor ?? bbcFlags.placedFillColor ?? getUserColor("#000000");
+        const placedFillColor = bbcFlags.placedFillPlayerColor
+            ? getUserColor("#000000")
+            : (docFillColor ?? bbcFlags.placedFillColor ?? getUserColor("#000000"));
         const placedFillAlpha = docFillAlpha ?? bbcFlags.placedFillAlpha ?? 0.5;
 
         const borderNum = this.toColorNumber(placedBorderColor);

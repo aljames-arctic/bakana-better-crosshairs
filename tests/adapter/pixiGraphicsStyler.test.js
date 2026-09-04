@@ -120,3 +120,49 @@ test('PixiGraphicsStyler.applyPlacedStyling applies 50% opacity and user color t
     }
 });
 
+test('PixiGraphicsStyler.applyPlacedStyling dynamically resolves player color when placedFillPlayerColor or placedBorderPlayerColor is true', () => {
+    const origColor = globalThis.game?.user?.color;
+    try {
+        if (!globalThis.game) globalThis.game = { user: {} };
+        if (!globalThis.game.user) globalThis.game.user = {};
+        globalThis.game.user.color = '#ffaa00';
+
+        const mockGraphic = {
+            geometry: {
+                graphicsData: [
+                    { lineStyle: { width: 2, color: 0x000000, alpha: 1 }, fillStyle: { alpha: 0.5, color: 0x000000 } }
+                ],
+                invalidate: () => {}
+            }
+        };
+
+        const mockPlaceable = {
+            document: {
+                fillColor: '#123456',
+                borderColor: '#654321',
+                flags: {
+                    bbc: {
+                        placedBorderColor: '#00ff00',
+                        placedFillColor: '#0000ff',
+                        placedBorderPlayerColor: true,
+                        placedFillPlayerColor: true
+                    }
+                }
+            },
+            template: mockGraphic
+        };
+
+        PixiGraphicsStyler.applyPlacedStyling(mockPlaceable, false);
+
+        const gd = mockGraphic.geometry.graphicsData[0];
+        assert.equal(gd.lineStyle.color, 0xffaa00);
+        assert.equal(gd.fillStyle.color, 0xffaa00);
+    } finally {
+        if (globalThis.game?.user) {
+            if (origColor !== undefined) globalThis.game.user.color = origColor;
+            else delete globalThis.game.user.color;
+        }
+    }
+});
+
+
