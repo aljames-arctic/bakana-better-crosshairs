@@ -107,9 +107,7 @@ export class CrosshairRotationListener {
      * @returns {void}
      */
     refreshAllActiveHighlights(currentDirection, rad, crosshair, event = null) {
-        if (crosshair?.shapeInstance && typeof crosshair.shapeInstance._updateRangeText === "function") {
-            crosshair.shapeInstance._updateRangeText();
-        }
+        crosshair?.shapeInstance?._updateRangeText?.();
         const previewLists = [
             crosshairAdapter.templates?.preview?.children,
             crosshairAdapter.templates?.placeables,
@@ -119,11 +117,10 @@ export class CrosshairRotationListener {
             activePlacementTracker.placeable ? [activePlacementTracker.placeable] : null
         ];
         for (const list of previewLists) {
-            if (Array.isArray(list)) {
-                for (const p of list) {
-                    if (p && (crosshairAdapter.isPreview(p) || p === crosshair?.template || p === activePlacementTracker.placeable)) {
-                        this.refreshTemplateHighlights(p, currentDirection, rad, event);
-                    }
+            if (!list) continue;
+            for (const p of list) {
+                if (p && (crosshairAdapter.isPreview(p) || p === crosshair?.template || p === activePlacementTracker.placeable)) {
+                    this.refreshTemplateHighlights(p, currentDirection, rad, event);
                 }
             }
         }
@@ -181,9 +178,7 @@ export class CrosshairRotationListener {
         }
 
         if (!isRayOrCone && !isAttached) {
-            if (typeof crosshair.refresh === "function") {
-                crosshair.refresh();
-            }
+            crosshair.refresh?.();
         }
     }
 
@@ -192,16 +187,16 @@ export class CrosshairRotationListener {
      * @returns {void}
      */
     detach() {
-        if (this.pendingPointerRaf !== null && typeof cancelAnimationFrame === "function") {
+        if (this.pendingPointerRaf !== null) {
             cancelAnimationFrame(this.pendingPointerRaf);
             this.pendingPointerRaf = null;
         }
-        if (this.activeWheelHandler && typeof window?.removeEventListener === "function") {
-            window.removeEventListener("wheel", this.activeWheelHandler, { capture: true });
+        if (this.activeWheelHandler) {
+            window?.removeEventListener?.("wheel", this.activeWheelHandler, { capture: true });
             this.activeWheelHandler = null;
         }
-        if (this.activePointerHandler && typeof window?.removeEventListener === "function") {
-            window.removeEventListener("pointermove", this.activePointerHandler, { capture: true });
+        if (this.activePointerHandler) {
+            window?.removeEventListener?.("pointermove", this.activePointerHandler, { capture: true });
             this.activePointerHandler = null;
         }
         log.debug("CrosshairRotationListener.detach | Mousewheel & pointermove listeners removed.");
@@ -216,7 +211,7 @@ export class CrosshairRotationListener {
     attach(shape, config = {}) {
         this.detach();
 
-        const isShapeInstance = shape && typeof shape.rotate === "function" && typeof shape.move === "function";
+        const isShapeInstance = Boolean(shape?.rotate && shape?.move);
         const crosshair = isShapeInstance ? shape.sequencerCrosshair : shape;
 
         const shapeType = config.type ?? config.t ?? shape?.type ?? "circle";
@@ -228,9 +223,9 @@ export class CrosshairRotationListener {
             this.activeWheelHandler = (event) => {
                 const requiresCtrl = systemAdapter.requiresWheelModifier();
                 if (requiresCtrl && !event.ctrlKey && !event.metaKey) return;
-                if (typeof event.preventDefault === "function") event.preventDefault();
-                if (typeof event.stopImmediatePropagation === "function") event.stopImmediatePropagation();
-                if (typeof event.stopPropagation === "function") event.stopPropagation();
+                event.preventDefault?.();
+                event.stopImmediatePropagation?.();
+                event.stopPropagation?.();
 
                 const step = event.shiftKey ? 1 : 5;
                 const delta = event.deltaY < 0 ? -step : step;
@@ -244,16 +239,14 @@ export class CrosshairRotationListener {
                     this.refreshAllActiveHighlights(config.currentDirection, rad, crosshair, event);
                 }
             };
-            if (typeof window?.addEventListener === "function") {
-                window.addEventListener("wheel", this.activeWheelHandler, { capture: true, passive: false });
-            }
+            window?.addEventListener?.("wheel", this.activeWheelHandler, { capture: true, passive: false });
         } else {
             log.debug("CrosshairRotationListener.attach | Crosshair is attached to token or non-rotatable. Disabling mouse wheel rotation.");
         }
 
         this.activePointerHandler = (event) => {
             if (this.pendingPointerRaf !== null) return;
-            const scheduleFrame = typeof requestAnimationFrame === "function" ? requestAnimationFrame : (fn) => { fn(); return null; };
+            const scheduleFrame = window?.requestAnimationFrame ?? ((fn) => { fn(); return null; });
             this.pendingPointerRaf = scheduleFrame(() => {
                 this.pendingPointerRaf = null;
                 let pt = crosshairAdapter.mousePosition;
@@ -283,9 +276,7 @@ export class CrosshairRotationListener {
             });
         };
 
-        if (typeof window?.addEventListener === "function") {
-            window.addEventListener("pointermove", this.activePointerHandler, { capture: true, passive: true });
-        }
+        window?.addEventListener?.("pointermove", this.activePointerHandler, { capture: true, passive: true });
     }
 }
 

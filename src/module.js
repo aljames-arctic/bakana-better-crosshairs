@@ -99,9 +99,7 @@ Hooks.once('init', () => {
  * @returns {void}
  */
 Hooks.once('i18nInit', () => {
-    if (typeof systemAdapter?.refreshLocalizedDefaults === 'function') {
-        systemAdapter.refreshLocalizedDefaults('i18nInit');
-    }
+    systemAdapter.refreshLocalizedDefaults('i18nInit');
 });
 
 /**
@@ -110,9 +108,7 @@ Hooks.once('i18nInit', () => {
  * @returns {void}
  */
 Hooks.once('ready', () => {
-    if (typeof systemAdapter?.refreshLocalizedDefaults === 'function') {
-        systemAdapter.refreshLocalizedDefaults('ready');
-    }
+    systemAdapter.refreshLocalizedDefaults('ready');
     autorecManager.initializeReadySync();
     socketlib.on(handleSocketMessage);
     Hooks.on('canvasReady', () => {

@@ -6,6 +6,12 @@
 globalThis.Token = class Token {};
 globalThis.Item = class Item {};
 globalThis.Actor = class Actor {};
+globalThis.window = {
+    addEventListener() {},
+    removeEventListener() {},
+    requestAnimationFrame(fn) { fn(); return null; },
+    cancelAnimationFrame() {}
+};
 
 function getProperty(obj, path) {
     if (!obj || !path) return undefined;

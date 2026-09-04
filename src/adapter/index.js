@@ -71,10 +71,10 @@ export function initializeHooks(options = {}) {
 
     registerPlacementHooks({}, options);
 
-    if (typeof game !== "undefined" && game.ready) {
+    if (game?.ready) {
         autorecManager.initializeReadySync();
-    } else if (typeof Hooks !== "undefined" && typeof Hooks.once === "function") {
-        Hooks.once("ready", () => autorecManager.initializeReadySync());
+    } else {
+        Hooks?.once?.("ready", () => autorecManager.initializeReadySync());
     }
 }
 

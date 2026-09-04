@@ -19,7 +19,7 @@ export class CanvasV14Adapter extends BaseCanvasAdapter {
      * @returns {void}
      */
     addHighlightLayer(id) {
-        if (!id || typeof id !== "string") {
+        if (!id) {
             log.debug("CanvasV14Adapter.addHighlightLayer | Called with invalid or empty identifier.");
             return;
         }
@@ -40,7 +40,7 @@ export class CanvasV14Adapter extends BaseCanvasAdapter {
      * @returns {Object|null}
      */
     getHighlightLayer(id) {
-        if (!id || typeof id !== "string") {
+        if (!id) {
             log.debug("CanvasV14Adapter.getHighlightLayer | Called with invalid or empty identifier.");
             return null;
         }
@@ -61,7 +61,7 @@ export class CanvasV14Adapter extends BaseCanvasAdapter {
      * @returns {void}
      */
     clearHighlightLayer(id) {
-        if (!id || typeof id !== "string") {
+        if (!id) {
             log.debug("CanvasV14Adapter.clearHighlightLayer | Called with invalid or empty identifier.");
             return;
         }
@@ -82,7 +82,7 @@ export class CanvasV14Adapter extends BaseCanvasAdapter {
      * @returns {void}
      */
     destroyHighlightLayer(id) {
-        if (!id || typeof id !== "string") return;
+        if (!id) return;
         const cleanId = id.trim();
         if (!cleanId) return;
 
@@ -100,7 +100,7 @@ export class CanvasV14Adapter extends BaseCanvasAdapter {
      * @returns {void}
      */
     highlightPosition(id, options = {}) {
-        if (!id || typeof id !== "string") return;
+        if (!id) return;
         const cleanId = id.trim();
         if (!cleanId) return;
 
@@ -150,7 +150,7 @@ export class CanvasV14Adapter extends BaseCanvasAdapter {
      * @returns {{x: number, y: number}|null}
      */
     getSnappedPoint(point, options = {}) {
-        if (typeof canvas?.grid?.getSnappedPoint === "function") {
+        if (canvas?.grid?.getSnappedPoint) {
             try {
                 const snapped = canvas.grid.getSnappedPoint(point, options);
                 if (snapped && Number.isFinite(snapped.x) && Number.isFinite(snapped.y)) {
@@ -168,7 +168,7 @@ export class CanvasV14Adapter extends BaseCanvasAdapter {
      * @returns {number[]|null}
      */
     getOffsetRange(bounds) {
-        if (typeof canvas?.grid?.getOffsetRange === "function") {
+        if (canvas?.grid?.getOffsetRange) {
             try { return canvas.grid.getOffsetRange(bounds); } catch (e) {}
         }
         return super.getOffsetRange(bounds);

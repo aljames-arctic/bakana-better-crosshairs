@@ -41,7 +41,6 @@ export class BaseSystemAdapter {
      * @returns {Array<{event: string, handler: Function, category: string, targetName: string}>} Modified or filtered array of hook descriptor objects
      */
     modifyPlacementHooks(hooks, callbacks, foundryAdapter = null) {
-        if (!Array.isArray(hooks)) return [];
         return hooks;
     }
 
@@ -145,7 +144,7 @@ export class BaseSystemAdapter {
 
         log.debug(`BaseSystemAdapter.refreshLocalizedDefaults | [Trigger: ${trigger}] Refreshing localized defaults from game.i18n for "${this.systemId}"...`);
 
-        if (typeof game !== "undefined" && game?.i18n?.translations) {
+        if (game?.i18n?.translations) {
             const activeTranslations = game.i18n.translations?.BBC?.defaults?.[this.systemId];
             if (activeTranslations && typeof activeTranslations === "object") {
                 const countBefore = this.defaultsMap.size;
@@ -156,10 +155,8 @@ export class BaseSystemAdapter {
             }
         }
 
-        if (typeof game !== "undefined" && game?.i18n?.has) {
-            const entries = Array.isArray(baseDefaults)
-                ? baseDefaults.map(entry => [entry.itemName, Boolean(entry.options?.attachMode === "true" || entry.stickToToken === "true" || entry.stickToToken === true)])
-                : Object.entries(baseDefaults);
+        if (game?.i18n?.has) {
+            const entries = Object.entries(baseDefaults);
 
             let registeredCount = 0;
             for (const [nameOrSlug, stick] of entries) {
@@ -195,7 +192,7 @@ export class BaseSystemAdapter {
         if (!baseDefaults || typeof baseDefaults !== "object") return;
 
         // 1. Immediately register active language translations from game.i18n if available
-        if (typeof game !== "undefined" && game?.i18n?.translations) {
+        if (game?.i18n?.translations) {
             const activeTranslations = game.i18n.translations?.BBC?.defaults?.[this.systemId];
             if (activeTranslations && typeof activeTranslations === "object") {
                 this.registerLocalizedDefaults(activeTranslations, baseDefaults);
@@ -207,21 +204,15 @@ export class BaseSystemAdapter {
         const candidatePaths = new Set();
 
         // 2. Discover registered language bundle paths explicitly declared in module metadata
-        if (typeof game !== "undefined" && game?.modules) {
+        if (game?.modules) {
             const mod = game.modules.get(MODULE_ID);
             const rawLanguages = mod?.languages ?? mod?.manifest?.languages ?? [];
-            const languagesList = Array.isArray(rawLanguages)
-                ? rawLanguages
-                : (Array.isArray(rawLanguages.contents)
-                    ? rawLanguages.contents
-                    : (typeof rawLanguages.values === "function" ? Array.from(rawLanguages.values()) : []));
+            const languagesList = rawLanguages.contents ?? (rawLanguages.values ? Array.from(rawLanguages.values()) : rawLanguages);
 
             for (const entry of languagesList) {
-                const pathObj = (typeof entry === "object" && entry !== null && !Array.isArray(entry))
-                    ? entry
-                    : (Array.isArray(entry) ? entry[1] : null);
+                const pathObj = entry?.[1] ?? entry;
                 const p = pathObj?.path;
-                if (typeof p === "string" && p.endsWith(targetSuffix)) {
+                if (p?.endsWith?.(targetSuffix)) {
                     const normalized = (p.startsWith("modules/") || p.startsWith("/"))
                         ? p.replace(/^\//, "")
                         : `modules/${MODULE_ID}/${p}`;
@@ -302,11 +293,9 @@ export class BaseSystemAdapter {
      * @returns {void}
      */
     setDefaultsData(data) {
-        if (!data || typeof data !== "object") return;
+        if (!data) return;
         this._rawBaseDefaults = data;
-        const entries = Array.isArray(data)
-            ? data.map(entry => [entry.itemName, Boolean(entry.options?.attachMode === "true" || entry.stickToToken === "true" || entry.stickToToken === true)])
-            : Object.entries(data);
+        const entries = Object.entries(data);
 
         for (const [nameOrSlug, stick] of entries) {
             if (!nameOrSlug) continue;
@@ -320,7 +309,7 @@ export class BaseSystemAdapter {
             }
 
             // Check if active localization has a translated string for this default key
-            if (typeof game !== "undefined" && game?.i18n?.has) {
+            if (game?.i18n?.has) {
                 const i18nKey = `BBC.defaults.${this.systemId}.${slug}`;
                 if (game.i18n.has(i18nKey)) {
                     const localized = game.i18n.localize(i18nKey);
@@ -466,7 +455,7 @@ export class BaseSystemAdapter {
         const activityConfigs = item.getFlag("bakana-better-crosshairs", "activityConfigs") ?? null;
         const hasAnyCustom = Boolean(
             customConfig ||
-            (activityConfigs && typeof activityConfigs === "object" && Object.keys(activityConfigs).length > 0)
+            (Object.keys(activityConfigs ?? {}).length > 0)
         );
 
         controls.push({
@@ -536,7 +525,7 @@ export class BaseSystemAdapter {
         const activityConfigs = itemDoc.getFlag("bakana-better-crosshairs", "activityConfigs") ?? null;
         const hasAnyCustom = Boolean(
             customConfig ||
-            (activityConfigs && typeof activityConfigs === "object" && Object.keys(activityConfigs).length > 0)
+            (Object.keys(activityConfigs ?? {}).length > 0)
         );
 
         options.push({

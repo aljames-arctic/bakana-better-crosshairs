@@ -83,10 +83,10 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         const customPlaceables = targetSysAdapter?.getCustomPlaceableClassNames?.() ?? [];
         const dynamicPlaceables = [];
 
-        if (typeof CONFIG !== "undefined") {
+        if (CONFIG) {
             for (const base of basePlaceables) {
                 const customClass = CONFIG[base]?.objectClass?.name;
-                if (customClass && typeof customClass === "string" && !basePlaceables.includes(customClass) && !customPlaceables.includes(customClass)) {
+                if (customClass && !basePlaceables.includes(customClass) && !customPlaceables.includes(customClass)) {
                     dynamicPlaceables.push(customClass);
                 }
             }
@@ -102,10 +102,10 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         const customDocumentTypes = targetSysAdapter?.getCustomDocumentTypes?.() ?? [];
         const dynamicDocumentTypes = [];
 
-        if (typeof CONFIG !== "undefined") {
+        if (CONFIG) {
             for (const docType of baseDocumentTypes) {
                 const customDocName = CONFIG[docType]?.documentClass?.documentName;
-                if (customDocName && typeof customDocName === "string" && !baseDocumentTypes.includes(customDocName) && !customDocumentTypes.includes(customDocName)) {
+                if (customDocName && !baseDocumentTypes.includes(customDocName) && !customDocumentTypes.includes(customDocName)) {
                     dynamicDocumentTypes.push(customDocName);
                 }
             }
@@ -121,7 +121,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
 
         const generatedHooks = [...drawHooks, ...documentHooks];
 
-        if (targetSysAdapter && typeof targetSysAdapter.modifyPlacementHooks === "function") {
+        if (targetSysAdapter?.modifyPlacementHooks) {
             const modifiedHooks = targetSysAdapter.modifyPlacementHooks(generatedHooks, callbacks, this);
             log.debug("FoundryVTTV14Adapter.generatePlacementHooks | Modified placement hooks from system adapter:", modifiedHooks);
             return modifiedHooks;
@@ -193,7 +193,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             };
         }
 
-        const shape = typeof shapesList[0]?.toObject === "function" ? shapesList[0].toObject() : (shapesList[0] ?? {});
+        const shape = shapesList[0]?.toObject?.() ?? shapesList[0] ?? {};
         let shapeType = undefined;
         switch (shape.type) {
             case "circle":
@@ -233,7 +233,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             const rawWidthPx = shape.width ?? shape.thickness ?? (pxPerFoot * 5);
             distance = rawLengthPx >= pxPerFoot ? Math.round(rawLengthPx / pxPerFoot) : Math.round(rawLengthPx);
             width = rawWidthPx >= pxPerFoot ? Math.round(rawWidthPx / pxPerFoot) : Math.round(rawWidthPx);
-            if (!distance && shape.points && Array.isArray(shape.points) && shape.points.length >= 4) {
+            if (!distance && shape.points?.length >= 4) {
                 const dx = shape.points[2] - shape.points[0];
                 const dy = shape.points[3] - shape.points[1];
                 const lengthPx = Math.sqrt(dx * dx + dy * dy);
@@ -278,7 +278,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
     _getShapesArray(doc) {
         const targetDoc = doc?.document ?? doc;
         if (!targetDoc) return [];
-        return targetDoc.shapes?.contents ?? (Array.isArray(targetDoc.shapes) ? targetDoc.shapes : []);
+        return targetDoc.shapes?.contents ?? targetDoc.shapes ?? [];
     }
 
     /**
@@ -302,7 +302,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         const docName = targetDoc.documentName ?? (targetDoc.shapes ? "Region" : "MeasuredTemplate");
         if (docName === "Region") {
             const shapesList = this._getShapesArray(targetDoc);
-            const orig = typeof shapesList[0]?.toObject === "function" ? shapesList[0].toObject() : shapesList[0];
+            const orig = shapesList[0]?.toObject?.() ?? shapesList[0];
             const updatedShape = this._formatRegionShapeUpdate(orig, coords);
             delete updatedShape._id;
             delete updatedShape.id;
@@ -380,7 +380,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         const docName = targetDoc.documentName ?? (targetDoc.shapes ? "Region" : "MeasuredTemplate");
         if (docName === "Region") {
             const shapesList = this._getShapesArray(targetDoc);
-            const originalShape = shapesList[0] ?? (typeof targetDoc.toObject === "function" ? targetDoc.toObject().shapes?.[0] : null) ?? data?.shapes?.[0] ?? { type: "rectangle" };
+            const originalShape = shapesList[0] ?? targetDoc.toObject?.()?.shapes?.[0] ?? data?.shapes?.[0] ?? { type: "rectangle" };
             if (originalShape) {
                 const updateData = {
                     flags: styling.flags
@@ -400,13 +400,13 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
 
                 if (config.hidden || config.hideTemplate) updateData.hidden = true;
 
-                if (typeof targetDoc?.updateSource === "function") {
+                if (targetDoc?.updateSource) {
                     targetDoc.updateSource(updateData);
                 }
                 try {
                     targetDoc.shapes = [newShape];
                 } catch (e) {}
-                if (data && typeof data === "object") {
+                if (data) {
                     data.shapes = this.deepClone(updateData.shapes);
                     this.mergeObject(data, updateData, { recursive: true, overwrite: true });
                     data.shapes = this.deepClone(updateData.shapes);
@@ -461,12 +461,12 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             if (styling.placedBorderAlpha !== undefined) updateData.borderAlpha = styling.placedBorderAlpha;
             if (config.hidden || config.hideTemplate) updateData.hidden = true;
 
-            if (typeof targetDoc?.updateSource === "function") {
+            if (targetDoc?.updateSource) {
                 targetDoc.updateSource(updateData);
             } else {
                 Object.assign(targetDoc, updateData);
             }
-            if (data && typeof data === "object") {
+            if (data) {
                 this.mergeObject(data, updateData);
             }
         }
@@ -513,7 +513,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
      */
     _formatRegionShapeUpdate(originalShape, coords) {
         // Deep clone shape payload as a plain object to prevent mutating caller or carrying stale _source references
-        const raw = typeof originalShape?.toObject === "function" ? originalShape.toObject() : (originalShape ?? {});
+        const raw = originalShape?.toObject?.() ?? originalShape ?? {};
         const { _source, id, _id, ...cleanRaw } = raw;
         const shape = this.deepClone(cleanRaw);
 
@@ -639,9 +639,9 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
      */
     _applyDeferredCoordinates(data, coords, docName) {
         if (docName === "Region") {
-            const shapesList = data.shapes?.contents ?? (Array.isArray(data.shapes) ? data.shapes : []);
+            const shapesList = data.shapes?.contents ?? data.shapes ?? [];
             if (shapesList.length > 0) {
-                const origShape = typeof shapesList[0]?.toObject === "function" ? shapesList[0].toObject() : shapesList[0];
+                const origShape = shapesList[0]?.toObject?.() ?? shapesList[0];
                 const newShape = this._formatRegionShapeUpdate(origShape, coords);
                 delete newShape._id;
                 delete newShape.id;
@@ -699,14 +699,14 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 }
 
                 const shapesList = this._getShapesArray(doc);
-                let primaryShape = shapesList[0] ?? (Array.isArray(doc.shapes) ? doc.shapes[0] : (Array.isArray(tmpl.shapes) ? tmpl.shapes[0] : null));
+                let primaryShape = shapesList[0] ?? doc.shapes?.[0] ?? tmpl.shapes?.[0] ?? null;
 
                 const shape = tmpl.crosshair?.shapeInstance ?? activePlacementTracker.crosshair?.shapeInstance;
                 const targetX = shape?.x ?? doc?.x ?? tmpl?.x;
                 const targetY = shape?.y ?? doc?.y ?? tmpl?.y;
 
                 if (primaryShape) {
-                    const raw = typeof primaryShape.toObject === "function" ? primaryShape.toObject() : primaryShape;
+                    const raw = primaryShape.toObject?.() ?? primaryShape;
                     let changed = false;
                     const updated = { ...raw };
                     if (effectiveDirection !== undefined && updated.rotation !== effectiveDirection) {
@@ -724,7 +724,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                     if (changed) {
                         delete updated._id;
                         delete updated.id;
-                        if (typeof doc.updateSource === "function") {
+                        if (doc.updateSource) {
                             try {
                                 doc.updateSource({ shapes: [updated] });
                             } catch (e) {
@@ -794,19 +794,23 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                                 };
 
                                 let isCovered = false;
-                                if (typeof doc.polygonTree?.testPoint === "function") {
-                                    try {
+                                try {
+                                    if (doc.polygonTree?.testPoint) {
                                         isCovered = Boolean(doc.polygonTree.testPoint(testPt, 0.75));
+                                    }
+                                } catch (e) {}
+                                if (!isCovered) {
+                                    try {
+                                        if (doc.testPoint) {
+                                            isCovered = Boolean(doc.testPoint(testPt));
+                                        }
                                     } catch (e) {}
                                 }
-                                if (!isCovered && typeof doc.testPoint === "function") {
+                                if (!isCovered) {
                                     try {
-                                        isCovered = Boolean(doc.testPoint(testPt));
-                                    } catch (e) {}
-                                }
-                                if (!isCovered && typeof tmpl.testPoint === "function") {
-                                    try {
-                                        isCovered = Boolean(tmpl.testPoint(testPt) || tmpl.testPoint(center));
+                                        if (tmpl.testPoint) {
+                                            isCovered = Boolean(tmpl.testPoint(testPt) || tmpl.testPoint(center));
+                                        }
                                     } catch (e) {}
                                 }
 
@@ -837,7 +841,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                     refreshState: true,
                     refresh: true
                 });
-                if (typeof tmpl.applyRenderFlags === "function") tmpl.applyRenderFlags();
+                tmpl.applyRenderFlags?.();
                 return;
             }
 
@@ -877,7 +881,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         }
         if (targetX !== undefined) updateData.x = targetX;
         if (targetY !== undefined) updateData.y = targetY;
-        if (typeof doc?.updateSource === "function") {
+        if (doc?.updateSource) {
             doc.updateSource(updateData);
         } else if (doc) {
             Object.assign(doc, updateData);
@@ -892,18 +896,10 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         if (doc?.shape?.clear) doc.shape.clear();
         if (tmpl?.shape?.clear) tmpl.shape.clear();
 
-        if (typeof tmpl._refreshPosition === "function") {
-            try { tmpl._refreshPosition(); } catch (e) {}
-        }
-        if (typeof tmpl._refreshShape === "function") {
-            try { tmpl._refreshShape(); } catch (e) {}
-        }
-        if (typeof tmpl._refreshTemplate === "function") {
-            try { tmpl._refreshTemplate(); } catch (e) {}
-        }
-        if (tmpl.ruler && typeof tmpl._refreshRulerText === "function") {
-            try { tmpl._refreshRulerText(); } catch (e) {}
-        }
+        try { tmpl._refreshPosition?.(); } catch (e) {}
+        try { tmpl._refreshShape?.(); } catch (e) {}
+        try { tmpl._refreshTemplate?.(); } catch (e) {}
+        try { tmpl.ruler?._refreshRulerText?.(); } catch (e) {}
 
         if (isRotated) {
             const highlightId = tmpl.highlightId ?? tmpl.objectId ?? tmpl._bbcHighlightId ?? (doc?.id ? `Template.${doc.id}` : "Template.preview");
@@ -914,7 +910,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             const anchorY = shape?.shapeAnchor?.y ?? shape?.config?.anchor?.y ?? shape?.defaultShapeAnchor?.y ?? (isAttached ? 0.5 : 0);
 
             const pxPerFoot = this.pixelsPerDistance;
-            const dims = typeof shape?.getGraphicDimensions === "function" ? shape.getGraphicDimensions() : null;
+            const dims = shape?.getGraphicDimensions?.() ?? null;
             const wPx = dims?.widthPx ?? (w * pxPerFoot);
             const hPx = dims?.heightPx ?? (h * pxPerFoot);
             const originX = targetX ?? doc?.x ?? tmpl?.x ?? 0;
@@ -938,9 +934,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 refreshVisibility: true,
                 refresh: true
             });
-            if (typeof tmpl.applyRenderFlags === "function") {
-                try { tmpl.applyRenderFlags(); } catch (e) {}
-            }
+            try { tmpl.applyRenderFlags?.(); } catch (e) {}
 
             this._highlightRotatedRectangle(tmpl, doc, rectShape, highlightId);
 
@@ -960,8 +954,8 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             refreshVisibility: true,
             refresh: true
         });
-        if (typeof tmpl.applyRenderFlags === "function") tmpl.applyRenderFlags();
-        if (typeof tmpl.highlightGrid === "function") tmpl.highlightGrid();
+        tmpl.applyRenderFlags?.();
+        tmpl.highlightGrid?.();
 
         const hId = tmpl.highlightId ?? tmpl.objectId ?? `Template.${doc?.id ?? "preview"}`;
         tmpl._bbcHighlightId = hId;
@@ -1001,7 +995,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
 
         const self = this;
         const wrapMethod = (fnName) => {
-            if (typeof placeable[fnName] === "function") {
+            if (placeable[fnName]) {
                 const orig = placeable[fnName];
                 placeable[fnName] = function (...args) {
                     if (this._bbcRefreshingHighlights) return;
@@ -1052,7 +1046,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                                 updateData.distance = this.document.distance;
                                 updateData.width = this.document.width;
                             }
-                            if (typeof this.document.updateSource === "function") {
+                            if (this.document.updateSource) {
                                 this.document.updateSource(updateData);
                             } else {
                                 Object.assign(this.document, updateData);
@@ -1074,15 +1068,9 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                             if (newRay) this.ray = newRay;
                         }
 
-                        if (typeof this._refreshPosition === "function") {
-                            try { this._refreshPosition(); } catch (e) {}
-                        }
-                        if (typeof this._refreshShape === "function") {
-                            try { this._refreshShape(); } catch (e) {}
-                        }
-                        if (typeof this._refreshTemplate === "function") {
-                            try { this._refreshTemplate(); } catch (e) {}
-                        }
+                        try { this._refreshPosition?.(); } catch (e) {}
+                        try { this._refreshShape?.(); } catch (e) {}
+                        try { this._refreshTemplate?.(); } catch (e) {}
                     }
 
                     const hId = this.highlightId ?? this.objectId ?? (isRegion ? (this.document?.id ? `Region.${this.document.id}` : "Region.preview") : "preview");
@@ -1122,61 +1110,57 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
      */
     _patchDeprecations() {
         try {
-            if (typeof console !== "undefined") {
-                if (typeof console.warn === "function" && !console.warn._bbcPatched) {
-                    const origWarn = console.warn;
-                    const wrappedWarn = function (...args) {
-                        const first = args[0];
-                        const msg = typeof first === "string" ? first : (first?.message ?? String(first ?? ""));
-                        if (msg.includes("MEASURED_TEMPLATE_TYPES")) {
-                            return;
-                        }
-                        return origWarn.apply(this, args);
-                    };
-                    wrappedWarn._bbcPatched = true;
-                    console.warn = wrappedWarn;
-                    log.debug("FoundryVTTV14Adapter._patchDeprecations | Intercepted console.warn for MEASURED_TEMPLATE_TYPES deprecation.");
-                }
+            if (console.warn && !console.warn._bbcPatched) {
+                const origWarn = console.warn;
+                const wrappedWarn = function (...args) {
+                    const first = args[0];
+                    const msg = typeof first === "string" ? first : (first?.message ?? String(first ?? ""));
+                    if (msg.includes("MEASURED_TEMPLATE_TYPES")) {
+                        return;
+                    }
+                    return origWarn.apply(this, args);
+                };
+                wrappedWarn._bbcPatched = true;
+                console.warn = wrappedWarn;
+                log.debug("FoundryVTTV14Adapter._patchDeprecations | Intercepted console.warn for MEASURED_TEMPLATE_TYPES deprecation.");
+            }
 
-                if (typeof console.error === "function" && !console.error._bbcPatched) {
-                    const origError = console.error;
-                    const wrappedError = function (...args) {
-                        const first = args[0];
-                        const msg = typeof first === "string" ? first : (first?.message ?? String(first ?? ""));
-                        if (msg.includes("MEASURED_TEMPLATE_TYPES")) {
-                            return;
-                        }
-                        return origError.apply(this, args);
-                    };
-                    wrappedError._bbcPatched = true;
-                    console.error = wrappedError;
-                }
+            if (console.error && !console.error._bbcPatched) {
+                const origError = console.error;
+                const wrappedError = function (...args) {
+                    const first = args[0];
+                    const msg = typeof first === "string" ? first : (first?.message ?? String(first ?? ""));
+                    if (msg.includes("MEASURED_TEMPLATE_TYPES")) {
+                        return;
+                    }
+                    return origError.apply(this, args);
+                };
+                wrappedError._bbcPatched = true;
+                console.error = wrappedError;
             }
         } catch (err) {
             log.debug("FoundryVTTV14Adapter._patchDeprecations | Could not wrap console logger:", err);
         }
 
         try {
-            if (typeof foundry !== "undefined" && typeof foundry?.utils?.logCompatibilityWarning === "function") {
-                if (!foundry.utils.logCompatibilityWarning._bbcPatched) {
-                    const origLog = foundry.utils.logCompatibilityWarning;
-                    const wrappedLog = function (message, ...args) {
-                        const msgStr = typeof message === "string" ? message : (message?.message ?? "");
-                        if (msgStr.includes("MEASURED_TEMPLATE_TYPES")) {
-                            return;
-                        }
-                        return origLog.call(this, message, ...args);
-                    };
-                    wrappedLog._bbcPatched = true;
-                    foundry.utils.logCompatibilityWarning = wrappedLog;
-                }
+            if (foundry?.utils?.logCompatibilityWarning && !foundry.utils.logCompatibilityWarning._bbcPatched) {
+                const origLog = foundry.utils.logCompatibilityWarning;
+                const wrappedLog = function (message, ...args) {
+                    const msgStr = typeof message === "string" ? message : (message?.message ?? "");
+                    if (msgStr.includes("MEASURED_TEMPLATE_TYPES")) {
+                        return;
+                    }
+                    return origLog.call(this, message, ...args);
+                };
+                wrappedLog._bbcPatched = true;
+                foundry.utils.logCompatibilityWarning = wrappedLog;
             }
         } catch (err) {
             // Suppressed: foundry.utils is read-only in Foundry V14
         }
 
         try {
-            if (typeof CONST !== "undefined") {
+            if (CONST) {
                 const desc = Object.getOwnPropertyDescriptor(CONST, "MEASURED_TEMPLATE_TYPES");
                 const hasWarningGetter = Boolean(desc?.get);
                 const isMissing = !hasWarningGetter && !CONST?.MEASURED_TEMPLATE_TYPES;
@@ -1218,11 +1202,11 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         if (!canvas?.grid || !bounds) return [0, 0, 0, 0];
 
         let targetBounds = bounds;
-        if (this.dimensionsRect && typeof targetBounds.fit === "function") {
+        if (this.dimensionsRect && targetBounds.fit) {
             try { targetBounds = targetBounds.fit(this.dimensionsRect); } catch (e) {}
         }
 
-        const paddedBounds = typeof targetBounds.pad === "function"
+        const paddedBounds = targetBounds.pad
             ? targetBounds.pad(1)
             : {
                 x: targetBounds.x - 1,
@@ -1242,7 +1226,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
 
         let i0 = 0, j0 = 0, i1 = 0, j1 = 0;
         const res = this.getOffsetRange(paddedBounds);
-        if (Array.isArray(res) && res.length >= 4) {
+        if (res?.length >= 4) {
             [i0, j0, i1, j1] = res;
         }
 
@@ -1449,7 +1433,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 const y0 = Math.min(bounds.y, pb.y);
                 const x1 = Math.max(bounds.x + bounds.width, pb.x + pb.width);
                 const y1 = Math.max(bounds.y + bounds.height, pb.y + pb.height);
-                bounds = typeof PIXI !== "undefined" && PIXI.Rectangle
+                bounds = (typeof PIXI !== "undefined" && PIXI.Rectangle)
                     ? new PIXI.Rectangle(x0, y0, x1 - x0, y1 - y0)
                     : {
                         x: x0,
@@ -1492,20 +1476,22 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                     };
 
                     let isCovered = false;
-                    if (typeof doc?.polygonTree?.testPoint === "function") {
-                        try {
+                    try {
+                        if (doc?.polygonTree?.testPoint) {
                             isCovered = Boolean(doc.polygonTree.testPoint(testPt, 0.75));
-                        } catch (e) {}
-                    }
-                    if (!isCovered && doc?.documentName === "Region") {
-                        if (typeof doc.testPoint === "function") {
-                            try {
-                                isCovered = Boolean(doc.testPoint(testPt));
-                            } catch (e) {}
                         }
-                        if (!isCovered && typeof tmpl?.testPoint === "function") {
+                    } catch (e) {}
+                    if (!isCovered && doc?.documentName === "Region") {
+                        try {
+                            if (doc.testPoint) {
+                                isCovered = Boolean(doc.testPoint(testPt));
+                            }
+                        } catch (e) {}
+                        if (!isCovered) {
                             try {
-                                isCovered = Boolean(tmpl.testPoint(testPt));
+                                if (tmpl?.testPoint) {
+                                    isCovered = Boolean(tmpl.testPoint(testPt));
+                                }
                             } catch (e) {}
                         }
                     }

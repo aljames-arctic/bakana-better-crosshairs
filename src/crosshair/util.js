@@ -47,12 +47,10 @@ function _refreshPreviewHighlights(currentDirection, rad, crosshair, event = nul
  */
 function _notifyPlacementResult(result, config, crosshair, extraArgs) {
     config.context?.resolve?.(result);
-    if (typeof config._onPlaced === "function") {
-        try {
-            config._onPlaced(result, crosshair, ...extraArgs);
-        } catch (e) {
-            log.debug("resolveCrosshairPlacement | Exception in _onPlaced callback:", e);
-        }
+    try {
+        config._onPlaced?.(result, crosshair, ...extraArgs);
+    } catch (e) {
+        log.debug("resolveCrosshairPlacement | Exception in _onPlaced callback:", e);
     }
     return result;
 }
@@ -62,23 +60,20 @@ function _notifyPlacementResult(result, config, crosshair, extraArgs) {
  * If no explicit configuration override (`config.stickToToken`) is set, delegates the default
  * choice to the active game system adapter based on the shape type (`shapeType`).
  * @param {object} config - Configuration object containing placement options
- * @param {string|boolean} [shapeType="circle"] - The shape type (`"cone"`, `"ray"`, `"circle"`, `"square"`, `"rect"`) or fallback boolean
+ * @param {string} [shapeType="circle"] - The shape type (`"cone"`, `"ray"`, `"circle"`, `"square"`, `"rect"`)
  * @param {object} [sysAdapter=systemAdapter] - The active system adapter
  * @returns {boolean} Whether the crosshair should stick to the token
  */
 export function shouldStickToToken(config, shapeType = "circle", sysAdapter = systemAdapter) {
-    const resolvedType = typeof shapeType === "string" ? shapeType : "circle";
-    if (crosshairAdapter?.supportsShapeRotation && !crosshairAdapter.supportsShapeRotation(resolvedType)) {
+    if (crosshairAdapter?.supportsShapeRotation && !crosshairAdapter.supportsShapeRotation(shapeType)) {
         return false;
     }
-    if (!config || typeof config !== "object") {
-        if (typeof shapeType === "boolean") return shapeType;
+    if (!config) {
         return Boolean(sysAdapter?.getDefaultStickToToken?.(shapeType, config));
     }
     const val = config.stickToToken;
     if (val === "true" || val === true || val === 1) return true;
     if (val === "false" || val === false || val === 0) return false;
-    if (typeof shapeType === "boolean") return shapeType;
     return Boolean(sysAdapter?.getDefaultStickToToken?.(shapeType, config));
 }
 
@@ -169,7 +164,7 @@ export function alignCrosshairAndEffects(crosshair, config = {}, rad = 0) {
 
     log.debug(`[Bakana Sequencer Effect Alignment] Config ID: "${effectId}" | Type: "${shapeType}" | Target Pos: (${targetX}, ${targetY}) | Rad: ${rad.toFixed(4)} | Deg: ${deg.toFixed(2)}°`);
 
-    if (typeof Sequencer !== "undefined" && Sequencer.EffectManager) {
+    if (Sequencer?.EffectManager) {
         try {
             const mainEffects = Sequencer.EffectManager.getEffects({ name: effectId }) ?? [];
             const iconEffects = Sequencer.EffectManager.getEffects({ name: `${effectId}-icon` }) ?? [];
@@ -201,26 +196,24 @@ export function alignCrosshairAndEffects(crosshair, config = {}, rad = 0) {
                     eff.container.rotation = effRad;
                 }
 
-                if (eff.spriteContainer && typeof eff.spriteContainer.rotation !== "undefined") {
+                if (eff.spriteContainer?.rotation !== undefined) {
                     eff.spriteContainer.rotation = 0;
                 }
 
-                if (typeof eff.rotation !== "undefined") eff.rotation = effRad;
-                if (typeof eff.update === "function") {
-                    try {
-                        eff.update({
-                            position: { x: targetX, y: targetY },
-                            rotation: effDeg
-                        });
-                    } catch (e) {
-                        log.debug("alignCrosshairAndEffects | Exception updating Sequencer effect rotation:", e);
-                    }
+                if (eff.rotation !== undefined) eff.rotation = effRad;
+                try {
+                    eff.update?.({
+                        position: { x: targetX, y: targetY },
+                        rotation: effDeg
+                    });
+                } catch (e) {
+                    log.debug("alignCrosshairAndEffects | Exception updating Sequencer effect rotation:", e);
                 }
 
                 if (isRect && eff.container && !isIcon) {
-                    eff.container.pivot.set(0, 0);
-                    if (eff.sprite) eff.sprite.position.set(0, 0);
-                    if (eff.spriteContainer) eff.spriteContainer.position.set(0, 0);
+                    eff.container.pivot?.set?.(0, 0);
+                    eff.sprite?.position?.set?.(0, 0);
+                    eff.spriteContainer?.position?.set?.(0, 0);
                 }
             }
         } catch (e) {
@@ -248,10 +241,8 @@ export function getGridSnapMode(config = {}) {
 
 /**
  * Shared utility to resolve crosshair coordinates and direction upon placement.
- * Sequencer passes coordinates or the crosshair object to CALLBACKS.PLACED.
- * We inspect all arguments and fall back to canvas.mousePosition if needed.
- * @param {object} crosshair - The placed Sequencer crosshair instance or placement object
- * @param {object} [config={}] - Configuration object containing placement options
+ * @param {object} crosshair - Placed Sequencer crosshair instance or shape instance
+ * @param {object} [config={}] - Crosshair placement configuration
  * @param {...*} extraArgs - Additional arguments passed by placement callback
  * @returns {object} Formatted placement coordinates and direction `{ x, y, direction }`
  */
@@ -259,38 +250,34 @@ export function resolveCrosshairPlacement(crosshair, config = {}, ...extraArgs) 
     detachWheelRotation();
     log.debug("resolveCrosshairPlacement | Inspecting arguments passed to PLACED callback:", crosshair, config, extraArgs);
 
-    const shape = (crosshair && typeof crosshair.getPlacementUpdates === "function")
+    const shape = crosshair?.getPlacementUpdates
         ? crosshair
         : (crosshair?.shapeInstance ?? config?.shapeInstance ?? activePlacementTracker.crosshair?.shapeInstance);
 
-    if (shape && typeof shape.getPlacementUpdates === "function") {
+    if (shape?.getPlacementUpdates) {
         const result = shape.getPlacementUpdates();
         return _notifyPlacementResult(result, config, crosshair, extraArgs);
     }
 
-    let direction = (typeof config.currentDirection === "number")
-        ? config.currentDirection
-        : (typeof config.direction === "number")
-            ? config.direction
-            : (typeof shape?.direction === "number")
-                ? shape.direction
-                : (typeof crosshair?.direction === "number")
-                    ? crosshair.direction
-                    : undefined;
+    let direction = config.currentDirection
+        ?? config.direction
+        ?? shape?.direction
+        ?? crosshair?.direction
+        ?? undefined;
 
     // Search extra arguments for explicit rotation/direction if not already set by placement config
     if (direction === undefined) {
         const allArgs = [crosshair, config, ...extraArgs];
         for (const arg of allArgs) {
-            if (!arg || typeof arg !== "object") continue;
+            if (!arg) continue;
             let foundDir = arg.currentDirection ?? arg.direction ?? arg.data?.direction ?? arg.template?.direction;
-            if (typeof foundDir === "number" && direction === undefined) {
+            if (foundDir !== undefined && direction === undefined) {
                 direction = foundDir;
-            } else if (arg.ray && typeof arg.ray.angle === "number" && direction === undefined) {
+            } else if (arg.ray?.angle !== undefined && direction === undefined) {
                 direction = arg.ray.angle * (180 / Math.PI);
             } else if (direction === undefined) {
                 const rot = arg.rotation ?? arg.data?.rotation ?? arg.direction;
-                if (typeof rot === "number") {
+                if (rot !== undefined) {
                     direction = (Math.abs(rot) <= Math.PI * 2 && rot !== 0) ? (rot * (180 / Math.PI)) : rot;
                 }
             }
@@ -392,7 +379,7 @@ export async function runConcurrentScript(token, config = {}, crosshairSequence 
         scope,
         config,
         crosshair: crosshairSequence,
-        canvas: typeof canvas !== "undefined" ? canvas : undefined,
-        game: typeof game !== "undefined" ? game : undefined
+        canvas: canvas ?? undefined,
+        game: game ?? undefined
     }, "runConcurrentScript");
 }

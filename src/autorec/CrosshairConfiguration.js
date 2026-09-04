@@ -11,6 +11,7 @@ export class CrosshairConfiguration {
      * @param {Object} [source={}] - Partial or complete source configuration dictionary
      */
     constructor(source = {}) {
+        this.isCrosshairConfiguration = true;
         const defaults = DEFAULT_AUTOREC_ENTRY;
 
         this.itemName = String(source.itemName ?? defaults.itemName).trim();
@@ -111,7 +112,7 @@ export class CrosshairConfiguration {
      * @returns {CrosshairConfiguration} Normalized configuration instance
      */
     static fromSource(source = {}) {
-        if (source instanceof CrosshairConfiguration) return source;
+        if (source?.isCrosshairConfiguration) return source;
         return new CrosshairConfiguration(source);
     }
 
@@ -122,7 +123,7 @@ export class CrosshairConfiguration {
      * @returns {CrosshairConfiguration} New merged CrosshairConfiguration instance
      */
     overrideWith(customSource = {}) {
-        if (!customSource || typeof customSource !== "object") {
+        if (!customSource) {
             return this;
         }
 

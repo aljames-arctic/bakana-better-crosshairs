@@ -58,35 +58,27 @@ export class CrosshairRangeOverlay {
             if (style) style.align = "center";
             try {
                 this.textElement = new TextClass(labelStr, style);
-                if (this.textElement.anchor && typeof this.textElement.anchor.set === "function") {
-                    this.textElement.anchor.set(0.5, 1);
-                }
+                this.textElement.anchor?.set?.(0.5, 1);
                 const parentContainer = shape.sequencerCrosshair.parent ?? crosshairAdapter.controls ?? crosshairAdapter.stage ?? shape.sequencerCrosshair;
-                if (typeof parentContainer.addChild === "function") {
-                    parentContainer.addChild(this.textElement);
-                }
+                parentContainer?.addChild?.(this.textElement);
             } catch (e) {
                 log.debug("CrosshairRangeOverlay.update | Could not create range text element:", e);
                 return;
             }
         } else {
             const targetParent = shape.sequencerCrosshair.parent ?? crosshairAdapter.controls ?? crosshairAdapter.stage ?? shape.sequencerCrosshair;
-            if (this.textElement.parent !== targetParent && typeof targetParent.addChild === "function") {
-                try { targetParent.addChild(this.textElement); } catch (e) {}
+            if (this.textElement.parent !== targetParent) {
+                try { targetParent?.addChild?.(this.textElement); } catch (e) {}
             }
         }
 
         this.textElement.text = labelStr;
         this.textElement.visible = true;
         if (this.textElement.parent !== shape.sequencerCrosshair) {
-            if (this.textElement.position && typeof this.textElement.position.set === "function") {
-                this.textElement.position.set(target.x, target.y - 25);
-            }
+            this.textElement.position?.set?.(target.x, target.y - 25);
             try { this.textElement.rotation = 0; } catch (e) {}
         } else {
-            if (this.textElement.position && typeof this.textElement.position.set === "function") {
-                this.textElement.position.set(0, -25);
-            }
+            this.textElement.position?.set?.(0, -25);
             try { this.textElement.rotation = -(shape.sequencerCrosshair.rotation ?? 0); } catch (e) {}
         }
     }
@@ -98,12 +90,8 @@ export class CrosshairRangeOverlay {
     destroy() {
         if (this.textElement) {
             try {
-                if (this.textElement.parent && typeof this.textElement.parent.removeChild === "function") {
-                    this.textElement.parent.removeChild(this.textElement);
-                }
-                if (typeof this.textElement.destroy === "function") {
-                    this.textElement.destroy({ children: true });
-                }
+                this.textElement.parent?.removeChild?.(this.textElement);
+                this.textElement.destroy?.({ children: true });
             } catch (e) {}
             this.textElement = null;
         }

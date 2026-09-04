@@ -46,7 +46,7 @@ export class PendingPlacementSession {
             pendingItem.coords = coords;
             pendingItem.resolved = true;
 
-            const scene = this.adapter.scene ?? (typeof canvas !== "undefined" ? canvas.scene : null);
+            const scene = this.adapter.scene ?? canvas?.scene ?? null;
             if (pendingItem.deferredCreateData && scene) {
                 await this.adapter.createDeferredDocument(
                     scene,
@@ -55,7 +55,7 @@ export class PendingPlacementSession {
                     pendingItem.documentName,
                     pendingItem.config
                 );
-                if (this.placeable && typeof this.adapter.dismissPreview === "function") {
+                if (this.placeable) {
                     this.adapter.dismissPreview(this.placeable);
                 }
             } else if (this.doc && scene) {
@@ -83,7 +83,7 @@ export class PendingPlacementSession {
         }
         this.adapter.pendingPlacements.delete(this.placementKey);
         const placeableToDismiss = this.placeable ?? activePlacementTracker.placeable;
-        if (placeableToDismiss && typeof this.adapter.dismissPreview === "function") {
+        if (placeableToDismiss) {
             this.adapter.dismissPreview(placeableToDismiss);
         }
         activePlacementTracker.placeable = null;

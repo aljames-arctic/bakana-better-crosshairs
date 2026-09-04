@@ -13,11 +13,11 @@ export class PixiGraphicsStyler {
      */
     static toColorNumber(col) {
         if (col === null || col === undefined || col === "") return undefined;
-        if (typeof col === "number" && !Number.isNaN(col)) return col;
+        if (Number.isFinite(col)) return col;
         if (typeof col === "string" && col.length) {
             const parsed = crosshairAdapter.parseColor(col, undefined);
-            if (parsed && typeof parsed.valueOf === "function") return parsed.valueOf();
-            if (typeof parsed === "number" && !Number.isNaN(parsed)) return parsed;
+            if (parsed?.valueOf) return parsed.valueOf();
+            if (Number.isFinite(parsed)) return parsed;
             try { return parseInt(col.replace(/^#/, ""), 16); } catch (e) {}
         }
         return undefined;
@@ -44,14 +44,14 @@ export class PixiGraphicsStyler {
         const placedFillAlpha = docFillAlpha ?? bbcFlags.placedFillAlpha ?? 0.5;
 
         const borderNum = this.toColorNumber(placedBorderColor);
-        const borderAlphaNum = typeof placedBorderAlpha === "number" && !Number.isNaN(placedBorderAlpha) ? placedBorderAlpha : 0.25;
+        const borderAlphaNum = Number.isFinite(placedBorderAlpha) ? placedBorderAlpha : 0.25;
         const fillNum = this.toColorNumber(placedFillColor);
-        const fillAlphaNum = typeof placedFillAlpha === "number" && !Number.isNaN(placedFillAlpha) ? placedFillAlpha : 0.5;
+        const fillAlphaNum = Number.isFinite(placedFillAlpha) ? placedFillAlpha : 0.5;
 
         const applyGraphicsData = (gfx) => {
             if (!gfx) return false;
             let dirty = false;
-            if (Array.isArray(gfx.geometry?.graphicsData)) {
+            if (gfx.geometry?.graphicsData) {
                 for (const gd of gfx.geometry.graphicsData) {
                     if (!gd) continue;
                     if (gd.lineStyle && gd.lineStyle.width > 0) {
@@ -63,10 +63,10 @@ export class PixiGraphicsStyler {
                         if (fillAlphaNum !== undefined && gd.fillStyle.alpha !== fillAlphaNum) { gd.fillStyle.alpha = fillAlphaNum; dirty = true; }
                     }
                 }
-                if (dirty && typeof gfx.geometry.invalidate === "function") gfx.geometry.invalidate();
+                if (dirty) gfx.geometry?.invalidate?.();
             }
             const instructions = gfx.instructions ?? gfx.context?.instructions;
-            if (Array.isArray(instructions)) {
+            if (instructions) {
                 for (const inst of instructions) {
                     if (!inst) continue;
                     if (inst.action === "stroke" || (inst.data && inst.data.width > 0) || (inst.style && inst.style.width > 0)) {
@@ -84,7 +84,7 @@ export class PixiGraphicsStyler {
             return dirty;
         };
 
-        const targets = [template.template, template.border, template.shape, template.mesh, ...(Array.isArray(template.children) ? template.children : [])];
+        const targets = [template.template, template.border, template.shape, template.mesh, ...(template.children ?? [])];
         for (const target of targets) {
             applyGraphicsData(target);
         }

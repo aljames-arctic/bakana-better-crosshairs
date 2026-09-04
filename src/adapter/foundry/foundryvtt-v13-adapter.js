@@ -81,10 +81,10 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         const customPlaceables = targetSysAdapter?.getCustomPlaceableClassNames?.() ?? [];
         const dynamicPlaceables = [];
 
-        if (typeof CONFIG !== "undefined") {
+        if (CONFIG) {
             for (const base of basePlaceables) {
                 const customClass = CONFIG[base]?.objectClass?.name;
-                if (customClass && typeof customClass === "string" && !basePlaceables.includes(customClass) && !customPlaceables.includes(customClass)) {
+                if (customClass && !basePlaceables.includes(customClass) && !customPlaceables.includes(customClass)) {
                     dynamicPlaceables.push(customClass);
                 }
             }
@@ -100,10 +100,10 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         const customDocumentTypes = targetSysAdapter?.getCustomDocumentTypes?.() ?? [];
         const dynamicDocumentTypes = [];
 
-        if (typeof CONFIG !== "undefined") {
+        if (CONFIG) {
             for (const docType of baseDocumentTypes) {
                 const customDocName = CONFIG[docType]?.documentClass?.documentName;
-                if (customDocName && typeof customDocName === "string" && !baseDocumentTypes.includes(customDocName) && !customDocumentTypes.includes(customDocName)) {
+                if (customDocName && !baseDocumentTypes.includes(customDocName) && !customDocumentTypes.includes(customDocName)) {
                     dynamicDocumentTypes.push(customDocName);
                 }
             }
@@ -119,7 +119,7 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
 
         const generatedHooks = [...drawHooks, ...documentHooks];
 
-        if (targetSysAdapter && typeof targetSysAdapter.modifyPlacementHooks === "function") {
+        if (targetSysAdapter?.modifyPlacementHooks) {
             const modifiedHooks = targetSysAdapter.modifyPlacementHooks(generatedHooks, callbacks, this);
             log.debug("FoundryVTTV13Adapter.generatePlacementHooks | Modified placement hooks from system adapter:", modifiedHooks);
             return modifiedHooks;
@@ -288,7 +288,7 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             if (targetX !== undefined) updateObj.x = targetX;
             if (targetY !== undefined) updateObj.y = targetY;
 
-            if (typeof targetDoc.updateSource === "function") {
+            if (targetDoc.updateSource) {
                 try { targetDoc.updateSource(updateObj); } catch (e) { Object.assign(targetDoc, updateObj); }
             } else {
                 Object.assign(targetDoc, updateObj);
@@ -324,7 +324,7 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
                 updateObj.width = coords.width;
             }
 
-            if (typeof targetDoc.updateSource === "function") {
+            if (targetDoc.updateSource) {
                 try { targetDoc.updateSource(updateObj); } catch (e) { Object.assign(targetDoc, updateObj); }
             } else {
                 Object.assign(targetDoc, updateObj);
@@ -400,12 +400,12 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         if (styling.placedBorderAlpha !== undefined) updateData.borderAlpha = styling.placedBorderAlpha;
         if (config.hidden || config.hideTemplate) updateData.hidden = true;
 
-        if (typeof targetDoc?.updateSource === "function") {
+        if (targetDoc?.updateSource) {
             targetDoc.updateSource(updateData);
         } else {
             Object.assign(targetDoc, updateData);
         }
-        if (data && typeof data === "object") {
+        if (data) {
             this.mergeObject(data, updateData);
         }
     }
@@ -494,7 +494,7 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             }
             if (targetX !== undefined) updateData.x = targetX;
             if (targetY !== undefined) updateData.y = targetY;
-            if (typeof doc?.updateSource === "function") {
+            if (doc?.updateSource) {
                 doc.updateSource(updateData);
             } else {
                 Object.assign(doc, updateData);
@@ -518,18 +518,10 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             if (newRay) tmpl.ray = newRay;
         }
 
-        if (typeof tmpl._refreshPosition === "function") {
-            try { tmpl._refreshPosition(); } catch (e) {}
-        }
-        if (typeof tmpl._refreshShape === "function") {
-            try { tmpl._refreshShape(); } catch (e) {}
-        }
-        if (typeof tmpl._refreshTemplate === "function") {
-            try { tmpl._refreshTemplate(); } catch (e) {}
-        }
-        if (tmpl.ruler && typeof tmpl._refreshRulerText === "function") {
-            try { tmpl._refreshRulerText(); } catch (e) {}
-        }
+        try { tmpl._refreshPosition?.(); } catch (e) {}
+        try { tmpl._refreshShape?.(); } catch (e) {}
+        try { tmpl._refreshTemplate?.(); } catch (e) {}
+        try { tmpl.ruler?._refreshRulerText?.(); } catch (e) {}
 
         this._safeSetRenderFlags(tmpl, {
             refreshTemplate: true,
@@ -538,8 +530,8 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             refreshState: true,
             refresh: true
         });
-        if (typeof tmpl.applyRenderFlags === "function") tmpl.applyRenderFlags();
-        if (typeof tmpl.highlightGrid === "function") tmpl.highlightGrid();
+        tmpl.applyRenderFlags?.();
+        tmpl.highlightGrid?.();
         const hId = tmpl.highlightId ?? tmpl.objectId ?? `Template.${doc?.id ?? "preview"}`;
         tmpl._bbcHighlightId = hId;
     }

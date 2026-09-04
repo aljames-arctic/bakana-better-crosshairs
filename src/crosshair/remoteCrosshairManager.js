@@ -58,23 +58,22 @@ export function getGamemasterCursorPosition(identifier = "Gamemaster") {
     const controls = crosshairAdapter.controls;
     const cursorSources = [controls?._cursors, controls?.cursors].filter(Boolean);
     for (const _cursors of cursorSources) {
-        if (_cursors && !Array.isArray(_cursors) && typeof _cursors === "object") {
-            let cursor = null;
-            if (typeof _cursors.get === "function") {
-                if (userId) cursor = _cursors.get(userId);
-                if (!cursor) cursor = _cursors.get(identifier);
-            } else {
-                if (userId && _cursors[userId]) cursor = _cursors[userId];
-                if (!cursor && _cursors[identifier]) cursor = _cursors[identifier];
-            }
-
-            const coords = extractCoords(cursor);
-            if (coords) return coords;
+        if (!_cursors) continue;
+        let cursor = null;
+        if (_cursors.get) {
+            if (userId) cursor = _cursors.get(userId);
+            if (!cursor) cursor = _cursors.get(identifier);
+        } else {
+            if (userId && _cursors[userId]) cursor = _cursors[userId];
+            if (!cursor && _cursors[identifier]) cursor = _cursors[identifier];
         }
+
+        const coords = extractCoords(cursor);
+        if (coords) return coords;
     }
 
     // 4. Inspect controls cursors PIXI children
-    if (controls?.cursors?.children && Array.isArray(controls.cursors.children)) {
+    if (controls?.cursors?.children) {
         const children = controls.cursors.children;
         const cursor = children.find(c =>
             c?.user?.name === identifier ||
@@ -128,15 +127,15 @@ export function diagnoseUserCursor(identifier = "Gamemaster") {
     let _cursorsKeys = [];
     let _cursorsMatch = null;
     if (internalCursors) {
-        if (typeof internalCursors.keys === "function") {
+        if (internalCursors.keys) {
             _cursorsKeys = Array.from(internalCursors.keys());
-        } else if (typeof internalCursors === "object") {
+        } else {
             _cursorsKeys = Object.keys(internalCursors);
         }
 
         if (userId && internalCursors.get) _cursorsMatch = internalCursors.get(userId);
         if (!_cursorsMatch && internalCursors.get) _cursorsMatch = internalCursors.get(identifier);
-        if (!_cursorsMatch && typeof internalCursors === "object") _cursorsMatch = internalCursors[userId] ?? internalCursors[identifier];
+        if (!_cursorsMatch) _cursorsMatch = internalCursors[userId] ?? internalCursors[identifier];
     }
 
     const childrenDetails = cursorsContainer?.children?.map((c, idx) => ({
@@ -266,7 +265,7 @@ export class RemoteCrosshairVisual {
             this.resetTimeout();
         }
 
-        if (typeof Sequencer === "undefined") return;
+        if (!Sequencer) return;
 
         const effectFile = this.shape?.getGraphicFile?.() ?? this.config.file;
         const iconFile = this.icon;
@@ -359,7 +358,7 @@ export class RemoteCrosshairVisual {
      */
     update(updatePayload) {
         this.resetTimeout();
-        if (this.isDestroyed || typeof Sequencer === "undefined") return;
+        if (this.isDestroyed || !Sequencer) return;
 
         const ox = Number(updatePayload.originX ?? updatePayload.x);
         const oy = Number(updatePayload.originY ?? updatePayload.y);
@@ -415,18 +414,16 @@ export class RemoteCrosshairVisual {
                     eff.container.rotation = effRot;
                 }
 
-                if (eff.spriteContainer && typeof eff.spriteContainer.rotation !== "undefined") {
+                if (eff.spriteContainer?.rotation !== undefined) {
                     eff.spriteContainer.rotation = 0;
                 }
 
-                if (typeof eff.update === "function") {
-                    try {
-                        eff.update({
-                            position: { x: this.rawX, y: this.rawY },
-                            rotation: effDeg
-                        });
-                    } catch (e) {}
-                }
+                try {
+                    eff.update?.({
+                        position: { x: this.rawX, y: this.rawY },
+                        rotation: effDeg
+                    });
+                } catch (e) {}
             }
         }
     }
@@ -444,7 +441,7 @@ export class RemoteCrosshairVisual {
             this.timeoutTimer = null;
         }
 
-        if (typeof Sequencer !== "undefined" && Sequencer.EffectManager) {
+        if (Sequencer?.EffectManager) {
             try {
                 await Sequencer.EffectManager.endEffects({ name: this.effectName });
                 await Sequencer.EffectManager.endEffects({ name: `${this.effectName}-line` });

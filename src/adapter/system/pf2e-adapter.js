@@ -63,9 +63,7 @@ export class Pf2eSystemAdapter extends BaseSystemAdapter {
         let originRef = pf2eFlags.origin ?? pf2eFlags.item;
 
         if (!originRef && doc?.behaviors) {
-            const behaviors = typeof doc.behaviors.contents !== "undefined"
-                ? doc.behaviors.contents
-                : (Array.isArray(doc.behaviors) ? doc.behaviors : []);
+            const behaviors = doc.behaviors.contents ?? doc.behaviors ?? [];
             for (const behavior of behaviors) {
                 const bFlags = behavior?.flags?.pf2e ?? {};
                 originRef = bFlags.origin ?? bFlags.item ?? behavior?.system?.origin;
@@ -117,16 +115,14 @@ export class Pf2eSystemAdapter extends BaseSystemAdapter {
                 const createData = activeAdapter.deepClone(doc.toObject());
                 delete createData._id;
 
-                const shapesList = createData.shapes?.contents ?? (Array.isArray(createData.shapes) ? createData.shapes : []);
-                if (shapesList.length > 0 && crosshairAdapter && typeof crosshairAdapter._formatRegionShapeUpdate === "function") {
-                    const origShape = typeof shapesList[0]?.toObject === "function" ? shapesList[0].toObject() : shapesList[0];
-                    const newShape = crosshairAdapter._formatRegionShapeUpdate(origShape, stillPending.coords);
+                const shapesList = createData.shapes?.contents ?? createData.shapes ?? [];
+                if (shapesList.length > 0 && activeAdapter._formatRegionShapeUpdate) {
+                    const origShape = shapesList[0]?.toObject?.() ?? shapesList[0];
+                    const newShape = activeAdapter._formatRegionShapeUpdate(origShape, stillPending.coords);
                     delete newShape._id;
                     createData.shapes = [newShape];
                 }
-                if (crosshairAdapter && typeof crosshairAdapter.applyDocumentPlacement === "function") {
-                    crosshairAdapter.applyDocumentPlacement(createData, stillPending.coords, stillPending.config ?? options.config ?? {}, createData);
-                }
+                activeAdapter.applyDocumentPlacement(createData, stillPending.coords, stillPending.config ?? options.config ?? {}, createData);
 
                 try {
                     await scene.createEmbeddedDocuments(docName, [createData]);
@@ -134,8 +130,8 @@ export class Pf2eSystemAdapter extends BaseSystemAdapter {
                     log.error(`Pf2eSystemAdapter.handleProgrammaticPlacement | Failed to programmatically create ${docName}:`, err);
                 }
             }
-            if (placeable && crosshairAdapter && typeof crosshairAdapter.dismissPreview === "function") {
-                crosshairAdapter.dismissPreview(placeable);
+            if (placeable) {
+                activeAdapter.dismissPreview(placeable);
             }
         }, 50);
     }

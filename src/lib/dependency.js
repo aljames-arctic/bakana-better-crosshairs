@@ -30,9 +30,8 @@ function _getEntity(dependency) {
     const depId = dependency?.id;
     if (!depId) return undefined;
     if (depId === "foundry") return game;
-    const win = typeof window !== "undefined" ? window : global;
     const mod = game?.modules?.get(depId);
-    return mod ? mod : win[depId];
+    return mod ?? globalThis[depId];
 }
 
 /**

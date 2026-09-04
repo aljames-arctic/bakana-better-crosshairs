@@ -14,7 +14,7 @@ export class PersistedAnimationManager {
      * @returns {string} Unique effect name
      */
     static getEffectName(docOrId) {
-        const id = typeof docOrId === "string" ? docOrId : (docOrId?.id ?? docOrId?._id ?? "");
+        const id = docOrId?.id ?? docOrId?._id ?? docOrId ?? "";
         return `bbc-persisted-${id}`;
     }
 
@@ -39,7 +39,7 @@ export class PersistedAnimationManager {
             return;
         }
 
-        if (typeof Sequencer === "undefined" || typeof Sequence === "undefined") {
+        if (!Sequencer || !Sequence) {
             log.debug("PersistedAnimationManager | Sequencer is not active, skipping persistent effect.");
             return;
         }
@@ -48,7 +48,7 @@ export class PersistedAnimationManager {
         this.endPersistedAnimation(docId);
 
         // Clean up any remaining interactive preview crosshair effects on canvas
-        if (typeof Sequencer !== "undefined" && Sequencer?.EffectManager?.endEffects) {
+        if (Sequencer?.EffectManager?.endEffects) {
             try {
                 const previewIds = [
                     "Crosshair",
@@ -152,11 +152,11 @@ export class PersistedAnimationManager {
      * @returns {void}
      */
     static endPersistedAnimation(docOrId) {
-        const id = typeof docOrId === "string" ? docOrId : (docOrId?.id ?? docOrId?._id ?? "");
+        const id = docOrId?.id ?? docOrId?._id ?? docOrId ?? "";
         if (!id) return;
         const effectName = this.getEffectName(id);
 
-        if (typeof Sequencer !== "undefined" && Sequencer?.EffectManager?.endEffects) {
+        if (Sequencer?.EffectManager?.endEffects) {
             try {
                 Sequencer.EffectManager.endEffects({ name: effectName });
             } catch (e) {

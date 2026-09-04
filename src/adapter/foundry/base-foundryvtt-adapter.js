@@ -615,9 +615,9 @@ export class BaseFoundryVTTAdapter {
             }
         }
 
-        const itemConfig = typeof context.item?.getFlag === "function" ? context.item.getFlag(MODULE_ID, "customConfig") : null;
-        const activityConfig = Boolean(context.activityId) && typeof context.item?.getFlag === "function"
-            ? (context.item.getFlag(MODULE_ID, "activityConfigs")?.[context.activityId] ?? null)
+        const itemConfig = context.item?.getFlag?.(MODULE_ID, "customConfig") ?? null;
+        const activityConfig = Boolean(context.activityId)
+            ? (context.item?.getFlag?.(MODULE_ID, "activityConfigs")?.[context.activityId] ?? null)
             : null;
 
         if (!itemConfig && !activityConfig) {
@@ -693,7 +693,7 @@ export class BaseFoundryVTTAdapter {
                 obj.border.renderable = false;
                 obj.border.alpha = 0;
             }
-            if (Array.isArray(obj.children)) {
+            if (obj.children) {
                 for (const child of obj.children) {
                     if (child) {
                         child.visible = false;
@@ -715,13 +715,11 @@ export class BaseFoundryVTTAdapter {
         ];
 
         for (const methodName of methodsToIntercept) {
-            if (methodName === "refresh" || methodName === "_refresh" || typeof placeable[methodName] === "function") {
+            if (methodName === "refresh" || methodName === "_refresh" || placeable[methodName]) {
                 try {
                     const orig = placeable[methodName];
                     placeable[methodName] = function (...args) {
-                        if (typeof orig === "function") {
-                            try { orig.apply(this, args); } catch (e) {}
-                        }
+                        try { orig?.apply(this, args); } catch (e) {}
                         hideContainers(this);
                         return this;
                     };
@@ -744,7 +742,7 @@ export class BaseFoundryVTTAdapter {
 
         const self = this;
         const wrapMethod = (fnName) => {
-            if (typeof placeable[fnName] === "function") {
+            if (placeable[fnName]) {
                 const orig = placeable[fnName];
                 placeable[fnName] = function (...args) {
                     const shape = this.crosshair?.shapeInstance ?? activePlacementTracker.crosshair?.shapeInstance;
@@ -780,7 +778,7 @@ export class BaseFoundryVTTAdapter {
                                 updateData.distance = this.document.distance;
                                 updateData.width = this.document.width;
                             }
-                            if (typeof this.document.updateSource === "function") {
+                            if (this.document.updateSource) {
                                 this.document.updateSource(updateData);
                             } else {
                                 Object.assign(this.document, updateData);
@@ -802,15 +800,9 @@ export class BaseFoundryVTTAdapter {
                             if (newRay) this.ray = newRay;
                         }
 
-                        if (typeof this._refreshPosition === "function") {
-                            try { this._refreshPosition(); } catch (e) {}
-                        }
-                        if (typeof this._refreshShape === "function") {
-                            try { this._refreshShape(); } catch (e) {}
-                        }
-                        if (typeof this._refreshTemplate === "function") {
-                            try { this._refreshTemplate(); } catch (e) {}
-                        }
+                        try { this._refreshPosition?.(); } catch (e) {}
+                        try { this._refreshShape?.(); } catch (e) {}
+                        try { this._refreshTemplate?.(); } catch (e) {}
                     }
 
                     const isRegion = this.document?.documentName === "Region" || Boolean(this.shapes || this.document?.shapes);
@@ -836,7 +828,7 @@ export class BaseFoundryVTTAdapter {
      * @returns {void}
      */
     _safeSetRenderFlags(tmpl, flags) {
-        if (!tmpl?.renderFlags || typeof tmpl.renderFlags.set !== "function" || !flags || typeof flags !== "object") return;
+        if (!tmpl?.renderFlags?.set || !flags) return;
 
         try {
             tmpl.renderFlags.set(flags);
@@ -917,27 +909,21 @@ export class BaseFoundryVTTAdapter {
 
         this.clearRegionsHighlight();
 
-        if (placeable.renderFlags && typeof placeable.renderFlags.clear === "function") {
-            try { placeable.renderFlags.clear(); } catch (e) {}
-        }
-        if (typeof this.app?.ticker?.remove === "function") {
-            try { this.app.ticker.remove(placeable.applyRenderFlags, placeable); } catch (e) {}
-        }
+        try { placeable.renderFlags?.clear?.(); } catch (e) {}
+        try { this.app?.ticker?.remove?.(placeable.applyRenderFlags, placeable); } catch (e) {}
 
         this.deactivatePlaceablesLayers();
 
         const stages = [this.stage, this.app?.stage, this.templates, this.templates?.preview, this.regions, this.regions?.preview].filter(Boolean);
         const eventNames = ["pointermove", "mousemove", "pointerdown", "mousedown", "pointerup", "mouseup", "click", "rightclick"];
         for (const stg of stages) {
-            if (typeof stg.listeners === "function" && typeof stg.off === "function") {
+            if (stg?.listeners && stg?.off) {
                 for (const evName of eventNames) {
                     try {
-                        const lns = stg.listeners(evName);
-                        if (Array.isArray(lns)) {
-                            for (const fn of lns) {
-                                if (fn && (fn.context === placeable || (fn.name && (fn.name.includes("mousemove") || fn.name.includes("pointermove") || fn.name.includes("pointerdown") || fn.name.includes("mousedown") || fn.name.includes("click") || fn.name.includes("preview") || fn.name.includes("template") || fn.name.includes("region"))))) {
-                                    stg.off(evName, fn);
-                                }
+                        const lns = stg.listeners(evName) ?? [];
+                        for (const fn of lns) {
+                            if (fn && (fn.context === placeable || (fn.name && (fn.name.includes("mousemove") || fn.name.includes("pointermove") || fn.name.includes("pointerdown") || fn.name.includes("mousedown") || fn.name.includes("click") || fn.name.includes("preview") || fn.name.includes("template") || fn.name.includes("region"))))) {
+                                stg.off(evName, fn);
                             }
                         }
                     } catch (e) {}
@@ -952,9 +938,7 @@ export class BaseFoundryVTTAdapter {
             try { this.regions.preview.removeChild(placeable); } catch (e) {}
         }
         try {
-            if (typeof placeable.destroy === "function") {
-                placeable.destroy({ children: true });
-            }
+            placeable.destroy?.({ children: true });
         } catch (e) {}
 
         const dummyContainer = {
@@ -973,7 +957,7 @@ export class BaseFoundryVTTAdapter {
         try { placeable.border = dummyContainer; } catch (e) {}
         try { if (!placeable.position) placeable.position = dummyContainer.position; } catch (e) {}
 
-        if (typeof Sequencer !== "undefined" && Sequencer?.EffectManager?.endEffects) {
+        if (Sequencer?.EffectManager?.endEffects) {
             try {
                 const previewIds = ["Crosshair", "Cone Crosshair", "Ray Crosshair", "Square Crosshair", "Circle Crosshair"];
                 for (const name of previewIds) {
@@ -1079,7 +1063,7 @@ export class BaseFoundryVTTAdapter {
     registerPlacementHooks(callbacks, sysAdapter = systemAdapter) {
         const hooks = this.generatePlacementHooks(callbacks, sysAdapter);
         for (const hook of hooks) {
-            if (hook?.event && typeof hook.handler === "function") {
+            if (hook?.event && hook?.handler) {
                 Hooks.on(hook.event, hook.handler);
             }
         }
@@ -1204,9 +1188,9 @@ export class BaseFoundryVTTAdapter {
         await this._applyDeferredCoordinates(data, coords, docName);
         this.applyDocumentPlacement(data, coords, config, data);
 
-        if (Array.isArray(data.shapes)) {
+        if (data.shapes) {
             data.shapes = data.shapes.map(s => {
-                const shapeObj = typeof s?.toObject === "function" ? s.toObject() : s;
+                const shapeObj = s?.toObject ? s.toObject() : s;
                 const { id: sId, _id: sUnderscoreId, _source: sSource, ...cleanShape } = shapeObj;
                 return cleanShape;
             });
@@ -1288,7 +1272,7 @@ export class BaseFoundryVTTAdapter {
         const doc = target.document ?? target;
         if (!doc.id) return true; // Preview templates on canvas are always local to the drawing client
         const authorVal = doc.author ?? doc.user;
-        const userId = typeof authorVal === "string" ? authorVal : (authorVal?.id ?? game?.user?.id);
+        const userId = authorVal?.id ?? authorVal ?? game?.user?.id;
         return userId === game?.user?.id;
     }
 
@@ -1476,7 +1460,7 @@ export class BaseFoundryVTTAdapter {
 
         // If the sequencer sequence was right-click cancelled, abort placement
         if (pending.cancelled) {
-            if (pending.placeable && typeof this.dismissPreview === "function") {
+            if (pending.placeable) {
                 this.dismissPreview(pending.placeable);
             }
             this.pendingPlacements.delete(placementKey);
@@ -1486,7 +1470,7 @@ export class BaseFoundryVTTAdapter {
         // If placement sequence has resolved with coordinates, apply placement onto document payload
         if (pending.resolved && pending.coords) {
             this.applyDocumentPlacement(doc, pending.coords, pending.config, _data);
-            if (pending.placeable && typeof this.dismissPreview === "function") {
+            if (pending.placeable) {
                 this.dismissPreview(pending.placeable);
             }
             this.pendingPlacements.delete(placementKey);
@@ -1494,7 +1478,7 @@ export class BaseFoundryVTTAdapter {
         }
 
         // If sequence is still interactive/running, defer creation until sequence resolves
-        pending.deferredCreateData = typeof doc.toObject === "function" ? doc.toObject() : doc;
+        pending.deferredCreateData = doc.toObject?.() ?? doc;
         pending.documentName = doc.documentName;
         return false;
     }
@@ -1543,8 +1527,8 @@ export class BaseFoundryVTTAdapter {
             item,
             scope,
             config,
-            canvas: typeof canvas !== "undefined" ? canvas : undefined,
-            game: typeof game !== "undefined" ? game : undefined
+            canvas: canvas ?? undefined,
+            game: game ?? undefined
         }, `BaseFoundryVTTAdapter.handleCreateDocument (${doc.documentName})`);
     }
 
@@ -1571,8 +1555,8 @@ export class BaseFoundryVTTAdapter {
             if (changed.borderAlpha !== undefined) flagUpdates.placedBorderAlpha = changed.borderAlpha;
             if (changed.alpha !== undefined) flagUpdates.placedFillAlpha = changed.alpha;
 
-            if (Object.keys(flagUpdates).length > 0 && typeof doc.setFlag === "function") {
-                await doc.setFlag("bbc", flagUpdates);
+            if (Object.keys(flagUpdates).length > 0) {
+                await doc.setFlag?.("bbc", flagUpdates);
             }
         }
 

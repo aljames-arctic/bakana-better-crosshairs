@@ -20,7 +20,7 @@ export let canvasAdapter = new BaseCanvasAdapter();
  * @returns {BaseCanvasAdapter|CanvasV13Adapter|CanvasV14Adapter}
  */
 export function initializeCanvasAdapter() {
-    const ver = typeof game !== "undefined" ? game.version : "14";
+    const ver = game?.version ?? "14";
 
     if (version.clamp(ver, "14")) {
         canvasAdapter = new CanvasV14Adapter();
@@ -30,7 +30,7 @@ export function initializeCanvasAdapter() {
         canvasAdapter = new BaseCanvasAdapter();
     }
 
-    log.info(`Initialized Canvas Adapter for Foundry VTT generation: v${canvasAdapter.version || "base"}`);
+    log.info(`Initialized Canvas Adapter for Foundry VTT generation: v${canvasAdapter.version ?? "base"}`);
     return canvasAdapter;
 }
 

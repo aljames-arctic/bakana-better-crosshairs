@@ -13,7 +13,7 @@ export let systemAdapter = new BaseSystemAdapter();
  * @returns {BaseSystemAdapter|Dnd5eSystemAdapter|Pf2eSystemAdapter|Pf1SystemAdapter} The initialized system adapter instance.
  */
 export function initializeSystemAdapter() {
-    const systemId = typeof game !== "undefined" ? (game?.system?.id ?? "base") : "base";
+    const systemId = game?.system?.id ?? "base";
     switch (systemId) {
         case "dnd5e":
             systemAdapter = new Dnd5eSystemAdapter();
@@ -30,9 +30,7 @@ export function initializeSystemAdapter() {
             break;
     }
 
-    if (typeof systemAdapter.loadSystemDefaultsData === "function") {
-        systemAdapter.loadSystemDefaultsData();
-    }
+    systemAdapter.loadSystemDefaultsData();
 
     log.info(`Initialized System Adapter for system: "${systemAdapter.systemId}"`);
     return systemAdapter;

@@ -24,9 +24,7 @@ export class BaseCrosshairShape {
 
         const extractUserId = (val) => {
             if (!val) return null;
-            if (typeof val === "string") return val;
-            if (typeof val === "object" && typeof val.id === "string") return val.id;
-            return null;
+            return val.id ?? val;
         };
 
         const callingUserId =
@@ -445,7 +443,7 @@ export class BaseCrosshairShape {
             attachWheelRotation(this, this.config);
         } else if (crosshair) {
             crosshair.interactive = false;
-            if (typeof crosshair.eventMode !== "undefined") crosshair.eventMode = "none";
+            if (crosshair.eventMode !== undefined) crosshair.eventMode = "none";
             try { crosshair.off?.("pointerdown"); } catch (e) {}
             try { crosshair.off?.("click"); } catch (e) {}
         }
@@ -516,30 +514,28 @@ export class BaseCrosshairShape {
         if (this.controller) this.controller.stop();
         this.stopBroadcasting("placed");
         this._destroyRangeText();
-        if (typeof Sequencer !== "undefined" && Sequencer.EffectManager) {
+        if (Sequencer?.EffectManager?.endEffects) {
             try {
-                if (typeof Sequencer.EffectManager.endEffects === "function") {
-                    const idsToEnd = new Set([
-                        this.id,
-                        this.getDefaultId?.(),
-                        this.config?.id,
-                        this.config?.itemName,
-                        "Crosshair",
-                        "Cone Crosshair",
-                        "Ray Crosshair",
-                        "Square Crosshair",
-                        "Circle Crosshair"
-                    ].filter(Boolean));
+                const idsToEnd = new Set([
+                    this.id,
+                    this.getDefaultId?.(),
+                    this.config?.id,
+                    this.config?.itemName,
+                    "Crosshair",
+                    "Cone Crosshair",
+                    "Ray Crosshair",
+                    "Square Crosshair",
+                    "Circle Crosshair"
+                ].filter(Boolean));
 
-                    for (const name of idsToEnd) {
-                        Sequencer.EffectManager.endEffects({ name });
-                        Sequencer.EffectManager.endEffects({ name: `${name}-line` });
-                        Sequencer.EffectManager.endEffects({ name: `${name}-icon` });
-                        if (this.token) {
-                            Sequencer.EffectManager.endEffects({ name, object: this.token });
-                            Sequencer.EffectManager.endEffects({ name: `${name}-line`, object: this.token });
-                            Sequencer.EffectManager.endEffects({ name: `${name}-icon`, object: this.token });
-                        }
+                for (const name of idsToEnd) {
+                    Sequencer.EffectManager.endEffects({ name });
+                    Sequencer.EffectManager.endEffects({ name: `${name}-line` });
+                    Sequencer.EffectManager.endEffects({ name: `${name}-icon` });
+                    if (this.token) {
+                        Sequencer.EffectManager.endEffects({ name, object: this.token });
+                        Sequencer.EffectManager.endEffects({ name: `${name}-line`, object: this.token });
+                        Sequencer.EffectManager.endEffects({ name: `${name}-icon`, object: this.token });
                     }
                 }
             } catch (e) {
@@ -558,42 +554,38 @@ export class BaseCrosshairShape {
         this.stopBroadcasting("canceled");
         this._destroyRangeText();
         detachWheelRotation();
-        if (typeof Sequencer !== "undefined" && Sequencer.EffectManager) {
+        if (Sequencer?.EffectManager?.endEffects) {
             try {
-                if (typeof Sequencer.EffectManager.endEffects === "function") {
-                    const idsToEnd = new Set([
-                        this.id,
-                        this.getDefaultId?.(),
-                        this.config?.id,
-                        this.config?.itemName,
-                        "Crosshair",
-                        "Cone Crosshair",
-                        "Ray Crosshair",
-                        "Square Crosshair",
-                        "Circle Crosshair"
-                    ].filter(Boolean));
+                const idsToEnd = new Set([
+                    this.id,
+                    this.getDefaultId?.(),
+                    this.config?.id,
+                    this.config?.itemName,
+                    "Crosshair",
+                    "Cone Crosshair",
+                    "Ray Crosshair",
+                    "Square Crosshair",
+                    "Circle Crosshair"
+                ].filter(Boolean));
 
-                    for (const name of idsToEnd) {
-                        Sequencer.EffectManager.endEffects({ name });
-                        Sequencer.EffectManager.endEffects({ name: `${name}-line` });
-                        Sequencer.EffectManager.endEffects({ name: `${name}-icon` });
-                        if (this.token) {
-                            Sequencer.EffectManager.endEffects({ name, object: this.token });
-                            Sequencer.EffectManager.endEffects({ name: `${name}-line`, object: this.token });
-                            Sequencer.EffectManager.endEffects({ name: `${name}-icon`, object: this.token });
-                        }
+                for (const name of idsToEnd) {
+                    Sequencer.EffectManager.endEffects({ name });
+                    Sequencer.EffectManager.endEffects({ name: `${name}-line` });
+                    Sequencer.EffectManager.endEffects({ name: `${name}-icon` });
+                    if (this.token) {
+                        Sequencer.EffectManager.endEffects({ name, object: this.token });
+                        Sequencer.EffectManager.endEffects({ name: `${name}-line`, object: this.token });
+                        Sequencer.EffectManager.endEffects({ name: `${name}-icon`, object: this.token });
                     }
                 }
             } catch (e) {
                 log.debug("BaseCrosshairShape.onCancelCallback | Exception ending Sequencer effects:", e);
             }
         }
-        if (this.context && typeof this.context.cancel === "function") {
-            this.context.cancel();
-        }
+        this.context?.cancel?.();
         const placeableToDismiss = this.placeable ?? activePlacementTracker.placeable;
-        if (placeableToDismiss && typeof crosshairAdapter?.dismissPreview === "function") {
-            crosshairAdapter.dismissPreview(placeableToDismiss);
+        if (placeableToDismiss) {
+            crosshairAdapter?.dismissPreview?.(placeableToDismiss);
         }
         activePlacementTracker.placeable = null;
         activePlacementTracker.crosshair = null;
@@ -708,7 +700,7 @@ export class BaseCrosshairShape {
             return;
         }
 
-        if (typeof newAngleDeg === "number" && Number.isFinite(newAngleDeg)) {
+        if (Number.isFinite(newAngleDeg)) {
             while (newAngleDeg < 0) newAngleDeg += 360;
             newAngleDeg = newAngleDeg % 360;
         } else {
@@ -756,12 +748,7 @@ export class BaseCrosshairShape {
 
         if (refresh) {
             this.refreshTemplateHighlights();
-
-            if (this.sequencerCrosshair) {
-                if (typeof this.sequencerCrosshair.refresh === "function") {
-                    this.sequencerCrosshair.refresh();
-                }
-            }
+            this.sequencerCrosshair?.refresh?.();
         }
     }
 

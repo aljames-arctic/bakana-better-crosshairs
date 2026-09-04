@@ -148,7 +148,7 @@ export class BaseCanvasAdapter {
      * @returns {void}
      */
     addHighlightLayer(id) {
-        if (!id || typeof id !== "string") {
+        if (!id) {
             log.debug("BaseCanvasAdapter.addHighlightLayer | Called with invalid or empty identifier.");
             return;
         }
@@ -159,22 +159,16 @@ export class BaseCanvasAdapter {
         if (gridApi?.addHighlightLayer) {
             try { return gridApi.addHighlightLayer(cleanId); } catch (e) {}
         }
-
-        const legacyLayer = canvas?.grid?.highlightLayers?.[cleanId];
-        if (!legacyLayer && canvas?.grid?.addHighlightLayer) {
-            try { return canvas.grid.addHighlightLayer(cleanId); } catch (e) {}
-        }
-
         log.debug(`BaseCanvasAdapter.addHighlightLayer | Could not add highlight layer for key "${cleanId}".`);
     }
 
     /**
-     * Retrieves the specified grid highlight layer across Foundry canvas versions.
-     * @param {string} id - The identifier of the highlight layer to get.
-     * @returns {Object|null} The highlight layer or null
+     * Retrieves the specified grid highlight layer from the canvas.
+     * @param {string} id - Identifier of the highlight layer
+     * @returns {Object|null}
      */
     getHighlightLayer(id) {
-        if (!id || typeof id !== "string") {
+        if (!id) {
             log.debug("BaseCanvasAdapter.getHighlightLayer | Called with invalid or empty identifier.");
             return null;
         }
@@ -185,20 +179,16 @@ export class BaseCanvasAdapter {
         if (gridApi?.getHighlightLayer) {
             try { return gridApi.getHighlightLayer(cleanId); } catch (e) {}
         }
-
-        const legacyLayer = canvas?.grid?.highlightLayers?.[cleanId];
-        if (legacyLayer) return legacyLayer;
-
-        return null;
+        return canvas?.grid?.highlightLayers?.[cleanId] ?? null;
     }
 
     /**
-     * Clears the specified grid highlight layer across Foundry canvas versions.
-     * @param {string} id - The identifier of the highlight layer to clear.
+     * Clears the specified grid highlight layer on the canvas.
+     * @param {string} id - Identifier of the highlight layer
      * @returns {void}
      */
     clearHighlightLayer(id) {
-        if (!id || typeof id !== "string") {
+        if (!id) {
             log.debug("BaseCanvasAdapter.clearHighlightLayer | Called with invalid or empty identifier.");
             return;
         }
@@ -219,12 +209,12 @@ export class BaseCanvasAdapter {
     }
 
     /**
-     * Destroys the specified grid highlight layer across Foundry canvas versions.
-     * @param {string} id - The identifier of the highlight layer to destroy.
+     * Destroys the specified grid highlight layer on the canvas.
+     * @param {string} id - Identifier of the highlight layer
      * @returns {void}
      */
     destroyHighlightLayer(id) {
-        if (!id || typeof id !== "string") return;
+        if (!id) return;
         const cleanId = id.trim();
         if (!cleanId) return;
 
@@ -249,7 +239,7 @@ export class BaseCanvasAdapter {
      * @returns {void}
      */
     highlightPosition(id, options = {}) {
-        if (!id || typeof id !== "string") return;
+        if (!id) return;
         const cleanId = id.trim();
         if (!cleanId) return;
 
@@ -267,9 +257,7 @@ export class BaseCanvasAdapter {
      * @returns {void}
      */
     clearRegionsHighlight() {
-        if (typeof canvas?.regions?.highlight?.clear === "function") {
-            try { canvas.regions.highlight.clear(); } catch (e) {}
-        }
+        try { canvas?.regions?.highlight?.clear?.(); } catch (e) {}
     }
 
     /**
@@ -278,8 +266,8 @@ export class BaseCanvasAdapter {
      */
     deactivatePlaceablesLayers() {
         try {
-            if (typeof canvas?.templates?.deactivate === "function") canvas.templates.deactivate();
-            if (typeof canvas?.regions?.deactivate === "function") canvas.regions.deactivate();
+            canvas?.templates?.deactivate?.();
+            canvas?.regions?.deactivate?.();
         } catch (e) {}
     }
 
@@ -332,7 +320,7 @@ export class BaseCanvasAdapter {
      * @returns {{x: number, y: number}|null} Snapped point or null
      */
     getSnappedPoint(point, options = {}) {
-        if (typeof canvas?.grid?.getSnappedPoint === "function") {
+        if (canvas?.grid?.getSnappedPoint) {
             try {
                 const snapped = canvas.grid.getSnappedPoint(point, options);
                 if (snapped && Number.isFinite(snapped.x) && Number.isFinite(snapped.y)) {
@@ -340,7 +328,7 @@ export class BaseCanvasAdapter {
                 }
             } catch (e) {}
         }
-        if (typeof canvas?.grid?.getSnappedPosition === "function") {
+        if (canvas?.grid?.getSnappedPosition) {
             try {
                 const snapped = canvas.grid.getSnappedPosition(point.x, point.y, options.mode);
                 if (snapped && Number.isFinite(snapped.x) && Number.isFinite(snapped.y)) {
@@ -400,7 +388,7 @@ export class BaseCanvasAdapter {
         const size = this.gridSize;
 
         if (mode !== "center" && mode !== "corner" && mode !== "corners") {
-            const numMode = typeof mode === "number" ? mode : this._getGridSnapMode(mode);
+            const numMode = this._getGridSnapMode(mode);
             if (numMode !== 0) {
                 const snapped = this.getSnappedPoint({ x, y }, { mode: numMode });
                 if (snapped) return snapped;
@@ -418,8 +406,8 @@ export class BaseCanvasAdapter {
             return { x: sx, y: sy };
         }
 
-        if (mode === "all" || mode === true || mode === "default" || mode === "edges" || mode === "edge" || typeof mode === "number") {
-            const numMode = typeof mode === "number" ? mode : this._getGridSnapMode(mode === true ? "all" : mode);
+        if (mode === "all" || mode === true || mode === "default" || mode === "edges" || mode === "edge" || Number.isFinite(mode)) {
+            const numMode = this._getGridSnapMode(mode === true ? "all" : mode);
             if (numMode !== 0) {
                 const snapped = this.getSnappedPoint({ x, y }, { mode: numMode });
                 if (snapped) return snapped;
@@ -436,12 +424,13 @@ export class BaseCanvasAdapter {
     }
 
     /**
-     * Internal helper to convert string mode to numeric CONST.GRID_SNAPPING_MODES bitmask.
+     * Internal helper to convert string mode or numeric mode to numeric CONST.GRID_SNAPPING_MODES bitmask.
      * @protected
-     * @param {string} mode - Mode name
+     * @param {string|number} mode - Mode name or numeric bitmask
      * @returns {number} Numeric bitmask mode
      */
     _getGridSnapMode(mode) {
+        if (Number.isFinite(mode)) return mode;
         const modes = CONST?.GRID_SNAPPING_MODES;
         if (!modes) return 0;
         switch (mode) {

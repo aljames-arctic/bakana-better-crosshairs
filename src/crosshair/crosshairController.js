@@ -86,7 +86,7 @@ export class CrosshairController {
      * @returns {void}
      */
     update(force = false) {
-        if (this.isDestroyed || !this.shape || typeof this.getCursorPositionFn !== "function") return;
+        if (this.isDestroyed || !this.shape || !this.getCursorPositionFn) return;
 
         const now = Date.now();
         if (!force && this.updateTrigger === "ticker" && (now - this.lastRenderTime < this.intervalMs)) {
@@ -217,12 +217,7 @@ export class CrosshairController {
 export async function attachCrosshairToToken(sourceToken, shape, size, getCursorPositionFn, cancelFn, options = {}) {
     const token = crosshairAdapter.toToken(sourceToken);
 
-    const extractUserId = (val) => {
-        if (!val) return "";
-        if (typeof val === "string") return val;
-        if (typeof val === "object" && typeof val.id === "string") return val.id;
-        return "";
-    };
+    const extractUserId = (val) => val?.id ?? val ?? "";
 
     const callingUserId =
         extractUserId(options.callingUserId) ||
@@ -237,23 +232,22 @@ export async function attachCrosshairToToken(sourceToken, shape, size, getCursor
     }
 
     let sizeConfig = {};
-    if (typeof size === "number" && Number.isFinite(size)) {
+    if (Number.isFinite(size)) {
         sizeConfig = { distance: size, radius: size };
-    } else if (size && typeof size === "object") {
+    } else if (size) {
         sizeConfig = { ...size };
     }
 
-    const resolvedGetCursorFn = (typeof getCursorPositionFn === "function")
-        ? getCursorPositionFn
-        : (options.isRemote && options.senderUserId
+    const resolvedGetCursorFn = getCursorPositionFn
+        ?? (options.isRemote && options.senderUserId
             ? () => getPeerCursorPosition(options.senderUserId)
             : () => (crosshairAdapter.mousePosition ?? null));
 
     let resolvedCancelFn = null;
-    if (typeof cancelFn === "function") {
-        resolvedCancelFn = cancelFn;
-    } else if (cancelFn && typeof cancelFn.cancel === "function") {
+    if (cancelFn?.cancel) {
         resolvedCancelFn = () => cancelFn.cancel();
+    } else if (cancelFn) {
+        resolvedCancelFn = cancelFn;
     }
 
     const mergedConfig = {
@@ -261,18 +255,18 @@ export async function attachCrosshairToToken(sourceToken, shape, size, getCursor
         ...options,
         token,
         stickToToken: options.stickToToken ?? true,
-        context: (cancelFn && typeof cancelFn === "object") ? cancelFn : options.context
+        context: cancelFn?.cancel ? cancelFn : options.context
     };
 
     let shapeInstance = null;
-    if (shape && typeof shape === "object" && typeof shape.move === "function" && typeof shape.rotate === "function") {
+    if (shape?.move && shape?.rotate) {
         shapeInstance = shape;
         if (token) shapeInstance.token = token;
     } else if (typeof shape === "function") {
         const previewPlaceable = crosshairAdapter.createUnpersistedPreviewPlaceable(mergedConfig);
         shapeInstance = new shape(previewPlaceable, mergedConfig);
     } else {
-        const shapeType = String(typeof shape === "string" ? shape : options.type ?? "circle").toLowerCase();
+        const shapeType = String(shape ?? options.type ?? "circle").toLowerCase();
         const classes = await getShapeClasses();
         const previewPlaceable = crosshairAdapter.createUnpersistedPreviewPlaceable(mergedConfig);
         if (shapeType === "cone" && classes.ConeCrosshairShape) {
