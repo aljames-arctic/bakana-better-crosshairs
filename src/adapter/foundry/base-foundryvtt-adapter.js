@@ -810,73 +810,92 @@ export class BaseFoundryVTTAdapter {
             if (placeable[fnName]) {
                 const orig = placeable[fnName];
                 placeable[fnName] = function (...args) {
-                    const shape = this.crosshair?.shapeInstance ?? activePlacementTracker.crosshair?.shapeInstance;
-                    if (shape) {
-                        const targetX = shape.x;
-                        const targetY = shape.y;
-                        let targetDir = shape.direction;
-
-                        const isRect = this.document?.t === "rect" || this.t === "rect";
-                        const isRegion = this.document?.documentName === "Region";
-
-                        if (isRect && !isRegion) {
-                            const w = this.document?.width ?? shape.config?.width ?? 20;
-                            let distFoot = this.document?.distance ?? shape.config?.distance ?? w;
-                            if (w > 0 && distFoot > w) {
-                                const isSquareDiagonal = distFoot <= w * 1.6;
-                                distFoot = isSquareDiagonal ? w : Math.round(Math.sqrt(Math.max(0, distFoot * distFoot - w * w)));
-                            }
-                            const h = distFoot ?? w;
-                            targetDir = Math.atan2(h, w) * (180 / Math.PI);
-                            if (this.document) {
-                                this.document.distance = Math.round(Math.hypot(w, h) * 100) / 100;
-                                this.document.width = w;
-                            }
-                        }
-
-                        if (this.document) {
-                            const updateData = {};
-                            if (targetX !== undefined) updateData.x = targetX;
-                            if (targetY !== undefined) updateData.y = targetY;
-                            if (targetDir !== undefined) updateData.direction = targetDir;
-                            if (isRect && !isRegion) {
-                                updateData.distance = this.document.distance;
-                                updateData.width = this.document.width;
-                            }
-                            if (this.document.updateSource) {
-                                this.document.updateSource(updateData);
-                            } else {
-                                Object.assign(this.document, updateData);
-                            }
-                        }
-                        if (targetX !== undefined) { try { this.x = targetX; } catch (e) {} }
-                        if (targetY !== undefined) { try { this.y = targetY; } catch (e) {} }
-                        if (targetDir !== undefined) { try { this.direction = targetDir; } catch (e) {} }
-
-                        if (this.ray) {
-                            const rad = ((targetDir ?? 0) * Math.PI) / 180;
-                            const ox = targetX ?? this.x ?? 0;
-                            const oy = targetY ?? this.y ?? 0;
-                            const pxPerFoot = self.pixelsPerDistance;
-                            const dist = isRect && !isRegion && this.document?.distance
-                                ? this.document.distance * pxPerFoot
-                                : (this.ray.distance ?? 1000);
-                            const newRay = self.createRayFromAngle(ox, oy, rad, dist);
-                            if (newRay) this.ray = newRay;
-                        }
-
-                        try { this._refreshPosition?.(); } catch (e) {}
-                        try { this._refreshShape?.(); } catch (e) {}
-                        try { this._refreshTemplate?.(); } catch (e) {}
+                    if (this._bbcWrappingMethod) {
+                        return orig.apply(this, args);
                     }
+                    this._bbcWrappingMethod = true;
+                    try {
+                        const shape = this.crosshair?.shapeInstance ?? activePlacementTracker.crosshair?.shapeInstance;
+                        if (shape) {
+                            const targetX = shape.x;
+                            const targetY = shape.y;
+                            let targetDir = shape.direction;
 
-                    const isRegion = this.document?.documentName === "Region" || Boolean(this.shapes || this.document?.shapes);
-                    const hId = this.highlightId ?? this.objectId ?? (isRegion ? (this.document?.id ? `Region.${this.document.id}` : "Region.preview") : "preview");
-                    this._bbcHighlightId = hId;
-                    const hl = self.getHighlightLayer(hId);
-                    if (hl) hl.visible = true;
+                            const isRect = this.document?.t === "rect" || this.t === "rect";
+                            const isRegion = this.document?.documentName === "Region";
 
-                    return orig.apply(this, args);
+                            if (isRect && !isRegion) {
+                                const w = this.document?.width ?? shape.config?.width ?? 20;
+                                let distFoot = this.document?.distance ?? shape.config?.distance ?? w;
+                                if (w > 0 && distFoot > w) {
+                                    const isSquareDiagonal = distFoot <= w * 1.6;
+                                    distFoot = isSquareDiagonal ? w : Math.round(Math.sqrt(Math.max(0, distFoot * distFoot - w * w)));
+                                }
+                                const h = distFoot ?? w;
+                                targetDir = Math.atan2(h, w) * (180 / Math.PI);
+                                if (this.document) {
+                                    this.document.distance = Math.round(Math.hypot(w, h) * 100) / 100;
+                                    this.document.width = w;
+                                }
+                            }
+
+                            if (this.document) {
+                                const updateData = {};
+                                if (targetX !== undefined) updateData.x = targetX;
+                                if (targetY !== undefined) updateData.y = targetY;
+                                if (targetDir !== undefined) updateData.direction = targetDir;
+                                if (isRect && !isRegion) {
+                                    updateData.distance = this.document.distance;
+                                    updateData.width = this.document.width;
+                                }
+                                if (this.document.updateSource) {
+                                    this.document.updateSource(updateData);
+                                } else {
+                                    Object.assign(this.document, updateData);
+                                }
+                            }
+                            if (targetX !== undefined) { try { this.x = targetX; } catch (e) {} }
+                            if (targetY !== undefined) { try { this.y = targetY; } catch (e) {} }
+                            if (targetDir !== undefined) { try { this.direction = targetDir; } catch (e) {} }
+
+                            if (this.ray) {
+                                const rad = ((targetDir ?? 0) * Math.PI) / 180;
+                                const ox = targetX ?? this.x ?? 0;
+                                const oy = targetY ?? this.y ?? 0;
+                                const pxPerFoot = self.pixelsPerDistance;
+                                const dist = isRect && !isRegion && this.document?.distance
+                                    ? this.document.distance * pxPerFoot
+                                    : (this.ray.distance ?? 1000);
+                                const newRay = self.createRayFromAngle(ox, oy, rad, dist);
+                                if (newRay) this.ray = newRay;
+                            }
+
+                            try {
+                                delete this._shape;
+                                this._shape = null;
+                                if (this._computeShape) {
+                                    this.shape = this._computeShape();
+                                }
+                            } catch (e) {}
+
+                            try { this._refreshPosition?.(); } catch (e) {}
+                            try { this._refreshShape?.(); } catch (e) {}
+                            try { this._refreshTemplate?.(); } catch (e) {}
+                        }
+
+                        const isRegion = this.document?.documentName === "Region" || Boolean(this.shapes || this.document?.shapes);
+                        const hId = this.highlightId ?? this.objectId ?? (isRegion ? (this.document?.id ? `Region.${this.document.id}` : "Region.preview") : "preview");
+                        this._bbcHighlightId = hId;
+                        const hl = self.getHighlightLayer(hId);
+                        if (hl) {
+                            hl.visible = true;
+                            hl.renderable = true;
+                        }
+
+                        return orig.apply(this, args);
+                    } finally {
+                        this._bbcWrappingMethod = false;
+                    }
                 };
             }
         };

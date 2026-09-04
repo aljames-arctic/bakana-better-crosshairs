@@ -1037,6 +1037,77 @@ test('FoundryVTTV13Adapter.refreshTemplateHighlights synchronizes rotation, dire
     assert.ok(mockTmpl.ray, 'Template ray must be present');
 });
 
+test('FoundryVTTV13Adapter.refreshTemplateHighlights updates tmpl.ray before invoking _computeShape', async () => {
+    const { FoundryVTTV13Adapter } = await import('../../src/adapter/foundry/foundryvtt-v13-adapter.js');
+    const adapter = new FoundryVTTV13Adapter();
+
+    let rayAngleDuringCompute = null;
+    const mockDoc = {
+        x: 0,
+        y: 0,
+        distance: 30,
+        direction: 0,
+        rotation: 0,
+        t: 'ray',
+        updateSource(data) { Object.assign(this, data); }
+    };
+    const mockTmpl = {
+        x: 0,
+        y: 0,
+        direction: 0,
+        rotation: 0,
+        document: mockDoc,
+        ray: { origin: { x: 0, y: 0 }, angle: 0, distance: 600 },
+        _computeShape() {
+            rayAngleDuringCompute = this.ray?.angle;
+            return { points: [0, 0, 100, 100] };
+        },
+        highlightGrid() {}
+    };
+
+    adapter.refreshTemplateHighlights(mockTmpl, 90);
+
+    const expectedRad = 90 * (Math.PI / 180);
+    assert.ok(rayAngleDuringCompute !== null, '_computeShape must be called');
+    assert.ok(Math.abs(rayAngleDuringCompute - expectedRad) < 1e-5, `tmpl.ray must have updated angle (${expectedRad}) when _computeShape runs, was ${rayAngleDuringCompute}`);
+    assert.ok(mockTmpl.shape, 'tmpl.shape must be assigned from _computeShape');
+});
+
+test('BaseCrosshairShape.rotate updates placeable ray and recomputes placeable shape immediately', async () => {
+    const { RayCrosshairShape } = await import('../../src/crosshair/ray.js');
+
+    let shapeComputed = false;
+    const mockDoc = {
+        x: 0,
+        y: 0,
+        direction: 0,
+        t: 'ray',
+        distance: 30,
+        updateSource(d) { Object.assign(this, d); }
+    };
+
+    const mockPlaceable = {
+        x: 0,
+        y: 0,
+        direction: 0,
+        document: mockDoc,
+        ray: { origin: { x: 0, y: 0 }, angle: 0, distance: 600 },
+        _computeShape() {
+            shapeComputed = true;
+            return { points: [0, 0, 50, 50] };
+        },
+        renderFlags: { set: () => {} },
+        applyRenderFlags() {},
+        highlightGrid() {}
+    };
+
+    const shape = new RayCrosshairShape(mockPlaceable, { distance: 30 });
+    shape.rotate(180, true);
+
+    assert.equal(shapeComputed, true, '_computeShape must be called during shape.rotate');
+    assert.ok(Math.abs(mockPlaceable.ray.angle - Math.PI) < 1e-5, 'Placeable ray angle must update to 180 degrees (PI radians)');
+});
+
 test('hidePreview keeps native placeable hidden even when placeable.crosshair is attached', () => {
     const mockPlaceable = {
         constructor: { name: 'MeasuredTemplate' },
@@ -1266,4 +1337,66 @@ test('rotateCrosshairInstance and shape.rotate invoke _refreshShape, _refreshTem
     assert.equal(renderFlagsSet, true, 'renderFlags.set must be called on sequencerCrosshair via shape.rotate');
     assert.equal(renderFlagsApplied, true, 'applyRenderFlags must be called on sequencerCrosshair via shape.rotate');
 });
+
+test('CrosshairRotationListener activeWheelHandler rotates shape and refreshes highlights immediately without mouse move', async () => {
+    const { RayCrosshairShape } = await import('../../src/crosshair/ray.js');
+    const { CrosshairRotationListener } = await import('../../src/crosshair/rotationListener.js');
+    const listener = new CrosshairRotationListener();
+
+    let highlightRefreshed = false;
+    let placeableRayAngle = null;
+
+    const mockDoc = {
+        x: 100,
+        y: 100,
+        direction: 0,
+        t: 'ray',
+        distance: 30,
+        updateSource(d) { Object.assign(this, d); }
+    };
+
+    const mockPlaceable = {
+        x: 100,
+        y: 100,
+        direction: 0,
+        document: mockDoc,
+        ray: { origin: { x: 100, y: 100 }, angle: 0, distance: 600 },
+        highlightGrid() {
+            highlightRefreshed = true;
+            placeableRayAngle = this.ray?.angle;
+        },
+        renderFlags: { set: () => {} },
+        applyRenderFlags() {}
+    };
+
+    const shape = new RayCrosshairShape(mockPlaceable, { type: 'ray', distance: 30 });
+    shape.x = 100;
+    shape.y = 100;
+    shape.direction = 0;
+
+    const config = { type: 'ray', currentDirection: 0, direction: 0 };
+    listener.attach(shape, config);
+
+    assert.ok(listener.activeWheelHandler, 'activeWheelHandler must be defined');
+
+    // Simulate mouse wheel scroll deltaY > 0 (+5 degrees)
+    const mockEvent = {
+        deltaY: 100,
+        preventDefault() {},
+        stopImmediatePropagation() {},
+        stopPropagation() {}
+    };
+
+    listener.activeWheelHandler(mockEvent);
+
+    assert.equal(config.currentDirection, 5, 'config.currentDirection must rotate by step (5 degrees)');
+    assert.equal(shape.direction, 5, 'shape.direction must update to 5 degrees');
+    assert.equal(highlightRefreshed, true, 'highlightGrid must be executed immediately on wheel without mouse move');
+    assert.ok(placeableRayAngle !== null, 'placeable ray must be set');
+    assert.ok(Math.abs(placeableRayAngle - (5 * Math.PI / 180)) < 1e-5, 'placeable ray angle must reflect 5 degrees');
+
+    listener.detach();
+    assert.equal(listener.activeWheelHandler, null, 'activeWheelHandler must be detached');
+});
+
 

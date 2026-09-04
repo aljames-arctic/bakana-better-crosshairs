@@ -806,6 +806,13 @@ export class BaseCrosshairShape {
             const dist = isRect && doc?.distance ? doc.distance * pxPerFoot : (this.placeable.ray?.distance ?? ((doc?.distance ?? 30) * pxPerFoot));
             const newRay = crosshairAdapter.createRayFromAngle(ox, oy, rad, dist);
             if (newRay) this.placeable.ray = newRay;
+            try {
+                delete this.placeable._shape;
+                this.placeable._shape = null;
+                if (this.placeable._computeShape) {
+                    this.placeable.shape = this.placeable._computeShape();
+                }
+            } catch (e) {}
         }
 
         if (refresh) {

@@ -118,12 +118,13 @@ export class CrosshairRotationListener {
             crosshairAdapter.regions?.preview?.children,
             crosshairAdapter.regions?.placeables,
             crosshair?.template ? [crosshair.template] : null,
+            crosshair?.shapeInstance?.placeable ? [crosshair.shapeInstance.placeable] : null,
             activePlacementTracker.placeable ? [activePlacementTracker.placeable] : null
         ];
         for (const list of previewLists) {
             if (!list) continue;
             for (const p of list) {
-                if (p && (crosshairAdapter.isPreview(p) || p === crosshair?.template || p === activePlacementTracker.placeable)) {
+                if (p && (crosshairAdapter.isPreview(p) || p === crosshair?.template || p === activePlacementTracker.placeable || p === crosshair?.shapeInstance?.placeable)) {
                     this.refreshTemplateHighlights(p, currentDirection, rad, event);
                 }
             }

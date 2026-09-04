@@ -101,7 +101,10 @@ globalThis.foundry = {
                     this.A = pt1;
                     this.B = pt2;
                     this.origin = pt1;
-                    this.distance = Math.hypot(pt2.x - pt1.x, pt2.y - pt1.y);
+                    this.dx = pt2.x - pt1.x;
+                    this.dy = pt2.y - pt1.y;
+                    this.angle = Math.atan2(this.dy, this.dx);
+                    this.distance = Math.hypot(this.dx, this.dy);
                 }
                 static fromAngle(x, y, rad, dist) {
                     return new Ray({ x, y }, { x: x + Math.cos(rad) * dist, y: y + Math.sin(rad) * dist });

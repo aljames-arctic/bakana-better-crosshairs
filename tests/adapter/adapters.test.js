@@ -3081,6 +3081,56 @@ test('FoundryVTTV14Adapter._wrapHighlightGrid allows execution of refreshTemplat
     }
 });
 
+test('FoundryVTTV14Adapter._wrapHighlightGrid executes original highlightGrid during refreshTemplateHighlights for non-rotated templates', () => {
+    const adapterV14 = new FoundryVTTV14Adapter();
+    let origHighlightCalled = false;
+
+    const mockDoc = {
+        id: 'test-ray-v14',
+        documentName: 'MeasuredTemplate',
+        t: 'ray',
+        distance: 30,
+        direction: 0,
+        x: 100,
+        y: 100,
+        updateSource(data) { Object.assign(this, data); }
+    };
+
+    const mockShape = {
+        direction: 90,
+        x: 100,
+        y: 100
+    };
+
+    const mockTmpl = {
+        document: mockDoc,
+        t: 'ray',
+        direction: 0,
+        x: 100,
+        y: 100,
+        ray: { origin: { x: 100, y: 100 }, distance: 600, angle: 0 },
+        highlightId: 'Template.test-ray-v14',
+        crosshair: { shapeInstance: mockShape },
+        highlightGrid() { origHighlightCalled = true; },
+        renderFlags: { set: () => {} },
+        applyRenderFlags() {}
+    };
+
+    adapterV14._wrapHighlightGrid(mockTmpl);
+
+    // Call highlightGrid when _bbcRefreshingHighlights is true (simulating refreshTemplateHighlights execution)
+    mockTmpl._bbcRefreshingHighlights = true;
+    try {
+        mockTmpl.highlightGrid();
+    } finally {
+        mockTmpl._bbcRefreshingHighlights = false;
+    }
+
+    assert.equal(origHighlightCalled, true, 'Original highlightGrid must be called even when _bbcRefreshingHighlights is true for non-rotated templates');
+    assert.ok(mockTmpl.ray, 'Ray must be present');
+    assert.ok(Math.abs(mockTmpl.ray.angle - (90 * Math.PI / 180)) < 1e-5, 'Ray angle must be updated to 90 degrees');
+});
+
 test('FoundryVTTV14Adapter.updatePreviewShape preserves rotated direction and handles unrotated diagonal angle', () => {
     const adapterV14 = new FoundryVTTV14Adapter();
 

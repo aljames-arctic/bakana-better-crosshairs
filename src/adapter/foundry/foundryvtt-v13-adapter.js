@@ -518,6 +518,13 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         }
         tmpl.rotation = rad;
 
+        const ox = targetX ?? tmpl.ray?.origin?.x ?? tmpl.x ?? 0;
+        const oy = targetY ?? tmpl.ray?.origin?.y ?? tmpl.y ?? 0;
+        const pxPerFoot = this.pixelsPerDistance;
+        const dist = isRect && doc?.distance ? doc.distance * pxPerFoot : (tmpl.ray?.distance ?? ((doc?.distance ?? 30) * pxPerFoot));
+        const newRay = this.createRayFromAngle(ox, oy, rad, dist);
+        if (newRay) tmpl.ray = newRay;
+
         try {
             delete tmpl._shape;
             tmpl._shape = null;
@@ -525,13 +532,6 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
                 tmpl.shape = tmpl._computeShape();
             }
         } catch (e) {}
-
-        const ox = targetX ?? tmpl.ray?.origin?.x ?? tmpl.x ?? 0;
-        const oy = targetY ?? tmpl.ray?.origin?.y ?? tmpl.y ?? 0;
-        const pxPerFoot = this.pixelsPerDistance;
-        const dist = isRect && doc?.distance ? doc.distance * pxPerFoot : (tmpl.ray?.distance ?? ((doc?.distance ?? 30) * pxPerFoot));
-        const newRay = this.createRayFromAngle(ox, oy, rad, dist);
-        if (newRay) tmpl.ray = newRay;
 
         try { tmpl._refreshPosition?.(); } catch (e) {}
         try { tmpl._refreshShape?.(); } catch (e) {}
@@ -549,6 +549,11 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         tmpl.highlightGrid?.();
         const hId = tmpl.highlightId ?? tmpl.objectId ?? `Template.${doc?.id ?? "preview"}`;
         tmpl._bbcHighlightId = hId;
+        const hl = this.getHighlightLayer(hId);
+        if (hl) {
+            hl.visible = true;
+            hl.renderable = true;
+        }
     }
 
     _snapPoint(x, y, numMode) {
