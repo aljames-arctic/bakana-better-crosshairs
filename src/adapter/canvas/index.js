@@ -34,19 +34,3 @@ export function initializeCanvasAdapter() {
     return canvasAdapter;
 }
 
-/**
- * Convenience re-exports delegating to active canvas adapter instance.
- */
-export const addHighlightLayer = (id) => canvasAdapter.addHighlightLayer(id);
-export const getHighlightLayer = (id) => canvasAdapter.getHighlightLayer(id);
-export const clearHighlightLayer = (id) => canvasAdapter.clearHighlightLayer(id);
-export const destroyHighlightLayer = (id) => canvasAdapter.destroyHighlightLayer(id);
-export const highlightPosition = (id, options) => canvasAdapter.highlightPosition(id, options);
-export const clearRegionsHighlight = () => canvasAdapter.clearRegionsHighlight();
-export const deactivatePlaceablesLayers = () => canvasAdapter.deactivatePlaceablesLayers();
-export const getCenterPoint = (coords) => canvasAdapter.getCenterPoint(coords);
-export const getTopLeftPoint = (coords) => canvasAdapter.getTopLeftPoint(coords);
-export const getSnappedPoint = (point, options) => canvasAdapter.getSnappedPoint(point, options);
-export const getOffsetRange = (bounds) => canvasAdapter.getOffsetRange(bounds);
-export const measureDistance = (origin, target) => canvasAdapter.measureDistance(origin, target);
-export const snapCoordinates = (x, y, mode) => canvasAdapter.snapCoordinates(x, y, mode);

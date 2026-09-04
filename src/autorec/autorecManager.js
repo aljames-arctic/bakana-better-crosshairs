@@ -1,7 +1,7 @@
 import { MODULE_ID } from '../lib/constants.js';
 import { log } from '../lib/logger.js';
 import { systemAdapter } from '../adapter/system/index.js';
-import { crosshairAdapter, deepClone } from '../adapter/index.js';
+import { crosshairAdapter } from '../adapter/index.js';
 import { socketlib } from '../integration/index.js';
 import { localize, notify, getUserColor } from '../lib/utils.js';
 import { buildExportPackage, validateImportPackage as exchangeValidateImportPackage, analyzeImportDiff as exchangeAnalyzeImportDiff, triggerFileDownload } from './autorecExchange.js';
@@ -472,7 +472,7 @@ export class AutorecManager {
         const isGM = Boolean(game.user?.isGM);
         if (isGM) {
             try {
-                const saved = deepClone(game.settings.get(MODULE_ID, "registeredTemplates") ?? {});
+                const saved = crosshairAdapter.deepClone(game.settings.get(MODULE_ID, "registeredTemplates") ?? {});
                 saved[itemName] = config;
                 game.settings.set(MODULE_ID, "registeredTemplates", saved);
                 this.persistedItemNames.add(itemName);
@@ -499,7 +499,7 @@ export class AutorecManager {
         const isGM = Boolean(game.user?.isGM);
         if (isGM) {
             try {
-                const saved = deepClone(game.settings.get(MODULE_ID, "registeredTemplates") ?? {});
+                const saved = crosshairAdapter.deepClone(game.settings.get(MODULE_ID, "registeredTemplates") ?? {});
                 if (itemName in saved) {
                     delete saved[itemName];
                     game.settings.set(MODULE_ID, "registeredTemplates", saved);
@@ -765,7 +765,7 @@ export class AutorecManager {
             const isGM = Boolean(game.user?.isGM);
             if (isGM) {
                 try {
-                    const saved = deepClone(game.settings.get(MODULE_ID, "registeredTemplates") ?? {});
+                    const saved = crosshairAdapter.deepClone(game.settings.get(MODULE_ID, "registeredTemplates") ?? {});
                     Object.assign(saved, toPersist);
                     await game.settings.set(MODULE_ID, "registeredTemplates", saved);
                     this.broadcastSync();
@@ -1187,7 +1187,7 @@ export class AutorecManager {
             const isGM = Boolean(game?.user?.isGM);
             if (isGM) {
                 try {
-                    const saved = deepClone(game.settings.get(MODULE_ID, "registeredTemplates") ?? {});
+                    const saved = crosshairAdapter.deepClone(game.settings.get(MODULE_ID, "registeredTemplates") ?? {});
                     Object.assign(saved, toPersist);
                     await game.settings.set(MODULE_ID, "registeredTemplates", saved);
                     this.broadcastSync();

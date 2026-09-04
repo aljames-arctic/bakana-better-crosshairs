@@ -12,8 +12,7 @@ import {
     initializeFoundryAdapter,
     canvasAdapter,
     initializeCanvasAdapter,
-    initializeHooks,
-    mergeObject
+    initializeHooks
 } from './adapter/index.js';
 import { attachWheelRotation, detachWheelRotation, resolveCrosshairPlacement, getTokenEdgePoint, snapCoordinates } from './crosshair/util.js';
 import { localize } from './lib/utils.js';
@@ -30,7 +29,7 @@ export function setupApiCalls(exportedFunctions) {
     if (!exportedFunctions || typeof exportedFunctions !== "object") return;
     const mod = game?.modules?.get(MODULE_ID);
     if (mod) {
-        mod.api = mergeObject(mod.api ?? {}, exportedFunctions);
+        mod.api = crosshairAdapter.mergeObject(mod.api ?? {}, exportedFunctions);
     }
 }
 

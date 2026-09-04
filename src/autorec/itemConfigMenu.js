@@ -3,7 +3,7 @@ import { DEFAULT_AUTOREC_ENTRY, autorecManager } from "./autorecManager.js";
 import { log } from "../lib/logger.js";
 import { localize, notify, getUserColor } from "../lib/utils.js";
 import { systemAdapter } from "../adapter/system/index.js";
-import { deepClone } from "../adapter/index.js";
+import { crosshairAdapter } from "../adapter/index.js";
 import { BaseCrosshairMenuApplication, normalizeHexColor } from "./BaseCrosshairMenuApplication.js";
 
 /**
@@ -437,7 +437,7 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
                         notify.info(localize("BBC.itemConfigMenu.removedItemCustom", `Removed custom Item-level crosshair configuration from "${this.item.name}".`));
                     } else {
                         log.debug(`ItemCrosshairConfigApplication | Deleting custom activity-level configuration (${scope}) from "${this.item.name}"`);
-                        const existingMap = deepClone(this.item.getFlag(MODULE_ID, "activityConfigs") ?? {});
+                        const existingMap = crosshairAdapter.deepClone(this.item.getFlag(MODULE_ID, "activityConfigs") ?? {});
                         delete existingMap[scope];
                         if (Object.keys(existingMap).length === 0) {
                             await this.item.unsetFlag(MODULE_ID, "activityConfigs");
@@ -521,7 +521,7 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
                 }
                 notify.info(localize("BBC.itemConfigMenu.savedItemCustom", `Saved custom Item-level crosshair configuration for "${this.item.name}".`));
             } else {
-                const existingMap = deepClone(this.item.getFlag(MODULE_ID, "activityConfigs") ?? {});
+                const existingMap = crosshairAdapter.deepClone(this.item.getFlag(MODULE_ID, "activityConfigs") ?? {});
                 if (!hasAnyOverride) {
                     log.debug(`ItemCrosshairConfigApplication | All overrides disabled for activity "${scope}" on "${this.item.name}", removing custom activity flag.`);
                     delete existingMap[scope];

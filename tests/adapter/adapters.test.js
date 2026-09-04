@@ -5,31 +5,7 @@ import { closest } from '../../src/lib/filemanager.js';
 import {
     initializeFoundryAdapter,
     crosshairAdapter,
-    BaseFoundryVTTAdapter,
-    Token,
-    MeasuredTemplate,
-    Region,
-    Ray,
-    addHighlightLayer,
-    getHighlightLayer,
-    clearHighlightLayer,
-    destroyHighlightLayer,
-    highlightPosition,
-    clearRegionsHighlight,
-    deactivatePlaceablesLayers,
-    getCenterPoint,
-    getTopLeftPoint,
-    getSnappedPoint,
-    getOffsetRange,
-    measureDistance,
-    fromUuidSync,
-    randomID,
-    lineSegmentIntersection,
-    parseColor,
-    PreciseText,
-    saveDataToFile,
-    mergeObject,
-    deepClone
+    BaseFoundryVTTAdapter
 } from '../../src/adapter/foundry/index.js';
 import {
     canvasAdapter,
@@ -841,7 +817,7 @@ test('foundry adapter layer encapsulates isOwner and toToken helper methods', ()
     assert.equal(adapterV14.isOwner({ id: 'doc1', author: { id: globalThis.game.user.id } }), true);
     assert.equal(adapterV14.isOwner({ id: 'doc2', author: { id: 'user_remote' } }), false);
 
-    const mockTokenInstance = new Token({ name: 'Hero' });
+    const mockTokenInstance = new crosshairAdapter.Token({ name: 'Hero' });
     const mockTokenObject = { object: mockTokenInstance };
     assert.equal(adapterV14.toToken(mockTokenInstance), mockTokenInstance);
     assert.equal(adapterV14.toToken(mockTokenObject), mockTokenInstance);
@@ -3354,7 +3330,7 @@ test('FoundryVTTV14Adapter.refreshTemplateHighlights does not highlight extra un
     }
 });
 
-test('Foundry adapter absorbs Token, MeasuredTemplate, Region, and Ray references on instances and barrel exports', () => {
+test('Foundry adapter absorbs Token, MeasuredTemplate, Region, and Ray references on instances', () => {
     const adapter = new BaseFoundryVTTAdapter();
     const adapterV13 = new FoundryVTTV13Adapter();
     const adapterV14 = new FoundryVTTV14Adapter();
@@ -3363,25 +3339,21 @@ test('Foundry adapter absorbs Token, MeasuredTemplate, Region, and Ray reference
     assert.equal(adapter.Token, crosshairAdapter.Token);
     assert.equal(adapterV13.Token, crosshairAdapter.Token);
     assert.equal(adapterV14.Token, crosshairAdapter.Token);
-    assert.equal(Token, crosshairAdapter.Token);
 
     assert.ok(adapter.MeasuredTemplate, 'adapter.MeasuredTemplate must be defined');
     assert.equal(adapter.MeasuredTemplate, crosshairAdapter.MeasuredTemplate);
     assert.equal(adapterV13.MeasuredTemplate, crosshairAdapter.MeasuredTemplate);
     assert.equal(adapterV14.MeasuredTemplate, crosshairAdapter.MeasuredTemplate);
-    assert.equal(MeasuredTemplate, crosshairAdapter.MeasuredTemplate);
 
     assert.ok(adapter.Region, 'adapter.Region must be defined');
     assert.equal(adapter.Region, crosshairAdapter.Region);
     assert.equal(adapterV13.Region, crosshairAdapter.Region);
     assert.equal(adapterV14.Region, crosshairAdapter.Region);
-    assert.equal(Region, crosshairAdapter.Region);
 
     assert.ok(adapter.Ray, 'adapter.Ray must be defined');
     assert.equal(adapter.Ray, crosshairAdapter.Ray);
     assert.equal(adapterV13.Ray, crosshairAdapter.Ray);
     assert.equal(adapterV14.Ray, crosshairAdapter.Ray);
-    assert.equal(Ray, crosshairAdapter.Ray);
 });
 
 test('Foundry adapter provides createRay and createRayFromAngle helpers', () => {
@@ -3409,7 +3381,7 @@ test('Foundry adapter provides createRay and createRayFromAngle helpers', () => 
     assert.equal(Math.round(crosshairRayFromAngle.B.y), 50);
 });
 
-test('Foundry adapter encapsulates addHighlightLayer, clearHighlightLayer, and destroyHighlightLayer across instances and barrels', () => {
+test('Foundry adapter encapsulates addHighlightLayer, clearHighlightLayer, and destroyHighlightLayer across instances and singletons', () => {
     const adapter = new FoundryVTTV14Adapter();
     const addedLayers = [];
     const clearedLayers = [];
@@ -3440,14 +3412,6 @@ test('Foundry adapter encapsulates addHighlightLayer, clearHighlightLayer, and d
         assert.deepEqual(clearedLayers, ['layer-inst-1', 'layer-singleton-2']);
         assert.deepEqual(destroyedLayers, ['layer-inst-1', 'layer-singleton-2']);
 
-        // Barrel re-exports
-        addHighlightLayer('layer-barrel-3');
-        clearHighlightLayer('layer-barrel-3');
-        destroyHighlightLayer('layer-barrel-3');
-        assert.deepEqual(addedLayers, ['layer-inst-1', 'layer-singleton-2', 'layer-barrel-3']);
-        assert.deepEqual(clearedLayers, ['layer-inst-1', 'layer-singleton-2', 'layer-barrel-3']);
-        assert.deepEqual(destroyedLayers, ['layer-inst-1', 'layer-singleton-2', 'layer-barrel-3']);
-
         // Empty/invalid input contract handling
         adapter.addHighlightLayer('');
         adapter.addHighlightLayer(null);
@@ -3455,9 +3419,9 @@ test('Foundry adapter encapsulates addHighlightLayer, clearHighlightLayer, and d
         adapter.clearHighlightLayer(null);
         adapter.destroyHighlightLayer('');
         adapter.destroyHighlightLayer(null);
-        assert.equal(addedLayers.length, 3, 'Invalid highlight layer IDs must be safely ignored');
-        assert.equal(clearedLayers.length, 3, 'Invalid highlight layer IDs must be safely ignored');
-        assert.equal(destroyedLayers.length, 3, 'Invalid highlight layer IDs must be safely ignored');
+        assert.equal(addedLayers.length, 2, 'Invalid highlight layer IDs must be safely ignored');
+        assert.equal(clearedLayers.length, 2, 'Invalid highlight layer IDs must be safely ignored');
+        assert.equal(destroyedLayers.length, 2, 'Invalid highlight layer IDs must be safely ignored');
     } finally {
         if (origAdd) globalThis.canvas.interface.grid.addHighlightLayer = origAdd;
         if (origClear) globalThis.canvas.interface.grid.clearHighlightLayer = origClear;
@@ -3465,7 +3429,7 @@ test('Foundry adapter encapsulates addHighlightLayer, clearHighlightLayer, and d
     }
 });
 
-test('Foundry adapter encapsulates saveDataToFile across instances, statics, and barrel exports', () => {
+test('Foundry adapter encapsulates saveDataToFile across instances and singletons', () => {
     const adapter = new FoundryVTTV14Adapter();
     const savedCalls = [];
 
@@ -3491,14 +3455,6 @@ test('Foundry adapter encapsulates saveDataToFile across instances, statics, and
             filename: 'nested_export2.json'
         });
 
-        const res3 = saveDataToFile('raw text', 'text/plain', 'text.txt');
-        assert.equal(res3, true);
-        assert.deepEqual(savedCalls[2], {
-            data: 'raw text',
-            type: 'text/plain',
-            filename: 'text.txt'
-        });
-
         // Error handling when underlying writer throws
         globalThis.foundry.utils.saveDataToFile = () => { throw new Error('Disk full'); };
         const resErr = adapter.saveDataToFile('data', 'text/plain', 'fail.txt');
@@ -3521,18 +3477,12 @@ test('Foundry adapter encapsulates mergeObject and deepClone utilities', () => {
     const staticCloned = crosshairAdapter.deepClone(original);
     assert.deepEqual(staticCloned, original);
 
-    const barrelCloned = deepClone(original);
-    assert.deepEqual(barrelCloned, original);
-
     const target = { a: 1, b: 2 };
     const merged = adapter.mergeObject(target, { b: 3, c: 4 });
     assert.deepEqual(merged, { a: 1, b: 3, c: 4 });
 
     const staticMerged = crosshairAdapter.mergeObject({ x: 10 }, { y: 20 });
     assert.deepEqual(staticMerged, { x: 10, y: 20 });
-
-    const barrelMerged = mergeObject({ p: 1 }, { q: 2 });
-    assert.deepEqual(barrelMerged, { p: 1, q: 2 });
 });
 
 test('initializeCanvasAdapter selects CanvasV13Adapter or CanvasV14Adapter based on game.version', () => {
@@ -3650,16 +3600,16 @@ test('Canvas adapter hierarchy manages highlight layers and positions across V13
         v14.destroyHighlightLayer("test-v14");
         assert.equal(v14.getHighlightLayer("test-v14"), null);
 
-        // Test barrel re-exports
-        const hlBarrel = addHighlightLayer("test-barrel");
-        assert.ok(hlBarrel);
-        assert.equal(getHighlightLayer("test-barrel"), hlBarrel);
-        highlightPosition("test-barrel", { x: 30, y: 40 });
-        assert.ok(hlBarrel.positions.has("30,40"));
-        clearHighlightLayer("test-barrel");
-        assert.equal(hlBarrel.positions.size, 0);
-        destroyHighlightLayer("test-barrel");
-        assert.equal(getHighlightLayer("test-barrel"), null);
+        // Test canvasAdapter singleton
+        const hlSingleton = canvasAdapter.addHighlightLayer("test-singleton");
+        assert.ok(hlSingleton);
+        assert.equal(canvasAdapter.getHighlightLayer("test-singleton"), hlSingleton);
+        canvasAdapter.highlightPosition("test-singleton", { x: 30, y: 40 });
+        assert.ok(hlSingleton.positions.has("30,40"));
+        canvasAdapter.clearHighlightLayer("test-singleton");
+        assert.equal(hlSingleton.positions.size, 0);
+        canvasAdapter.destroyHighlightLayer("test-singleton");
+        assert.equal(canvasAdapter.getHighlightLayer("test-singleton"), null);
     } finally {
         globalThis.canvas = origCanvas;
     }
@@ -3694,7 +3644,7 @@ test('Foundry adapter encapsulates randomID, fromUuidSync, lineSegmentIntersecti
     const rand16 = adapter.randomID(16);
     assert.equal(typeof rand16, 'string');
     assert.equal(rand16.length, 16);
-    assert.equal(randomID(8).length, 8);
+    assert.equal(adapter.randomID(8).length, 8);
 
     // fromUuidSync
     const origFromUuid = globalThis.foundry.utils.fromUuidSync;
@@ -3702,7 +3652,6 @@ test('Foundry adapter encapsulates randomID, fromUuidSync, lineSegmentIntersecti
         globalThis.foundry.utils.fromUuidSync = (uuid) => ({ uuid, name: 'ResolvedItem' });
         const res = adapter.fromUuidSync('Item.abc123');
         assert.equal(res?.name, 'ResolvedItem');
-        assert.equal(fromUuidSync('Item.abc123')?.name, 'ResolvedItem');
     } finally {
         globalThis.foundry.utils.fromUuidSync = origFromUuid;
     }
@@ -3716,8 +3665,6 @@ test('Foundry adapter encapsulates randomID, fromUuidSync, lineSegmentIntersecti
     assert.ok(intersect);
     assert.equal(intersect.x, 5);
     assert.equal(intersect.y, 5);
-    const barrelIntersect = lineSegmentIntersection(a, b, c, d);
-    assert.deepEqual(barrelIntersect, intersect);
 
     // parseColor
     const parsedHex = adapter.parseColor('#ff0000');
@@ -3726,7 +3673,6 @@ test('Foundry adapter encapsulates randomID, fromUuidSync, lineSegmentIntersecti
     assert.ok(parsedNum !== null && parsedNum !== undefined);
     const parsedNamed = adapter.parseColor('invalidColor', 0x123456);
     assert.ok(parsedNamed !== null);
-    assert.ok(parseColor('#0000ff') !== null);
 
     // PreciseText
     assert.equal(typeof adapter.PreciseText, 'undefined');
