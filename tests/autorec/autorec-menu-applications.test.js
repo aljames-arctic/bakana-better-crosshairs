@@ -1,6 +1,7 @@
 import "../setup.js";
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs/promises";
 
 import { BaseCrosshairMenuApplication, normalizeHexColor } from "../../src/autorec/BaseCrosshairMenuApplication.js";
 import { AutorecMenuApplication } from "../../src/autorec/autorecMenu.js";
@@ -156,6 +157,14 @@ test("AutorecMenuApplication lifecycle and context preparation", async (t) => {
         assert.equal(AutorecMenuApplication.DEFAULT_OPTIONS.id, "bbc-autorec-menu");
         assert.equal(AutorecMenuApplication.DEFAULT_OPTIONS.tag, "form");
         assert.ok(AutorecMenuApplication.PARTS.main.template.includes("autorecMenu.html"));
+    });
+
+    await t.test("autorecMenu.html and itemConfigMenu.html pass previewPlacementSectionTitle to configFieldsPartial", async () => {
+        const autorecHtml = await fs.readFile(new URL("../../src/autorec/autorecMenu.html", import.meta.url), "utf8");
+        const itemConfigHtml = await fs.readFile(new URL("../../src/autorec/itemConfigMenu.html", import.meta.url), "utf8");
+
+        assert.ok(autorecHtml.includes("previewPlacementSectionTitle=../previewPlacementSectionTitle"));
+        assert.ok(itemConfigHtml.includes("previewPlacementSectionTitle=../previewPlacementSectionTitle"));
     });
 
     await t.test("_prepareContext includes persist and hasPlacedStyling for persisted entries", async () => {
