@@ -201,6 +201,16 @@ export class CrosshairRotationListener {
         }
 
         if (!isAttached) {
+            try { crosshair._refreshShape?.(); } catch (e) {}
+            try { crosshair._refreshTemplate?.(); } catch (e) {}
+            try {
+                crosshair.renderFlags?.set?.({
+                    refreshShape: true,
+                    refreshTemplate: true,
+                    refreshState: true
+                });
+                crosshair.applyRenderFlags?.();
+            } catch (e) {}
             crosshair.refresh?.();
         }
     }

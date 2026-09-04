@@ -1070,3 +1070,165 @@ test('rotateCrosshairInstance synchronizes crosshair.document.direction, ray, an
     assert.ok(mockSeqCrosshair.ray, 'Crosshair ray must be updated');
     assert.equal(refreshed, true, 'refresh() must be called for detached ray');
 });
+
+test('BaseCrosshairShape suppresses geometric border and fill alpha when graphic animation is active and enablePreviewPlacement is false', async () => {
+    const { RayCrosshairShape } = await import('../../src/crosshair/ray.js');
+    const mockDocument = { x: 0, y: 0, direction: 0 };
+    const mockPlaceable = { x: 0, y: 0, document: mockDocument };
+    const shape = new RayCrosshairShape(mockPlaceable, { distance: 30, width: 5 });
+
+    assert.equal(shape.borderAlpha, 0, 'borderAlpha must be 0 when graphic is active and preview placement is not enabled');
+    assert.equal(shape.fillAlpha, 0, 'fillAlpha must be 0 when graphic is active and preview placement is not enabled');
+
+    let passedBorderOpts = null;
+    let passedFillOpts = null;
+    const mockCrosshairBuilder = {
+        type() { return this; },
+        borderColor(c, opts) { passedBorderOpts = opts; return this; },
+        fillColor(c, opts) { passedFillOpts = opts; return this; },
+        direction() { return this; },
+        distance() { return this; },
+        width() { return this; },
+        snapPosition() { return this; },
+        location() { return this; },
+        callback() { return this; }
+    };
+    const origSeq = globalThis.Sequence;
+    try {
+        globalThis.Sequence = class {
+            crosshair() { return mockCrosshairBuilder; }
+        };
+
+        await shape.create();
+        assert.equal(passedBorderOpts?.alpha, 0, 'Sequencer borderColor alpha must be 0');
+        assert.equal(passedFillOpts?.alpha, 0, 'Sequencer fillColor alpha must be 0');
+    } finally {
+        globalThis.Sequence = origSeq;
+    }
+});
+
+test('BaseCrosshairShape respects configured border and fill alpha when enablePreviewPlacement is true', async () => {
+    const { RayCrosshairShape } = await import('../../src/crosshair/ray.js');
+    const mockDocument = { x: 0, y: 0, direction: 0 };
+    const mockPlaceable = { x: 0, y: 0, document: mockDocument };
+    const shape = new RayCrosshairShape(mockPlaceable, {
+        distance: 30,
+        width: 5,
+        enablePreviewPlacement: true,
+        borderAlpha: 0.8,
+        fillAlpha: 0.4
+    });
+
+    assert.equal(shape.borderAlpha, 0.8, 'borderAlpha must be 0.8 when enablePreviewPlacement is true');
+    assert.equal(shape.fillAlpha, 0.4, 'fillAlpha must be 0.4 when enablePreviewPlacement is true');
+
+    let passedBorderOpts = null;
+    let passedFillOpts = null;
+    const mockCrosshairBuilder = {
+        type() { return this; },
+        borderColor(c, opts) { passedBorderOpts = opts; return this; },
+        fillColor(c, opts) { passedFillOpts = opts; return this; },
+        direction() { return this; },
+        distance() { return this; },
+        width() { return this; },
+        snapPosition() { return this; },
+        location() { return this; },
+        callback() { return this; }
+    };
+    const origSeq = globalThis.Sequence;
+    try {
+        globalThis.Sequence = class {
+            crosshair() { return mockCrosshairBuilder; }
+        };
+
+        await shape.create();
+        assert.equal(passedBorderOpts?.alpha, 0.8, 'Sequencer borderColor alpha must be 0.8');
+        assert.equal(passedFillOpts?.alpha, 0.4, 'Sequencer fillColor alpha must be 0.4');
+    } finally {
+        globalThis.Sequence = origSeq;
+    }
+});
+
+test('BaseCrosshairShape uses DEFAULT_AUTOREC_ENTRY alpha when no graphic file is present', async () => {
+    const { DEFAULT_AUTOREC_ENTRY } = await import('../../src/autorec/autorecManager.js');
+    const mockDocument = { x: 0, y: 0, direction: 0 };
+    const mockPlaceable = { x: 0, y: 0, document: mockDocument };
+    const shape = new BaseCrosshairShape(mockPlaceable, { file: '' });
+
+    assert.equal(shape.borderAlpha, DEFAULT_AUTOREC_ENTRY.borderAlpha);
+    assert.equal(shape.fillAlpha, DEFAULT_AUTOREC_ENTRY.fillAlpha);
+
+    let passedBorderOpts = null;
+    let passedFillOpts = null;
+    const mockCrosshairBuilder = {
+        type() { return this; },
+        borderColor(c, opts) { passedBorderOpts = opts; return this; },
+        fillColor(c, opts) { passedFillOpts = opts; return this; },
+        direction() { return this; },
+        distance() { return this; },
+        width() { return this; },
+        snapPosition() { return this; },
+        location() { return this; },
+        callback() { return this; }
+    };
+    const origSeq = globalThis.Sequence;
+    try {
+        globalThis.Sequence = class {
+            crosshair() { return mockCrosshairBuilder; }
+        };
+
+        await shape.create();
+        assert.equal(passedBorderOpts?.alpha, DEFAULT_AUTOREC_ENTRY.borderAlpha);
+        assert.equal(passedFillOpts?.alpha, DEFAULT_AUTOREC_ENTRY.fillAlpha);
+    } finally {
+        globalThis.Sequence = origSeq;
+    }
+});
+
+test('rotateCrosshairInstance and shape.rotate invoke _refreshShape, _refreshTemplate, and applyRenderFlags', async () => {
+    const { RayCrosshairShape } = await import('../../src/crosshair/ray.js');
+    const { CrosshairRotationListener } = await import('../../src/crosshair/rotationListener.js');
+    const listener = new CrosshairRotationListener();
+
+    let shapeRefreshed = false;
+    let templateRefreshed = false;
+    let renderFlagsApplied = false;
+    let renderFlagsSet = false;
+
+    const mockSeqCrosshair = {
+        x: 0,
+        y: 0,
+        direction: 0,
+        rotation: 0,
+        type: 'ray',
+        _refreshShape() { shapeRefreshed = true; },
+        _refreshTemplate() { templateRefreshed = true; },
+        renderFlags: {
+            set(flags) { renderFlagsSet = Boolean(flags.refreshShape && flags.refreshTemplate); }
+        },
+        applyRenderFlags() { renderFlagsApplied = true; },
+        refresh() {}
+    };
+
+    listener.rotateCrosshairInstance(mockSeqCrosshair, 45, { type: 'ray' });
+    assert.equal(shapeRefreshed, true, '_refreshShape must be called on crosshair');
+    assert.equal(templateRefreshed, true, '_refreshTemplate must be called on crosshair');
+    assert.equal(renderFlagsSet, true, 'renderFlags.set must be called on crosshair');
+    assert.equal(renderFlagsApplied, true, 'applyRenderFlags must be called on crosshair');
+
+    shapeRefreshed = false;
+    templateRefreshed = false;
+    renderFlagsApplied = false;
+    renderFlagsSet = false;
+
+    const mockPlaceable = { x: 0, y: 0, document: { direction: 0 } };
+    const shape = new RayCrosshairShape(mockPlaceable, { distance: 30, width: 5 });
+    shape.sequencerCrosshair = mockSeqCrosshair;
+    shape.rotate(90);
+
+    assert.equal(shapeRefreshed, true, '_refreshShape must be called on sequencerCrosshair via shape.rotate');
+    assert.equal(templateRefreshed, true, '_refreshTemplate must be called on sequencerCrosshair via shape.rotate');
+    assert.equal(renderFlagsSet, true, 'renderFlags.set must be called on sequencerCrosshair via shape.rotate');
+    assert.equal(renderFlagsApplied, true, 'applyRenderFlags must be called on sequencerCrosshair via shape.rotate');
+});
+
