@@ -20,19 +20,11 @@ export class BaseCanvasAdapter {
         return canvas?.scene ?? null;
     }
 
-    static get scene() {
-        return canvas?.scene ?? null;
-    }
-
     /**
      * Current canvas mouse position.
      * @type {{x: number, y: number}|null}
      */
     get mousePosition() {
-        return canvas?.mousePosition ?? null;
-    }
-
-    static get mousePosition() {
         return canvas?.mousePosition ?? null;
     }
 
@@ -44,19 +36,11 @@ export class BaseCanvasAdapter {
         return canvas?.grid?.size ?? canvas?.dimensions?.size ?? 100;
     }
 
-    static get gridSize() {
-        return canvas?.grid?.size ?? canvas?.dimensions?.size ?? 100;
-    }
-
     /**
      * Canvas grid horizontal size in pixels.
      * @type {number}
      */
     get gridSizeX() {
-        return canvas?.grid?.sizeX ?? canvas?.grid?.size ?? canvas?.dimensions?.size ?? 100;
-    }
-
-    static get gridSizeX() {
         return canvas?.grid?.sizeX ?? canvas?.grid?.size ?? canvas?.dimensions?.size ?? 100;
     }
 
@@ -68,10 +52,6 @@ export class BaseCanvasAdapter {
         return canvas?.grid?.sizeY ?? canvas?.grid?.size ?? canvas?.dimensions?.size ?? 100;
     }
 
-    static get gridSizeY() {
-        return canvas?.grid?.sizeY ?? canvas?.grid?.size ?? canvas?.dimensions?.size ?? 100;
-    }
-
     /**
      * Canvas grid distance per cell (e.g. 5 feet).
      * @type {number}
@@ -80,19 +60,11 @@ export class BaseCanvasAdapter {
         return canvas?.dimensions?.distance ?? 5;
     }
 
-    static get gridDistance() {
-        return canvas?.dimensions?.distance ?? 5;
-    }
-
     /**
      * Canvas grid units string (e.g. "ft", "m").
      * @type {string}
      */
     get gridUnits() {
-        return canvas?.grid?.units ?? canvas?.dimensions?.units ?? "ft";
-    }
-
-    static get gridUnits() {
         return canvas?.grid?.units ?? canvas?.dimensions?.units ?? "ft";
     }
 
@@ -106,21 +78,11 @@ export class BaseCanvasAdapter {
         return (dist > 0) ? (size / dist) : 1;
     }
 
-    static get pixelsPerDistance() {
-        const dist = BaseCanvasAdapter.gridDistance;
-        const size = BaseCanvasAdapter.gridSize;
-        return (dist > 0) ? (size / dist) : 1;
-    }
-
     /**
      * Canvas dimensions rectangle.
      * @type {Rectangle|null}
      */
     get dimensionsRect() {
-        return canvas?.dimensions?.rect ?? null;
-    }
-
-    static get dimensionsRect() {
         return canvas?.dimensions?.rect ?? null;
     }
 
@@ -132,19 +94,11 @@ export class BaseCanvasAdapter {
         return canvas?.tokens?.controlled ?? [];
     }
 
-    static get controlledTokens() {
-        return canvas?.tokens?.controlled ?? [];
-    }
-
     /**
      * Reference to the primary canvas stage.
      * @type {PIXI.Container|null}
      */
     get stage() {
-        return canvas?.stage ?? null;
-    }
-
-    static get stage() {
         return canvas?.stage ?? null;
     }
 
@@ -156,19 +110,11 @@ export class BaseCanvasAdapter {
         return canvas?.app ?? null;
     }
 
-    static get app() {
-        return canvas?.app ?? null;
-    }
-
     /**
      * Reference to canvas controls layer.
      * @type {ControlsLayer|null}
      */
     get controls() {
-        return canvas?.controls ?? null;
-    }
-
-    static get controls() {
         return canvas?.controls ?? null;
     }
 
@@ -180,10 +126,6 @@ export class BaseCanvasAdapter {
         return canvas?.templates ?? null;
     }
 
-    static get templates() {
-        return canvas?.templates ?? null;
-    }
-
     /**
      * Reference to canvas Region layer.
      * @type {PlaceablesLayer|null}
@@ -192,19 +134,11 @@ export class BaseCanvasAdapter {
         return canvas?.regions ?? null;
     }
 
-    static get regions() {
-        return canvas?.regions ?? null;
-    }
-
     /**
      * Active canvas grid highlight layers collection.
      * @type {Object}
      */
     get highlightLayers() {
-        return canvas?.interface?.grid?.highlightLayers ?? canvas?.grid?.highlightLayers ?? {};
-    }
-
-    static get highlightLayers() {
         return canvas?.interface?.grid?.highlightLayers ?? canvas?.grid?.highlightLayers ?? {};
     }
 
@@ -234,10 +168,6 @@ export class BaseCanvasAdapter {
         log.debug(`BaseCanvasAdapter.addHighlightLayer | Could not add highlight layer for key "${cleanId}".`);
     }
 
-    static addHighlightLayer(id) {
-        return new BaseCanvasAdapter().addHighlightLayer(id);
-    }
-
     /**
      * Retrieves the specified grid highlight layer across Foundry canvas versions.
      * @param {string} id - The identifier of the highlight layer to get.
@@ -260,10 +190,6 @@ export class BaseCanvasAdapter {
         if (legacyLayer) return legacyLayer;
 
         return null;
-    }
-
-    static getHighlightLayer(id) {
-        return new BaseCanvasAdapter().getHighlightLayer(id);
     }
 
     /**
@@ -292,10 +218,6 @@ export class BaseCanvasAdapter {
         log.debug(`BaseCanvasAdapter.clearHighlightLayer | No highlight layer available for key "${cleanId}".`);
     }
 
-    static clearHighlightLayer(id) {
-        return new BaseCanvasAdapter().clearHighlightLayer(id);
-    }
-
     /**
      * Destroys the specified grid highlight layer across Foundry canvas versions.
      * @param {string} id - The identifier of the highlight layer to destroy.
@@ -320,10 +242,6 @@ export class BaseCanvasAdapter {
         }
     }
 
-    static destroyHighlightLayer(id) {
-        return new BaseCanvasAdapter().destroyHighlightLayer(id);
-    }
-
     /**
      * Highlights a grid position on the canvas across Foundry versions.
      * @param {string} id - Identifier of the highlight layer
@@ -344,10 +262,6 @@ export class BaseCanvasAdapter {
         }
     }
 
-    static highlightPosition(id, options = {}) {
-        return new BaseCanvasAdapter().highlightPosition(id, options);
-    }
-
     /**
      * Safely clears region layer highlights across versions.
      * @returns {void}
@@ -356,10 +270,6 @@ export class BaseCanvasAdapter {
         if (typeof canvas?.regions?.highlight?.clear === "function") {
             try { canvas.regions.highlight.clear(); } catch (e) {}
         }
-    }
-
-    static clearRegionsHighlight() {
-        return new BaseCanvasAdapter().clearRegionsHighlight();
     }
 
     /**
@@ -371,10 +281,6 @@ export class BaseCanvasAdapter {
             if (typeof canvas?.templates?.deactivate === "function") canvas.templates.deactivate();
             if (typeof canvas?.regions?.deactivate === "function") canvas.regions.deactivate();
         } catch (e) {}
-    }
-
-    static deactivatePlaceablesLayers() {
-        return new BaseCanvasAdapter().deactivatePlaceablesLayers();
     }
 
     /**
@@ -398,10 +304,6 @@ export class BaseCanvasAdapter {
         return { x: coords?.x ?? 0, y: coords?.y ?? 0 };
     }
 
-    static getCenterPoint(coords) {
-        return new BaseCanvasAdapter().getCenterPoint(coords);
-    }
-
     /**
      * Get the top-left point of a grid space enclosing the given coordinates across Foundry versions.
      * @param {{x?: number, y?: number, i?: number, j?: number}} coords - Coordinates object
@@ -421,10 +323,6 @@ export class BaseCanvasAdapter {
             } catch (e) {}
         }
         return { x: coords?.x ?? 0, y: coords?.y ?? 0 };
-    }
-
-    static getTopLeftPoint(coords) {
-        return new BaseCanvasAdapter().getTopLeftPoint(coords);
     }
 
     /**
@@ -453,10 +351,6 @@ export class BaseCanvasAdapter {
         return null;
     }
 
-    static getSnappedPoint(point, options = {}) {
-        return new BaseCanvasAdapter().getSnappedPoint(point, options);
-    }
-
     /**
      * Compute integer grid space coordinate offset range [i0, j0, i1, j1] enclosing a bounding rectangle across Foundry versions.
      * @param {Object} bounds - Bounding rectangle { x, y, width, height }
@@ -467,10 +361,6 @@ export class BaseCanvasAdapter {
             try { return canvas.grid.getOffsetRange(bounds); } catch (e) {}
         }
         return null;
-    }
-
-    static getOffsetRange(bounds) {
-        return new BaseCanvasAdapter().getOffsetRange(bounds);
     }
 
     /**
@@ -495,10 +385,6 @@ export class BaseCanvasAdapter {
         const gridDist = this.gridDistance;
         const gridSize = this.gridSize;
         return Math.round((dist / gridSize) * gridDist * 10) / 10;
-    }
-
-    static measureDistance(origin, target) {
-        return new BaseCanvasAdapter().measureDistance(origin, target);
     }
 
     /**
@@ -547,10 +433,6 @@ export class BaseCanvasAdapter {
         }
 
         return { x, y };
-    }
-
-    static snapCoordinates(x, y, mode = "all") {
-        return new BaseCanvasAdapter().snapCoordinates(x, y, mode);
     }
 
     /**

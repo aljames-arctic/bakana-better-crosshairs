@@ -3354,34 +3354,34 @@ test('FoundryVTTV14Adapter.refreshTemplateHighlights does not highlight extra un
     }
 });
 
-test('Foundry adapter absorbs Token, MeasuredTemplate, Region, and Ray references on class and instance', () => {
+test('Foundry adapter absorbs Token, MeasuredTemplate, Region, and Ray references on instances and barrel exports', () => {
     const adapter = new BaseFoundryVTTAdapter();
     const adapterV13 = new FoundryVTTV13Adapter();
     const adapterV14 = new FoundryVTTV14Adapter();
 
     assert.ok(adapter.Token, 'adapter.Token must be defined');
-    assert.equal(adapter.Token, BaseFoundryVTTAdapter.Token);
-    assert.equal(adapterV13.Token, BaseFoundryVTTAdapter.Token);
-    assert.equal(adapterV14.Token, BaseFoundryVTTAdapter.Token);
-    assert.equal(Token, BaseFoundryVTTAdapter.Token);
+    assert.equal(adapter.Token, crosshairAdapter.Token);
+    assert.equal(adapterV13.Token, crosshairAdapter.Token);
+    assert.equal(adapterV14.Token, crosshairAdapter.Token);
+    assert.equal(Token, crosshairAdapter.Token);
 
     assert.ok(adapter.MeasuredTemplate, 'adapter.MeasuredTemplate must be defined');
-    assert.equal(adapter.MeasuredTemplate, BaseFoundryVTTAdapter.MeasuredTemplate);
-    assert.equal(adapterV13.MeasuredTemplate, BaseFoundryVTTAdapter.MeasuredTemplate);
-    assert.equal(adapterV14.MeasuredTemplate, BaseFoundryVTTAdapter.MeasuredTemplate);
-    assert.equal(MeasuredTemplate, BaseFoundryVTTAdapter.MeasuredTemplate);
+    assert.equal(adapter.MeasuredTemplate, crosshairAdapter.MeasuredTemplate);
+    assert.equal(adapterV13.MeasuredTemplate, crosshairAdapter.MeasuredTemplate);
+    assert.equal(adapterV14.MeasuredTemplate, crosshairAdapter.MeasuredTemplate);
+    assert.equal(MeasuredTemplate, crosshairAdapter.MeasuredTemplate);
 
     assert.ok(adapter.Region, 'adapter.Region must be defined');
-    assert.equal(adapter.Region, BaseFoundryVTTAdapter.Region);
-    assert.equal(adapterV13.Region, BaseFoundryVTTAdapter.Region);
-    assert.equal(adapterV14.Region, BaseFoundryVTTAdapter.Region);
-    assert.equal(Region, BaseFoundryVTTAdapter.Region);
+    assert.equal(adapter.Region, crosshairAdapter.Region);
+    assert.equal(adapterV13.Region, crosshairAdapter.Region);
+    assert.equal(adapterV14.Region, crosshairAdapter.Region);
+    assert.equal(Region, crosshairAdapter.Region);
 
     assert.ok(adapter.Ray, 'adapter.Ray must be defined');
-    assert.equal(adapter.Ray, BaseFoundryVTTAdapter.Ray);
-    assert.equal(adapterV13.Ray, BaseFoundryVTTAdapter.Ray);
-    assert.equal(adapterV14.Ray, BaseFoundryVTTAdapter.Ray);
-    assert.equal(Ray, BaseFoundryVTTAdapter.Ray);
+    assert.equal(adapter.Ray, crosshairAdapter.Ray);
+    assert.equal(adapterV13.Ray, crosshairAdapter.Ray);
+    assert.equal(adapterV14.Ray, crosshairAdapter.Ray);
+    assert.equal(Ray, crosshairAdapter.Ray);
 });
 
 test('Foundry adapter provides createRay and createRayFromAngle helpers', () => {
@@ -3394,9 +3394,9 @@ test('Foundry adapter provides createRay and createRayFromAngle helpers', () => 
     assert.equal(ray1.B.x, 40);
     assert.equal(ray1.B.y, 60);
 
-    const staticRay = BaseFoundryVTTAdapter.createRay({ x: 0, y: 0 }, { x: 100, y: 0 });
-    assert.ok(staticRay);
-    assert.equal(staticRay.distance, 100);
+    const crosshairRay = crosshairAdapter.createRay({ x: 0, y: 0 }, { x: 100, y: 0 });
+    assert.ok(crosshairRay);
+    assert.equal(crosshairRay.distance, 100);
 
     const rayFromAngle = adapter.createRayFromAngle(50, 50, 0, 100);
     assert.ok(rayFromAngle, 'createRayFromAngle must instantiate a Ray object');
@@ -3404,9 +3404,9 @@ test('Foundry adapter provides createRay and createRayFromAngle helpers', () => 
     assert.equal(rayFromAngle.A.y, 50);
     assert.equal(Math.round(rayFromAngle.B.x), 150);
 
-    const staticRayFromAngle = BaseFoundryVTTAdapter.createRayFromAngle(0, 0, Math.PI / 2, 50);
-    assert.ok(staticRayFromAngle);
-    assert.equal(Math.round(staticRayFromAngle.B.y), 50);
+    const crosshairRayFromAngle = crosshairAdapter.createRayFromAngle(0, 0, Math.PI / 2, 50);
+    assert.ok(crosshairRayFromAngle);
+    assert.equal(Math.round(crosshairRayFromAngle.B.y), 50);
 });
 
 test('Foundry adapter encapsulates addHighlightLayer, clearHighlightLayer, and destroyHighlightLayer across instances and barrels', () => {
@@ -3432,21 +3432,21 @@ test('Foundry adapter encapsulates addHighlightLayer, clearHighlightLayer, and d
         assert.deepEqual(clearedLayers, ['layer-inst-1']);
         assert.deepEqual(destroyedLayers, ['layer-inst-1']);
 
-        // Static methods
-        BaseFoundryVTTAdapter.addHighlightLayer('layer-stat-2');
-        BaseFoundryVTTAdapter.clearHighlightLayer('layer-stat-2');
-        BaseFoundryVTTAdapter.destroyHighlightLayer('layer-stat-2');
-        assert.deepEqual(addedLayers, ['layer-inst-1', 'layer-stat-2']);
-        assert.deepEqual(clearedLayers, ['layer-inst-1', 'layer-stat-2']);
-        assert.deepEqual(destroyedLayers, ['layer-inst-1', 'layer-stat-2']);
+        // crosshairAdapter singleton
+        crosshairAdapter.addHighlightLayer('layer-singleton-2');
+        crosshairAdapter.clearHighlightLayer('layer-singleton-2');
+        crosshairAdapter.destroyHighlightLayer('layer-singleton-2');
+        assert.deepEqual(addedLayers, ['layer-inst-1', 'layer-singleton-2']);
+        assert.deepEqual(clearedLayers, ['layer-inst-1', 'layer-singleton-2']);
+        assert.deepEqual(destroyedLayers, ['layer-inst-1', 'layer-singleton-2']);
 
         // Barrel re-exports
         addHighlightLayer('layer-barrel-3');
         clearHighlightLayer('layer-barrel-3');
         destroyHighlightLayer('layer-barrel-3');
-        assert.deepEqual(addedLayers, ['layer-inst-1', 'layer-stat-2', 'layer-barrel-3']);
-        assert.deepEqual(clearedLayers, ['layer-inst-1', 'layer-stat-2', 'layer-barrel-3']);
-        assert.deepEqual(destroyedLayers, ['layer-inst-1', 'layer-stat-2', 'layer-barrel-3']);
+        assert.deepEqual(addedLayers, ['layer-inst-1', 'layer-singleton-2', 'layer-barrel-3']);
+        assert.deepEqual(clearedLayers, ['layer-inst-1', 'layer-singleton-2', 'layer-barrel-3']);
+        assert.deepEqual(destroyedLayers, ['layer-inst-1', 'layer-singleton-2', 'layer-barrel-3']);
 
         // Empty/invalid input contract handling
         adapter.addHighlightLayer('');
@@ -3483,7 +3483,7 @@ test('Foundry adapter encapsulates saveDataToFile across instances, statics, and
             filename: 'export1.json'
         });
 
-        const res2 = BaseFoundryVTTAdapter.saveDataToFile({ a: 1 }, 'application/json', 'nested/export2.json');
+        const res2 = crosshairAdapter.saveDataToFile({ a: 1 }, 'application/json', 'nested/export2.json');
         assert.equal(res2, true);
         assert.deepEqual(savedCalls[1], {
             data: '{"a":1}',
@@ -3518,7 +3518,7 @@ test('Foundry adapter encapsulates mergeObject and deepClone utilities', () => {
     assert.notEqual(cloned, original);
     assert.notEqual(cloned.nested, original.nested);
 
-    const staticCloned = BaseFoundryVTTAdapter.deepClone(original);
+    const staticCloned = crosshairAdapter.deepClone(original);
     assert.deepEqual(staticCloned, original);
 
     const barrelCloned = deepClone(original);
@@ -3528,7 +3528,7 @@ test('Foundry adapter encapsulates mergeObject and deepClone utilities', () => {
     const merged = adapter.mergeObject(target, { b: 3, c: 4 });
     assert.deepEqual(merged, { a: 1, b: 3, c: 4 });
 
-    const staticMerged = BaseFoundryVTTAdapter.mergeObject({ x: 10 }, { y: 20 });
+    const staticMerged = crosshairAdapter.mergeObject({ x: 10 }, { y: 20 });
     assert.deepEqual(staticMerged, { x: 10, y: 20 });
 
     const barrelMerged = mergeObject({ p: 1 }, { q: 2 });

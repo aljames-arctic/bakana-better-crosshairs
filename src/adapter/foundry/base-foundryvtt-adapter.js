@@ -40,19 +40,11 @@ export class BaseFoundryVTTAdapter {
         return foundry?.canvas?.placeables?.Token ?? globalThis.Token;
     }
 
-    static get Token() {
-        return foundry?.canvas?.placeables?.Token ?? globalThis.Token;
-    }
-
     /**
      * Reference to the Foundry VTT MeasuredTemplate placeable class.
      * @type {typeof foundry.canvas.placeables.MeasuredTemplate}
      */
     get MeasuredTemplate() {
-        return foundry?.canvas?.placeables?.MeasuredTemplate;
-    }
-
-    static get MeasuredTemplate() {
         return foundry?.canvas?.placeables?.MeasuredTemplate;
     }
 
@@ -64,10 +56,6 @@ export class BaseFoundryVTTAdapter {
         return foundry?.canvas?.placeables?.Region;
     }
 
-    static get Region() {
-        return foundry?.canvas?.placeables?.Region;
-    }
-
     /**
      * Reference to the Foundry VTT Ray geometry class.
      * @type {typeof foundry.canvas.geometry.Ray}
@@ -76,18 +64,10 @@ export class BaseFoundryVTTAdapter {
         return foundry?.canvas?.geometry?.Ray;
     }
 
-    static get Ray() {
-        return foundry?.canvas?.geometry?.Ray;
-    }
-
     /**
      * Reference to Foundry's canvas PreciseText container or PIXI.Text.
      */
     get PreciseText() {
-        return foundry?.canvas?.containers?.PreciseText ?? globalThis.PreciseText ?? (typeof PIXI !== "undefined" ? PIXI?.Text : undefined);
-    }
-
-    static get PreciseText() {
         return foundry?.canvas?.containers?.PreciseText ?? globalThis.PreciseText ?? (typeof PIXI !== "undefined" ? PIXI?.Text : undefined);
     }
 
@@ -99,11 +79,6 @@ export class BaseFoundryVTTAdapter {
      */
     createRay(origin, target) {
         const RayClass = this.Ray;
-        return RayClass ? new RayClass(origin, target) : null;
-    }
-
-    static createRay(origin, target) {
-        const RayClass = BaseFoundryVTTAdapter.Ray;
         return RayClass ? new RayClass(origin, target) : null;
     }
 
@@ -120,20 +95,11 @@ export class BaseFoundryVTTAdapter {
         return RayClass?.fromAngle ? RayClass.fromAngle(x, y, rad, dist) : null;
     }
 
-    static createRayFromAngle(x, y, rad, dist) {
-        const RayClass = BaseFoundryVTTAdapter.Ray;
-        return RayClass?.fromAngle ? RayClass.fromAngle(x, y, rad, dist) : null;
-    }
-
     /**
      * Active canvas adapter instance.
      * @type {BaseCanvasAdapter}
      */
     get canvasAdapter() {
-        return canvasAdapter;
-    }
-
-    static get canvasAdapter() {
         return canvasAdapter;
     }
 
@@ -146,10 +112,6 @@ export class BaseFoundryVTTAdapter {
         return this.canvasAdapter.addHighlightLayer(id);
     }
 
-    static addHighlightLayer(id) {
-        return canvasAdapter.addHighlightLayer(id);
-    }
-
     /**
      * Retrieves the specified grid highlight layer across Foundry canvas versions.
      * @param {string} id - The identifier of the highlight layer to get.
@@ -157,10 +119,6 @@ export class BaseFoundryVTTAdapter {
      */
     getHighlightLayer(id) {
         return this.canvasAdapter.getHighlightLayer(id);
-    }
-
-    static getHighlightLayer(id) {
-        return canvasAdapter.getHighlightLayer(id);
     }
 
     /**
@@ -172,10 +130,6 @@ export class BaseFoundryVTTAdapter {
         return this.canvasAdapter.clearHighlightLayer(id);
     }
 
-    static clearHighlightLayer(id) {
-        return canvasAdapter.clearHighlightLayer(id);
-    }
-
     /**
      * Destroys the specified grid highlight layer across Foundry canvas versions.
      * @param {string} id - The identifier of the highlight layer to destroy.
@@ -183,10 +137,6 @@ export class BaseFoundryVTTAdapter {
      */
     destroyHighlightLayer(id) {
         return this.canvasAdapter.destroyHighlightLayer(id);
-    }
-
-    static destroyHighlightLayer(id) {
-        return canvasAdapter.destroyHighlightLayer(id);
     }
 
     /**
@@ -199,10 +149,6 @@ export class BaseFoundryVTTAdapter {
         return this.canvasAdapter.highlightPosition(id, options);
     }
 
-    static highlightPosition(id, options = {}) {
-        return canvasAdapter.highlightPosition(id, options);
-    }
-
     /**
      * Safely clears region layer highlights across versions.
      * @returns {void}
@@ -211,20 +157,12 @@ export class BaseFoundryVTTAdapter {
         return this.canvasAdapter.clearRegionsHighlight();
     }
 
-    static clearRegionsHighlight() {
-        return canvasAdapter.clearRegionsHighlight();
-    }
-
     /**
      * Deactivates templates and regions placeable layers if active.
      * @returns {void}
      */
     deactivatePlaceablesLayers() {
         return this.canvasAdapter.deactivatePlaceablesLayers();
-    }
-
-    static deactivatePlaceablesLayers() {
-        return canvasAdapter.deactivatePlaceablesLayers();
     }
 
     /**
@@ -259,10 +197,6 @@ export class BaseFoundryVTTAdapter {
         return false;
     }
 
-    static saveDataToFile(data, type = "application/json", filename = "export.json") {
-        return new BaseFoundryVTTAdapter().saveDataToFile(data, type, filename);
-    }
-
     /**
      * Reference to Foundry's mergeObject utility.
      * @param {Object} original - Target object
@@ -274,20 +208,12 @@ export class BaseFoundryVTTAdapter {
         return foundry?.utils?.mergeObject ? foundry.utils.mergeObject(original, other, options) : Object.assign(original, other);
     }
 
-    static mergeObject(original, other = {}, options = {}) {
-        return foundry?.utils?.mergeObject ? foundry.utils.mergeObject(original, other, options) : Object.assign(original, other);
-    }
-
     /**
      * Reference to Foundry's deepClone utility.
      * @param {*} obj - Source object to clone
      * @returns {*} Cloned object
      */
     deepClone(obj) {
-        return foundry?.utils?.deepClone ? foundry.utils.deepClone(obj) : JSON.parse(JSON.stringify(obj));
-    }
-
-    static deepClone(obj) {
         return foundry?.utils?.deepClone ? foundry.utils.deepClone(obj) : JSON.parse(JSON.stringify(obj));
     }
 
@@ -301,23 +227,12 @@ export class BaseFoundryVTTAdapter {
         return foundry?.utils?.fromUuidSync ? foundry.utils.fromUuidSync(uuid) : null;
     }
 
-    static fromUuidSync(uuid) {
-        return foundry?.utils?.fromUuidSync ? foundry.utils.fromUuidSync(uuid) : null;
-    }
-
     /**
      * Generates a random alphanumeric identifier across Foundry versions.
      * @param {number} [length=16] - Identifier length
      * @returns {string} Generated identifier
      */
     randomID(length = 16) {
-        if (foundry?.utils?.randomID) return foundry.utils.randomID(length);
-        let id = "";
-        while (id.length < length) id += Math.random().toString(36).substring(2);
-        return id.substring(0, length);
-    }
-
-    static randomID(length = 16) {
         if (foundry?.utils?.randomID) return foundry.utils.randomID(length);
         let id = "";
         while (id.length < length) id += Math.random().toString(36).substring(2);
@@ -336,19 +251,11 @@ export class BaseFoundryVTTAdapter {
         return foundry?.utils?.lineSegmentIntersection ? foundry.utils.lineSegmentIntersection(a, b, c, d) : null;
     }
 
-    static lineSegmentIntersection(a, b, c, d) {
-        return foundry?.utils?.lineSegmentIntersection ? foundry.utils.lineSegmentIntersection(a, b, c, d) : null;
-    }
-
     /**
      * Reference to Foundry's Color utility class.
      * @type {typeof foundry.utils.Color}
      */
     get Color() {
-        return foundry?.utils?.Color;
-    }
-
-    static get Color() {
         return foundry?.utils?.Color;
     }
 
@@ -383,20 +290,12 @@ export class BaseFoundryVTTAdapter {
         return fallback;
     }
 
-    static parseColor(col, fallback = null) {
-        return new BaseFoundryVTTAdapter().parseColor(col, fallback);
-    }
-
     /**
      * Reference to the active canvas scene.
      * @type {Scene|null}
      */
     get scene() {
         return this.canvasAdapter.scene;
-    }
-
-    static get scene() {
-        return canvasAdapter.scene;
     }
 
     /**
@@ -407,20 +306,12 @@ export class BaseFoundryVTTAdapter {
         return this.canvasAdapter.mousePosition;
     }
 
-    static get mousePosition() {
-        return canvasAdapter.mousePosition;
-    }
-
     /**
      * Canvas grid size in pixels.
      * @type {number}
      */
     get gridSize() {
         return this.canvasAdapter.gridSize;
-    }
-
-    static get gridSize() {
-        return canvasAdapter.gridSize;
     }
 
     /**
@@ -431,20 +322,12 @@ export class BaseFoundryVTTAdapter {
         return this.canvasAdapter.gridSizeX;
     }
 
-    static get gridSizeX() {
-        return canvasAdapter.gridSizeX;
-    }
-
     /**
      * Canvas grid vertical size in pixels.
      * @type {number}
      */
     get gridSizeY() {
         return this.canvasAdapter.gridSizeY;
-    }
-
-    static get gridSizeY() {
-        return canvasAdapter.gridSizeY;
     }
 
     /**
@@ -455,20 +338,12 @@ export class BaseFoundryVTTAdapter {
         return this.canvasAdapter.gridDistance;
     }
 
-    static get gridDistance() {
-        return canvasAdapter.gridDistance;
-    }
-
     /**
      * Canvas grid units string.
      * @type {string}
      */
     get gridUnits() {
         return this.canvasAdapter.gridUnits;
-    }
-
-    static get gridUnits() {
-        return canvasAdapter.gridUnits;
     }
 
     /**
@@ -479,20 +354,12 @@ export class BaseFoundryVTTAdapter {
         return this.canvasAdapter.pixelsPerDistance;
     }
 
-    static get pixelsPerDistance() {
-        return canvasAdapter.pixelsPerDistance;
-    }
-
     /**
      * Canvas dimensions rectangle.
      * @type {Rectangle|null}
      */
     get dimensionsRect() {
         return this.canvasAdapter.dimensionsRect;
-    }
-
-    static get dimensionsRect() {
-        return canvasAdapter.dimensionsRect;
     }
 
     /**
@@ -503,20 +370,12 @@ export class BaseFoundryVTTAdapter {
         return this.canvasAdapter.controlledTokens;
     }
 
-    static get controlledTokens() {
-        return canvasAdapter.controlledTokens;
-    }
-
     /**
      * Reference to the primary canvas stage.
      * @type {PIXI.Container|null}
      */
     get stage() {
         return this.canvasAdapter.stage;
-    }
-
-    static get stage() {
-        return canvasAdapter.stage;
     }
 
     /**
@@ -527,20 +386,12 @@ export class BaseFoundryVTTAdapter {
         return this.canvasAdapter.app;
     }
 
-    static get app() {
-        return canvasAdapter.app;
-    }
-
     /**
      * Reference to canvas controls layer.
      * @type {ControlsLayer|null}
      */
     get controls() {
         return this.canvasAdapter.controls;
-    }
-
-    static get controls() {
-        return canvasAdapter.controls;
     }
 
     /**
@@ -551,10 +402,6 @@ export class BaseFoundryVTTAdapter {
         return this.canvasAdapter.templates;
     }
 
-    static get templates() {
-        return canvasAdapter.templates;
-    }
-
     /**
      * Reference to canvas Region layer.
      * @type {PlaceablesLayer|null}
@@ -563,20 +410,12 @@ export class BaseFoundryVTTAdapter {
         return this.canvasAdapter.regions;
     }
 
-    static get regions() {
-        return canvasAdapter.regions;
-    }
-
     /**
      * Active canvas grid highlight layers collection.
      * @type {Object}
      */
     get highlightLayers() {
         return this.canvasAdapter.highlightLayers;
-    }
-
-    static get highlightLayers() {
-        return canvasAdapter.highlightLayers;
     }
 
     /**
@@ -588,10 +427,6 @@ export class BaseFoundryVTTAdapter {
         return this.canvasAdapter.getCenterPoint(coords);
     }
 
-    static getCenterPoint(coords) {
-        return canvasAdapter.getCenterPoint(coords);
-    }
-
     /**
      * Get the top-left point of a grid space enclosing the given coordinates across Foundry versions.
      * @param {{x?: number, y?: number, i?: number, j?: number}} coords - Coordinates object
@@ -599,10 +434,6 @@ export class BaseFoundryVTTAdapter {
      */
     getTopLeftPoint(coords) {
         return this.canvasAdapter.getTopLeftPoint(coords);
-    }
-
-    static getTopLeftPoint(coords) {
-        return canvasAdapter.getTopLeftPoint(coords);
     }
 
     /**
@@ -615,10 +446,6 @@ export class BaseFoundryVTTAdapter {
         return this.canvasAdapter.getSnappedPoint(point, options);
     }
 
-    static getSnappedPoint(point, options = {}) {
-        return canvasAdapter.getSnappedPoint(point, options);
-    }
-
     /**
      * Compute integer grid space coordinate offset range [i0, j0, i1, j1] enclosing a bounding rectangle across Foundry versions.
      * @param {Object} bounds - Bounding rectangle { x, y, width, height }
@@ -626,10 +453,6 @@ export class BaseFoundryVTTAdapter {
      */
     getOffsetRange(bounds) {
         return this.canvasAdapter.getOffsetRange(bounds);
-    }
-
-    static getOffsetRange(bounds) {
-        return canvasAdapter.getOffsetRange(bounds);
     }
 
     /**
@@ -640,10 +463,6 @@ export class BaseFoundryVTTAdapter {
      */
     measureDistance(origin, target) {
         return this.canvasAdapter.measureDistance(origin, target);
-    }
-
-    static measureDistance(origin, target) {
-        return canvasAdapter.measureDistance(origin, target);
     }
 
     /**
@@ -1416,10 +1235,6 @@ export class BaseFoundryVTTAdapter {
 
     snapCoordinates(x, y, mode = "all") {
         return this.canvasAdapter.snapCoordinates(x, y, mode);
-    }
-
-    static snapCoordinates(x, y, mode = "all") {
-        return canvasAdapter.snapCoordinates(x, y, mode);
     }
 
     _getGridSnapMode(snapToGrid) {
