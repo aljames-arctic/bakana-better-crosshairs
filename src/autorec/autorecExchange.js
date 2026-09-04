@@ -80,6 +80,9 @@ export function sanitizeEntryForExchange(entry) {
     const enablePlacedStyling = Boolean(optionsRaw.enablePlacedStyling ?? raw.enablePlacedStyling);
     const enablePostPlacement = Boolean(optionsRaw.enablePostPlacement ?? raw.enablePostPlacement);
     const persist = Boolean(raw.persist ?? optionsRaw.persist ?? placedRaw.persist ?? DEFAULT_AUTOREC_ENTRY.persist);
+    const broadcast = optionsRaw.broadcast !== undefined
+        ? Boolean(optionsRaw.broadcast)
+        : Boolean(raw.broadcast ?? DEFAULT_AUTOREC_ENTRY.broadcast ?? true);
 
     const sanitized = {
         itemName,
@@ -87,8 +90,10 @@ export function sanitizeEntryForExchange(entry) {
         activityName,
         module,
         enabled,
+        broadcast,
         options: {
             attachMode,
+            broadcast,
             showLine,
             showRange,
             showItemIcon,
@@ -136,6 +141,7 @@ export function sanitizeEntryForExchange(entry) {
 
     sanitized.persist = persist;
     sanitized.showItemIcon = showItemIcon;
+    sanitized.broadcast = broadcast;
     if (raw.distance !== undefined && raw.distance !== null) sanitized.distance = Number(raw.distance);
     if (raw.width !== undefined && raw.width !== null) sanitized.width = Number(raw.width);
     if (raw.angle !== undefined && raw.angle !== null) sanitized.angle = Number(raw.angle);

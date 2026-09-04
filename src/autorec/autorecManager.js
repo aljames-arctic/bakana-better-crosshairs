@@ -18,6 +18,7 @@ export const DEFAULT_AUTOREC_ENTRY = {
     itemName: "DEFAULT",
     isDefault: true,
     enabled: true,
+    broadcast: true,
     sourceModule: "world",
     local: false,
     stickToToken: "default",
@@ -240,6 +241,7 @@ export class AutorecManager {
         const activityName = isDefault ? "" : String(baseConfig.activityName ?? "").trim();
         const hasActivity = Boolean(activityId) || Boolean(activityName);
         const enabled = baseConfig.enabled !== false;
+        const broadcast = Boolean(baseConfig.broadcast ?? optionsRaw.broadcast ?? DEFAULT_AUTOREC_ENTRY.broadcast ?? true);
         const sourceModule = String(baseConfig.sourceModule ?? baseConfig.module ?? "world").trim();
 
         const circleFile = String(baseConfig.circleFile ?? fileRaw.circle ?? DEFAULT_AUTOREC_ENTRY.circleFile).trim();
@@ -284,6 +286,7 @@ export class AutorecManager {
             hasActivity,
             isDefault,
             enabled,
+            broadcast,
             sourceModule,
             module: sourceModule,
             circleFile,

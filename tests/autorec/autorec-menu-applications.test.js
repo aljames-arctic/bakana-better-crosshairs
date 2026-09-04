@@ -192,4 +192,27 @@ test("ItemCrosshairConfigApplication lifecycle and item normalization", async (t
         assert.equal(context.scopes[0].overrideCount, 1);
         assert.equal(context.config.enabled, false);
     });
+
+    await t.test("_prepareContext identifies customConfig.broadcast === false as custom override", async () => {
+        const flags = {
+            customConfig: {
+                broadcast: false
+            }
+        };
+        const mockItem = {
+            id: "unbroadcast-item",
+            name: "Secret Spell",
+            getFlag: (scope, key) => flags[key] ?? null,
+            setFlag: async (scope, key, val) => { flags[key] = val; },
+            unsetFlag: async (scope, key) => { delete flags[key]; }
+        };
+
+        const app = new ItemCrosshairConfigApplication({ item: mockItem });
+        const context = await app._prepareContext({});
+
+        assert.ok(context);
+        assert.equal(context.scopes[0].hasCustom, true);
+        assert.equal(context.scopes[0].overrideCount, 1);
+        assert.equal(context.config.broadcast, false);
+    });
 });

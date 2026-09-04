@@ -71,9 +71,13 @@ export class CrosshairBroadcaster {
         const broadcastEnabled = game.settings.get(MODULE_ID, "enableCrosshairBroadcasting") !== false;
         if (!broadcastEnabled) return;
 
-        this.stop();
-
         const shape = this.shape;
+        if (shape?.broadcast === false || shape?.config?.broadcast === false) {
+            log.debug(`CrosshairBroadcaster.start | Crosshair broadcasting disabled for "${shape?.config?.itemName ?? shape?.id}" via configuration.`);
+            return;
+        }
+
+        this.stop();
         const live = this.getLiveState();
         this.placementId = `${game.user.id}_${shape.id}_${Date.now()}`;
         shape.placementId = this.placementId;

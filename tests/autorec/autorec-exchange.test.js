@@ -241,3 +241,26 @@ test('REGRESSION: persist property is preserved across v1 to v2 migration and ex
 
     autorecManager.unregister('Flaming Sphere', { local: true });
 });
+
+test('broadcast property is preserved across exchange export and import package validation', () => {
+    autorecManager.register('Invisibility Sphere', {
+        itemName: 'Invisibility Sphere',
+        circleFile: 'invis.png',
+        broadcast: false
+    }, { local: true });
+
+    const exported = autorecManager.exportAutorecs({ sourceModule: 'world' });
+    const invis = exported.entries.find(e => e.itemName === 'Invisibility Sphere');
+    assert.ok(invis);
+    assert.equal(invis.broadcast, false);
+    assert.equal(invis.options.broadcast, false);
+
+    const validated = validateImportPackage(exported);
+    const validatedInvis = validated.entries.find(e => e.itemName === 'Invisibility Sphere');
+    assert.ok(validatedInvis);
+    assert.equal(validatedInvis.broadcast, false);
+    assert.equal(validatedInvis.options.broadcast, false);
+
+    autorecManager.unregister('Invisibility Sphere', { local: true });
+});
+

@@ -122,6 +122,7 @@
                 "animationDesc": "Sequencer crosshair graphic asset and interactive rendering properties.",
                 "workflowDetails": "Workflow Details",
                 "workflowEnabled": "Workflow Enabled",
+                "broadcastCrosshairs": "Broadcast to Players",
                 "enableBtn": "Enable",
                 "callingItemName": "Calling Item Name",
                 "callingActivity": "Calling Activity ID / Name (DnD5e)",

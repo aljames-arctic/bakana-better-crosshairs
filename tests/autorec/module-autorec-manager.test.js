@@ -441,3 +441,81 @@ test('Disabling crosshairs via Autorec entry or Item/Activity custom config retu
     // Clean up
     await pack.unregister(['Spike Growth', 'Fireball'], { local: true });
 });
+
+test('Configuring broadcast flag in Autorec entry or Item/Activity custom config propagates to CrosshairConfiguration', async () => {
+    crosshairAdapter.initialize();
+    initializeSystemAdapter();
+
+    const pack = autorecManager('test-broadcast-pack');
+
+    // Register an item with broadcast: false
+    await pack.register([
+        {
+            itemName: 'Secret Invisibility',
+            config: {
+                broadcast: false,
+                circleFile: 'invis.png'
+            }
+        },
+        {
+            itemName: 'Loud Lightning',
+            config: {
+                broadcast: true,
+                rayFile: 'lightning.png'
+            }
+        }
+    ], { persist: false });
+
+    const makeDoc = (name, customConfig = null, activityConfigs = null, activityId = null) => {
+        const item = {
+            id: `item-${name.toLowerCase().replace(/\s+/g, '-')}`,
+            name,
+            getFlag(mod, flag) {
+                if (flag === 'customConfig') return customConfig;
+                if (flag === 'activityConfigs') return activityConfigs;
+                return null;
+            }
+        };
+        const doc = {
+            item,
+            documentName: 'MeasuredTemplate'
+        };
+        if (activityId) {
+            doc.activity = { id: activityId, name: 'Default Activity' };
+        }
+        return doc;
+    };
+
+    // 1. Registered autorec entry with broadcast: false yields broadcast: false
+    const invisDoc = makeDoc('Secret Invisibility');
+    const invisMatch = crosshairAdapter.matchAutorecEntry(invisDoc, autorecManager.registeredHandlers);
+    assert.ok(invisMatch);
+    assert.equal(invisMatch.broadcast, false, 'Autorec entry with broadcast: false must propagate broadcast: false');
+
+    // 2. Item custom override with broadcast: true re-enables broadcasting over global Autorec
+    const reenabledInvisDoc = makeDoc('Secret Invisibility', { broadcast: true });
+    const reenabledInvisMatch = crosshairAdapter.matchAutorecEntry(reenabledInvisDoc, autorecManager.registeredHandlers);
+    assert.ok(reenabledInvisMatch);
+    assert.equal(reenabledInvisMatch.broadcast, true, 'Item customConfig broadcast: true must override Autorec broadcast: false');
+
+    // 3. Item custom override with broadcast: false disables broadcasting for item registered with broadcast: true
+    const mutedLightningDoc = makeDoc('Loud Lightning', { broadcast: false });
+    const mutedLightningMatch = crosshairAdapter.matchAutorecEntry(mutedLightningDoc, autorecManager.registeredHandlers);
+    assert.ok(mutedLightningMatch);
+    assert.equal(mutedLightningMatch.broadcast, false, 'Item customConfig broadcast: false must override Autorec broadcast: true');
+
+    // 4. Activity custom override with broadcast: false disables broadcasting for specific activity
+    const mutedActDoc = makeDoc('Loud Lightning', null, { 'act-subtle': { broadcast: false } }, 'act-subtle');
+    const mutedActMatch = crosshairAdapter.matchAutorecEntry(mutedActDoc, autorecManager.registeredHandlers);
+    assert.ok(mutedActMatch);
+    assert.equal(mutedActMatch.broadcast, false, 'Activity customConfig broadcast: false must disable broadcasting');
+
+    // 5. Activity custom override with broadcast: true overrides item-level broadcast: false
+    const loudActDoc = makeDoc('Loud Lightning', { broadcast: false }, { 'act-loud': { broadcast: true } }, 'act-loud');
+    const loudActMatch = crosshairAdapter.matchAutorecEntry(loudActDoc, autorecManager.registeredHandlers);
+    assert.ok(loudActMatch);
+    assert.equal(loudActMatch.broadcast, true, 'Activity customConfig broadcast: true must override item-level broadcast: false');
+
+    // Clean up
+    await pack.unregister(['Secret Invisibility', 'Loud Lightning'], { local: true });
+});

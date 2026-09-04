@@ -83,3 +83,23 @@ test('CrosshairConfiguration.overrideWith respects explicit enabled flag', () =>
     assert.equal(reenabled.enabled, true);
 });
 
+test('CrosshairConfiguration handles broadcast flag in constructor, overrideWith, and toJSON', () => {
+    const defaultConf = new CrosshairConfiguration();
+    assert.equal(defaultConf.broadcast, true);
+    assert.equal(defaultConf.toJSON().broadcast, true);
+
+    const base = CrosshairConfiguration.fromSource({
+        itemName: 'Secret Invisibility',
+        broadcast: true
+    });
+    assert.equal(base.broadcast, true);
+
+    const unbroadcast = base.overrideWith({ broadcast: false });
+    assert.equal(unbroadcast.broadcast, false);
+    assert.equal(unbroadcast.toJSON().broadcast, false);
+
+    const reenabled = unbroadcast.overrideWith({ broadcast: true });
+    assert.equal(reenabled.broadcast, true);
+    assert.equal(reenabled.toJSON().broadcast, true);
+});
+

@@ -72,6 +72,7 @@ export class BaseCrosshairShape {
         this.showLine = config.showLine !== false;
         this._rawLineFile = config.lineFile ?? "eskie.crosshair.line.generic_01.white";
         this.showItemIcon = config.showItemIcon !== false;
+        this.broadcast = config.broadcast !== false;
 
         const resolveItemIcon = (cfg, document) => {
             if (cfg?.icon) return cfg.icon;
@@ -107,6 +108,7 @@ export class BaseCrosshairShape {
         config.token = this.token;
         config.stickToToken = Boolean(this.stickToToken);
         config.showLine = this.showLine;
+        config.broadcast = this.broadcast;
         config.shapeInstance = this;
         if (this.placeable && !this.placeable.crosshair) {
             this.placeable.crosshair = { shapeInstance: this };

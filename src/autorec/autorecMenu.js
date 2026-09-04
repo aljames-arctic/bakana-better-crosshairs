@@ -53,6 +53,7 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
         const defaultUserColor = getUserColor("#000000");
         const entries = rawEntries.map(e => ({
             ...e,
+            broadcast: e.broadcast !== false,
             circleFile: e.circleFile ?? DEFAULT_AUTOREC_ENTRY.circleFile,
             coneFile: e.coneFile ?? DEFAULT_AUTOREC_ENTRY.coneFile,
             rayFile: e.rayFile ?? DEFAULT_AUTOREC_ENTRY.rayFile,
@@ -95,6 +96,7 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
             animationTitle: localize("BBC.autorecMenu.labels.animationTitle", "Animation Configuration"),
             workflowDetails: localize("BBC.autorecMenu.labels.workflowDetails", "Workflow Details"),
             workflowEnabled: localize("BBC.autorecMenu.labels.workflowEnabled", "Workflow Enabled"),
+            broadcastCrosshairs: localize("BBC.autorecMenu.labels.broadcastCrosshairs", "Broadcast to Players"),
             enableBtn: localize("BBC.autorecMenu.labels.enableBtn", "Enable"),
             callingItemName: localize("BBC.autorecMenu.labels.callingItemName", "Calling Item Name"),
             callingActivity: localize("BBC.autorecMenu.labels.callingActivity", "Calling Activity ID / Name (DnD5e)"),

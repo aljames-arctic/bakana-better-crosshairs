@@ -21,6 +21,7 @@ export class CrosshairConfiguration {
         this.enabled = Boolean(source.enabled ?? defaults.enabled);
 
         const options = source.options ?? {};
+        this.broadcast = Boolean(source.broadcast ?? options.broadcast ?? defaults.broadcast ?? true);
         const file = source.file ?? {};
         const preview = source.preview ?? {};
         const previewFill = preview.fill ?? {};
@@ -132,13 +133,14 @@ export class CrosshairConfiguration {
             || "enablePlacedStyling" in customSource
             || "enablePostPlacement" in customSource;
         const hasExplicitEnabled = "enabled" in customSource;
+        const hasExplicitBroadcast = "broadcast" in customSource;
 
         const isPreOverride = hasGranularFlags ? Boolean(customSource.enablePrePlacement) : Boolean(customSource.concurrentCode);
         const isAnimOverride = hasGranularFlags ? Boolean(customSource.enableAnimation) : Boolean(customSource.enabled !== false);
         const isPlacedOverride = hasGranularFlags ? Boolean(customSource.enablePlacedStyling) : (Boolean(customSource.placedFillColor) || Boolean(customSource.placedBorderColor));
         const isPostOverride = hasGranularFlags ? Boolean(customSource.enablePostPlacement) : Boolean(customSource.postPlacementCode);
 
-        if (!isPreOverride && !isAnimOverride && !isPlacedOverride && !isPostOverride && !hasExplicitEnabled) {
+        if (!isPreOverride && !isAnimOverride && !isPlacedOverride && !isPostOverride && !hasExplicitEnabled && !hasExplicitBroadcast) {
             return this;
         }
 
@@ -146,6 +148,10 @@ export class CrosshairConfiguration {
 
         if (hasExplicitEnabled) {
             merged.enabled = customSource.enabled !== false;
+        }
+
+        if (hasExplicitBroadcast) {
+            merged.broadcast = customSource.broadcast !== false;
         }
 
         if (isPreOverride) {
@@ -203,6 +209,7 @@ export class CrosshairConfiguration {
             isDefault: this.isDefault,
             isCustom: this.isCustom,
             enabled: this.enabled,
+            broadcast: this.broadcast,
             circleFile: this.circleFile,
             coneFile: this.coneFile,
             rayFile: this.rayFile,

@@ -124,6 +124,18 @@
                                         </label>
                                     </td>
                                 </tr>
+                                <tr>
+                                    <th>{{../labels.broadcastCrosshairs}}</th>
+                                    <td>
+                                        <span class="view-only">
+                                            <span class="bbc-pill {{#if broadcast}}enabled{{else}}disabled{{/if}}">{{#if broadcast}}{{../labels.enabledPill}}{{else}}{{../labels.disabledPill}}{{/if}}</span>
+                                        </span>
+                                        <label class="bbc-toggle-label edit-only">
+                                            <input type="checkbox" name="broadcast" class="bbc-edit-input" {{#if broadcast}}checked{{/if}} />
+                                            <span>{{../labels.enabledPill}}</span>
+                                        </label>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>

@@ -135,6 +135,18 @@
                                         </td>
                                     </tr>
                                     <tr>
+                                        <th>{{../labels.broadcastCrosshairs}}</th>
+                                        <td>
+                                            <span class="view-only">
+                                                <span class="bbc-pill {{#if broadcast}}enabled{{else}}disabled{{/if}}">{{#if broadcast}}{{../labels.enabledPill}}{{else}}{{../labels.disabledPill}}{{/if}}</span>
+                                            </span>
+                                            <label class="bbc-toggle-label edit-only">
+                                                <input type="checkbox" class="bbc-edit-input" data-field="broadcast" {{#if broadcast}}checked{{/if}} />
+                                                <span>{{../labels.enabledPill}}</span>
+                                            </label>
+                                        </td>
+                                    </tr>
+                                    <tr>
                                         <th>{{../labels.registrationScope}}</th>
                                         <td>
                                             <span class="view-only">{{#if isLocal}}<span class="bbc-pill">{{../labels.localOnlyPill}}</span>{{else}}<span class="bbc-pill">{{../labels.worldSyncedPill}}</span>{{/if}}</span>

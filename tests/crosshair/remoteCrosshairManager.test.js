@@ -7,6 +7,12 @@ import { remoteCrosshairManager, RemoteCrosshairVisual } from "../../src/crossha
 import { BaseCrosshairShape } from "../../src/crosshair/base.js";
 import { crosshair } from "../../src/crosshair/index.js";
 import { socketlib } from "../../src/integration/socketlib.js";
+import { crosshairAdapter } from "../../src/adapter/index.js";
+
+beforeEach(() => {
+    crosshairAdapter.initialize();
+});
+
 
 test("BROADCAST_INTERVAL_MS is set to 200ms (5Hz)", () => {
     assert.equal(BROADCAST_INTERVAL_MS, 200);
@@ -834,5 +840,47 @@ test("RemoteCrosshairManager handles end-to-end socket flow with spell icon", as
         assert.ok(endedEffects.includes(`${visual.effectName}-icon`), "Icon effect must be cleaned up on CROSSHAIR_END");
     } finally {
         globalThis.Sequencer = origSequencer;
+    }
+});
+
+test("CrosshairBroadcaster suppresses socket broadcasting when broadcast is false on shape or config", () => {
+    let emitted = false;
+    const origEmit = socketlib.emit;
+    socketlib.emit = () => { emitted = true; };
+
+    try {
+        const placeable = {
+            document: { t: "circle", distance: 20 },
+            x: 100,
+            y: 100
+        };
+
+        // 1. With broadcast: false
+        const disabledShape = new BaseCrosshairShape(placeable, {
+            id: "test-broadcast-disabled",
+            broadcast: false
+        });
+        assert.equal(disabledShape.broadcast, false);
+        assert.equal(disabledShape.config.broadcast, false);
+
+        disabledShape.broadcaster.start();
+        assert.equal(emitted, false, "Broadcaster must not emit socket message when broadcast is false");
+        assert.equal(disabledShape.broadcaster.placementId, null);
+
+        // 2. With broadcast: true (default)
+        const enabledShape = new BaseCrosshairShape(placeable, {
+            id: "test-broadcast-enabled",
+            broadcast: true
+        });
+        assert.equal(enabledShape.broadcast, true);
+        assert.equal(enabledShape.config.broadcast, true);
+
+        enabledShape.broadcaster.start();
+        assert.equal(emitted, true, "Broadcaster must emit socket message when broadcast is true");
+        assert.ok(enabledShape.broadcaster.placementId);
+
+        enabledShape.broadcaster.stop();
+    } finally {
+        socketlib.emit = origEmit;
     }
 });
