@@ -922,6 +922,151 @@ test('BaseCrosshairShape dynamically resolves player color when fillPlayerColor 
     }
 });
 
+test('BaseCrosshairShape.create passes initial direction to Sequencer builder when direction is specified', async () => {
+    const { RayCrosshairShape } = await import('../../src/crosshair/ray.js');
+    const mockDocument = { x: 0, y: 0, direction: 45 };
+    const mockPlaceable = { x: 0, y: 0, document: mockDocument };
+    const shape = new RayCrosshairShape(mockPlaceable, { direction: 45, distance: 30, width: 5 });
 
+    let passedDirection = null;
+    const mockCrosshairBuilder = {
+        type() { return this; },
+        borderColor() { return this; },
+        fillColor() { return this; },
+        direction(d) { passedDirection = d; return this; },
+        distance() { return this; },
+        width() { return this; },
+        snapPosition() { return this; },
+        location() { return this; },
+        callback() { return this; }
+    };
+    const origSeq = globalThis.Sequence;
+    try {
+        globalThis.Sequence = class {
+            crosshair() { return mockCrosshairBuilder; }
+        };
 
+        await shape.create();
+        assert.equal(passedDirection, 45, 'Initial direction must be passed to Sequencer crosshair builder');
+    } finally {
+        globalThis.Sequence = origSeq;
+    }
+});
 
+test('Detached ray rotation updates Sequencer crosshair document direction, ray, and zeros container rotation', async () => {
+    const { RayCrosshairShape } = await import('../../src/crosshair/ray.js');
+    const mockDocument = {
+        x: 100,
+        y: 100,
+        direction: 0,
+        distance: 30,
+        width: 5,
+        updateSource(data) { Object.assign(this, data); }
+    };
+    const mockPlaceable = {
+        x: 100,
+        y: 100,
+        direction: 0,
+        document: mockDocument,
+        highlightGrid() {}
+    };
+
+    const shape = new RayCrosshairShape(mockPlaceable, { distance: 30, width: 5 });
+
+    let refreshed = false;
+    const mockSeqDocument = {
+        direction: 0,
+        updateSource(data) { Object.assign(this, data); }
+    };
+    const mockSeqCrosshair = {
+        x: 100,
+        y: 100,
+        direction: 0,
+        rotation: 0,
+        document: mockSeqDocument,
+        ray: { distance: 600, dx: 600, dy: 0 },
+        refresh() { refreshed = true; }
+    };
+
+    shape.sequencerCrosshair = mockSeqCrosshair;
+
+    // Rotate detached ray to 90 degrees
+    shape.rotate(90);
+
+    assert.equal(shape.direction, 90, 'Shape direction must update to 90');
+    assert.equal(mockSeqCrosshair.direction, 90, 'Sequencer crosshair direction must update to 90');
+    assert.equal(mockSeqDocument.direction, 90, 'Sequencer crosshair document.direction must update to 90');
+    assert.equal(mockSeqCrosshair.rotation, 0, 'Sequencer crosshair container rotation must be 0 when document is present');
+    assert.ok(mockSeqCrosshair.ray, 'Sequencer crosshair ray must be present');
+    assert.equal(refreshed, true, 'Sequencer crosshair refresh() must be triggered');
+    assert.equal(mockDocument.direction, 90, 'Preview document direction must update to 90');
+});
+
+test('hidePreview keeps native placeable hidden even when placeable.crosshair is attached', () => {
+    const mockPlaceable = {
+        constructor: { name: 'MeasuredTemplate' },
+        visible: true,
+        renderable: true,
+        alpha: 1,
+        template: { visible: true, renderable: true, alpha: 1 },
+        shape: { visible: true, renderable: true, alpha: 1 },
+        border: { visible: true, renderable: true, alpha: 1 },
+        document: {
+            t: 'ray',
+            direction: 0,
+            distance: 30
+        },
+        refresh() {
+            this.visible = true;
+            this.renderable = true;
+            this.template.visible = true;
+        }
+    };
+
+    crosshairAdapter.hidePreview(mockPlaceable);
+    assert.equal(mockPlaceable.template.visible, false, 'Template must be hidden initially');
+
+    // Simulate BBC attaching crosshair reference to placeable
+    mockPlaceable.crosshair = {
+        constructor: { name: 'CrosshairsPlaceable' },
+        document: { crosshair: { borderAlpha: 0.3 } },
+        tag: 'sequencer-crosshair-123'
+    };
+
+    // Trigger intercepted refresh on placeable
+    mockPlaceable.refresh();
+
+    // Placeable must STILL be hidden because placeable is NOT a Sequencer crosshair
+    assert.equal(mockPlaceable.template.visible, false, 'Placeable must remain hidden even after placeable.crosshair is attached');
+    assert.equal(mockPlaceable.template.renderable, false);
+    assert.equal(mockPlaceable.template.alpha, 0);
+});
+
+test('rotateCrosshairInstance synchronizes crosshair.document.direction, ray, and refreshes detached rays and cones', async () => {
+    const { CrosshairRotationListener } = await import('../../src/crosshair/rotationListener.js');
+    const listener = new CrosshairRotationListener();
+
+    let refreshed = false;
+    const mockSeqDocument = {
+        direction: 0,
+        updateSource(data) { Object.assign(this, data); }
+    };
+    const mockSeqCrosshair = {
+        x: 50,
+        y: 50,
+        direction: 0,
+        rotation: 0,
+        type: 'ray',
+        document: mockSeqDocument,
+        ray: { distance: 600, dx: 600, dy: 0 },
+        refresh() { refreshed = true; }
+    };
+
+    listener.rotateCrosshairInstance(mockSeqCrosshair, 135, { type: 'ray' });
+
+    assert.equal(mockSeqCrosshair.direction, 135, 'Crosshair direction must update to 135');
+    assert.equal(mockSeqDocument.direction, 135, 'Crosshair document direction must update to 135');
+    assert.equal(mockSeqCrosshair.rotation, 0, 'Crosshair rotation must be 0 when document is present');
+    assert.ok(mockSeqCrosshair.ray, 'Crosshair ray must be updated');
+    assert.equal(refreshed, true, 'refresh() must be called for detached ray');
+});

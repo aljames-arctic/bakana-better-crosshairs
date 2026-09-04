@@ -146,8 +146,25 @@ export class CrosshairRotationListener {
 
         if (!isAttached || isRayOrCone || isRemote) {
             crosshair.direction = newDirDeg;
+            if (crosshair.document) {
+                crosshair.document.direction = newDirDeg;
+                try {
+                    crosshair.document.updateSource?.({ direction: newDirDeg });
+                } catch (e) {
+                    log.debug("rotateCrosshairInstance | Exception updating crosshair document source:", e);
+                }
+            }
+            if (crosshair.ray) {
+                const ox = crosshair.x ?? 0;
+                const oy = crosshair.y ?? 0;
+                const dist = crosshair.ray.distance ?? 1000;
+                const newRay = crosshairAdapter.createRayFromAngle(ox, oy, rad, dist);
+                if (newRay) crosshair.ray = newRay;
+            }
             if (!isRect) {
-                try { crosshair.rotation = rad; } catch (e) { log.debug("rotateCrosshairInstance | Exception setting crosshair.rotation:", e); }
+                try {
+                    crosshair.rotation = crosshair.document ? 0 : rad;
+                } catch (e) { log.debug("rotateCrosshairInstance | Exception setting crosshair.rotation:", e); }
             } else {
                 try { crosshair.rotation = 0; } catch (e) { log.debug("rotateCrosshairInstance | Exception resetting crosshair.rotation:", e); }
             }
@@ -161,6 +178,12 @@ export class CrosshairRotationListener {
             }
         } else {
             crosshair.direction = 0;
+            if (crosshair.document) {
+                crosshair.document.direction = 0;
+                try {
+                    crosshair.document.updateSource?.({ direction: 0 });
+                } catch (e) {}
+            }
             try { crosshair.rotation = 0; } catch (e) { log.debug("rotateCrosshairInstance | Exception resetting attached crosshair.rotation:", e); }
             if (crosshair.config) {
                 crosshair.config.direction = 0;
@@ -177,7 +200,7 @@ export class CrosshairRotationListener {
             this.refreshTemplateHighlights(tmpl, newDirDeg, rad);
         }
 
-        if (!isRayOrCone && !isAttached) {
+        if (!isAttached) {
             crosshair.refresh?.();
         }
     }

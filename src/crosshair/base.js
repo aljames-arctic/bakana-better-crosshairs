@@ -373,6 +373,10 @@ export class BaseCrosshairShape {
                 .borderColor(this.borderColor, { alpha: this.borderAlpha })
                 .fillColor(this.fillColor, { alpha: this.fillAlpha });
 
+        if (Number.isFinite(this.direction)) {
+            crosshairSeq.direction?.(this.direction);
+        }
+
         this.configureCrosshairShape(crosshairSeq);
 
         if (this.stickToToken && this.token && !this.config?.isRemote) {
@@ -739,8 +743,23 @@ export class BaseCrosshairShape {
         if (this.sequencerCrosshair && !this.sequencerCrosshair.destroyed) {
             const isRect = this.type === "rect" || this.type === "square";
             this.sequencerCrosshair.direction = newAngleDeg;
+            if (this.sequencerCrosshair.document) {
+                this.sequencerCrosshair.document.direction = newAngleDeg;
+                try {
+                    this.sequencerCrosshair.document.updateSource?.({ direction: newAngleDeg });
+                } catch (e) {
+                    log.debug("BaseCrosshairShape.rotate | Exception updating sequencerCrosshair document source:", e);
+                }
+            }
+            if (this.sequencerCrosshair.ray) {
+                const ox = this.sequencerCrosshair.x ?? this.x ?? 0;
+                const oy = this.sequencerCrosshair.y ?? this.y ?? 0;
+                const dist = this.sequencerCrosshair.ray.distance ?? 1000;
+                const newRay = crosshairAdapter.createRayFromAngle(ox, oy, rad, dist);
+                if (newRay) this.sequencerCrosshair.ray = newRay;
+            }
             if (!isRect) {
-                this.sequencerCrosshair.rotation = rad;
+                this.sequencerCrosshair.rotation = this.sequencerCrosshair.document ? 0 : rad;
             } else {
                 this.sequencerCrosshair.rotation = 0;
             }
@@ -759,6 +778,9 @@ export class BaseCrosshairShape {
         const doc = this.doc;
         if (doc) {
             doc.direction = newAngleDeg;
+            try {
+                doc.updateSource?.({ direction: newAngleDeg });
+            } catch (e) {}
         }
         if (this.placeable) {
             this.placeable.direction = newAngleDeg;
