@@ -159,7 +159,7 @@ globalThis.CONST = {
 };
 
 const settingsStore = new Map([
-    ['bakana-better-crosshairs.logVerbosity', 3],
+    ['bakana-better-crosshairs.logVerbosity', 'info'],
     ['bakana-better-crosshairs.registeredTemplates', {}]
 ]);
 

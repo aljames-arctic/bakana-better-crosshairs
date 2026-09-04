@@ -4,11 +4,7 @@ const VERBOSITY_LEVELS = {
     'error': 1,
     'warn': 2,
     'info': 3,
-    'debug': 4,
-    1: 1,
-    2: 2,
-    3: 3,
-    4: 4
+    'debug': 4
 };
 
 export const GROUP_STYLES = {
@@ -191,7 +187,7 @@ export const log = {
     /**
      * Dynamically update the cached verbosity level.
      * Called by the settings onChange callback.
-     * @param {string|number} level - The new verbosity level key or number.
+     * @param {'error'|'warn'|'info'|'debug'} level - The new verbosity level key.
      * @returns {void}
      */
     setVerbosity(level) {
