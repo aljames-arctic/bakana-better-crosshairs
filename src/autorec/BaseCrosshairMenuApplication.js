@@ -1,4 +1,4 @@
-import { localize, notify } from "../lib/utils.js";
+import { localize, notify, getUserColor } from "../lib/utils.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -138,7 +138,29 @@ export class BaseCrosshairMenuApplication extends HandlebarsApplicationMixin(App
             textInput.addEventListener("change", syncToPicker);
         });
 
-        // 4. Expandable section accordions
+        // 4. Populate player color button click handler
+        root.querySelectorAll("[data-action='use-player-color']").forEach(btn => {
+            btn.addEventListener("click", (ev) => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                const row = ev.currentTarget.closest(".bbc-edit-color-row");
+                const userColor = getUserColor("#000000");
+                const textInput = row?.querySelector("input[type='text']");
+                const colorPicker = row?.querySelector("input[type='color']");
+                if (textInput) {
+                    textInput.value = userColor;
+                    textInput.dispatchEvent(new Event("input", { bubbles: true }));
+                    textInput.dispatchEvent(new Event("change", { bubbles: true }));
+                }
+                if (colorPicker && colorPicker.value !== userColor) {
+                    colorPicker.value = userColor;
+                    colorPicker.dispatchEvent(new Event("input", { bubbles: true }));
+                    colorPicker.dispatchEvent(new Event("change", { bubbles: true }));
+                }
+            });
+        });
+
+        // 5. Expandable section accordions
         root.querySelectorAll(".bbc-section-header").forEach(header => {
             header.addEventListener("click", (ev) => {
                 const h = ev.currentTarget;

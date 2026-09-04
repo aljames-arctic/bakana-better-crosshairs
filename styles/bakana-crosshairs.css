@@ -750,6 +750,28 @@
     cursor: pointer;
 }
 
+.bbc-player-color-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #cbd5e1;
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.18s ease;
+}
+
+.bbc-player-color-btn:hover {
+    color: #ffffff;
+    background: rgba(51, 65, 85, 0.9);
+    border-color: rgba(148, 163, 184, 0.45);
+}
+
 .bbc-sidebar-footer {
     display: flex;
     justify-content: flex-end;

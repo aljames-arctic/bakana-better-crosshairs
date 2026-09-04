@@ -42,6 +42,78 @@ test("BaseCrosshairMenuApplication & normalizeHexColor utility", async (t) => {
         assert.ok(typeof titles.placementSectionTitle === "string");
         assert.ok(typeof titles.postPlacementTitle === "string");
     });
+
+    await t.test("BaseCrosshairMenuApplication._onRender wires 'use-player-color' button to populate text and color inputs", () => {
+        const app = new BaseCrosshairMenuApplication();
+        const originalUserColor = game.user.color;
+        game.user.color = "#4a90e2";
+
+        const textEvents = [];
+        const mockTextInput = {
+            value: "#000000",
+            dispatchEvent(ev) { textEvents.push(ev.type); }
+        };
+
+        const colorEvents = [];
+        const mockColorPicker = {
+            value: "#000000",
+            dispatchEvent(ev) { colorEvents.push(ev.type); }
+        };
+
+        const mockRow = {
+            querySelector(selector) {
+                if (selector === "input[type='text']") return mockTextInput;
+                if (selector === "input[type='color']") return mockColorPicker;
+                return null;
+            }
+        };
+
+        let clickHandler;
+        const mockBtn = {
+            addEventListener(event, fn) {
+                if (event === "click") clickHandler = fn;
+            },
+            closest(selector) {
+                if (selector === ".bbc-edit-color-row") return mockRow;
+                return null;
+            }
+        };
+
+        const mockRoot = {
+            nodeType: 1,
+            querySelectorAll(selector) {
+                if (selector === "[data-action='use-player-color']") return [mockBtn];
+                return [];
+            },
+            querySelector() { return null; }
+        };
+
+        app.element = mockRoot;
+        app._onRender({}, {});
+
+        assert.ok(clickHandler, "Click handler should be registered");
+
+        let defaultPrevented = false;
+        let propagationStopped = false;
+        clickHandler({
+            currentTarget: mockBtn,
+            preventDefault() { defaultPrevented = true; },
+            stopPropagation() { propagationStopped = true; }
+        });
+
+        assert.equal(defaultPrevented, true);
+        assert.equal(propagationStopped, true);
+        assert.equal(mockTextInput.value, "#4a90e2");
+        assert.equal(mockColorPicker.value, "#4a90e2");
+        assert.deepEqual(textEvents, ["input", "change"]);
+        assert.deepEqual(colorEvents, ["input", "change"]);
+
+        if (originalUserColor !== undefined) {
+            game.user.color = originalUserColor;
+        } else {
+            delete game.user.color;
+        }
+    });
 });
 
 test("AutorecMenuApplication lifecycle and context preparation", async (t) => {
@@ -56,6 +128,8 @@ test("AutorecMenuApplication lifecycle and context preparation", async (t) => {
         assert.equal(context.isGM, true);
         assert.equal(typeof context.supportsActivities, "boolean");
         assert.ok(context.labels);
+        assert.equal(typeof context.labels.usePlayerColor, "string");
+        assert.ok(context.labels.usePlayerColor.length > 0);
     });
 
     await t.test("AutorecMenuApplication DEFAULT_OPTIONS and PARTS static properties", () => {
@@ -139,6 +213,9 @@ test("ItemCrosshairConfigApplication lifecycle and item normalization", async (t
         assert.ok(context.config);
         assert.equal(typeof context.config.borderColorPicker, "string");
         assert.equal(typeof context.config.fillColorPicker, "string");
+        assert.ok(context.labels);
+        assert.equal(typeof context.labels.usePlayerColor, "string");
+        assert.ok(context.labels.usePlayerColor.length > 0);
     });
 
     await t.test("_prepareContext identifies active activity overrides and sidebar scopes", async () => {

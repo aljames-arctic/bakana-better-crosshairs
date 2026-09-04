@@ -82,6 +82,7 @@ globalThis.foundry = {
                     this.options = options;
                 }
                 render() {}
+                _onRender(context, options) {}
             },
             DialogV2: class DialogV2 {
                 static async confirm(options) {
