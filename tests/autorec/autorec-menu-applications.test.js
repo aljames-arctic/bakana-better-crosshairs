@@ -79,6 +79,21 @@ test("AutorecMenuApplication lifecycle and context preparation", async (t) => {
 
         autorecManager.unregister("Persisted Web", { local: true });
     });
+
+    await t.test("_prepareContext preserves broadcast flag for entries with broadcast: false", async () => {
+        autorecManager.register("Silent Spell", {
+            itemName: "Silent Spell",
+            broadcast: false
+        }, { local: true });
+
+        const app = new AutorecMenuApplication();
+        const context = await app._prepareContext({});
+        const silentEntry = context.entries.find(e => e.itemName === "Silent Spell");
+        assert.ok(silentEntry);
+        assert.equal(silentEntry.broadcast, false);
+
+        autorecManager.unregister("Silent Spell", { local: true });
+    });
 });
 
 test("ItemCrosshairConfigApplication lifecycle and item normalization", async (t) => {

@@ -923,6 +923,7 @@ export class AutorecManager {
             const hasActivity = Boolean(activityId) || Boolean(activityName);
             const activityDisplay = activityName !== "" ? activityName : activityId;
             const enabled = config.enabled !== false;
+            const broadcast = config.broadcast !== false;
             const sourceModule = String(config.sourceModule ?? "world");
 
             results.push({
@@ -930,6 +931,7 @@ export class AutorecManager {
                 itemName: isDefault ? "DEFAULT" : cleanItemName,
                 isDefault,
                 enabled,
+                broadcast,
                 sourceModule,
                 activityId,
                 activityName,
