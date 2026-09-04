@@ -1171,6 +1171,7 @@ test('REGRESSION: alignCrosshairAndEffects updates visual effect rotation for co
     const origSequencer = globalThis.Sequencer;
     try {
         globalThis.Sequencer = {
+            ...origSequencer,
             EffectManager: {
                 getEffects: () => [mockEffect]
             }

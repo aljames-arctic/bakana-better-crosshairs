@@ -749,6 +749,7 @@ test('BaseCrosshairShape plays item icon effect smoothly when showItemIcon is tr
         };
 
         globalThis.Sequencer = {
+            ...origSequencer,
             EffectManager: {
                 getEffects: ({ name }) => {
                     if (name === "test-sync") return [mainEff];

@@ -446,6 +446,7 @@ test("REGRESSION: RemoteCrosshairVisual.update sets container rotation in radian
     const origSequencer = globalThis.Sequencer;
     try {
         globalThis.Sequencer = {
+            ...origSequencer,
             EffectManager: {
                 getEffects: () => [mockEffect],
                 endEffects: async () => {}
@@ -707,6 +708,7 @@ test("RemoteCrosshairVisual.update synchronizes both main effect and icon effect
     const origSequencer = globalThis.Sequencer;
     try {
         globalThis.Sequencer = {
+            ...origSequencer,
             EffectManager: {
                 getEffects: ({ name }) => {
                     if (name === "remote-crosshair-peer-update-main") return [mainEff];
@@ -760,6 +762,7 @@ test("RemoteCrosshairVisual.destroy terminates main, line, and icon effects", as
     const origSequencer = globalThis.Sequencer;
     try {
         globalThis.Sequencer = {
+            ...origSequencer,
             EffectManager: {
                 endEffects: async ({ name }) => { endedEffects.push(name); }
             }
@@ -791,6 +794,7 @@ test("RemoteCrosshairManager handles end-to-end socket flow with spell icon", as
     const origSequencer = globalThis.Sequencer;
     try {
         globalThis.Sequencer = {
+            ...origSequencer,
             EffectManager: {
                 getEffects: () => [],
                 endEffects: async ({ name }) => { endedEffects.push(name); }
