@@ -82,6 +82,10 @@ export class CrosshairRotationListener {
             }
         }
 
+        if (crosshairAdapter?.hidePreview && crosshairAdapter.isPreview(tmpl)) {
+            crosshairAdapter.hidePreview(tmpl);
+        }
+
         if (crosshairAdapter?.refreshTemplateHighlights) {
             try {
                 crosshairAdapter.refreshTemplateHighlights(tmpl, newDirDeg);

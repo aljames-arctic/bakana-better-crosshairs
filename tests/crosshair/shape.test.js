@@ -1000,6 +1000,41 @@ test('Detached ray rotation updates Sequencer crosshair document direction, ray,
     assert.ok(mockSeqCrosshair.ray, 'Sequencer crosshair ray must be present');
     assert.equal(refreshed, true, 'Sequencer crosshair refresh() must be triggered');
     assert.equal(mockDocument.direction, 90, 'Preview document direction must update to 90');
+    assert.equal(mockDocument.rotation, 90, 'Preview document rotation must update to 90');
+    assert.equal(mockPlaceable.direction, 90, 'Placeable direction must update to 90');
+    assert.ok(Math.abs(mockPlaceable.rotation - (90 * Math.PI / 180)) < 1e-6, 'Placeable rotation must update to radians');
+    assert.ok(mockPlaceable.ray, 'Placeable ray must be synchronized');
+});
+
+test('FoundryVTTV13Adapter.refreshTemplateHighlights synchronizes rotation, direction, and ray on template and document', async () => {
+    const { FoundryVTTV13Adapter } = await import('../../src/adapter/foundry/foundryvtt-v13-adapter.js');
+    const adapter = new FoundryVTTV13Adapter();
+
+    const mockDoc = {
+        x: 100,
+        y: 200,
+        distance: 30,
+        direction: 0,
+        rotation: 0,
+        updateSource(data) { Object.assign(this, data); }
+    };
+    const mockTmpl = {
+        x: 100,
+        y: 200,
+        direction: 0,
+        rotation: 0,
+        document: mockDoc,
+        ray: { distance: 600, dx: 600, dy: 0 },
+        highlightGrid() {}
+    };
+
+    adapter.refreshTemplateHighlights(mockTmpl, 60);
+
+    assert.equal(mockTmpl.direction, 60, 'Template direction must update to 60');
+    assert.ok(Math.abs(mockTmpl.rotation - (60 * Math.PI / 180)) < 1e-6, 'Template rotation must update to radians');
+    assert.equal(mockDoc.direction, 60, 'Document direction must update to 60');
+    assert.equal(mockDoc.rotation, 60, 'Document rotation must update to 60');
+    assert.ok(mockTmpl.ray, 'Template ray must be present');
 });
 
 test('hidePreview keeps native placeable hidden even when placeable.crosshair is attached', () => {

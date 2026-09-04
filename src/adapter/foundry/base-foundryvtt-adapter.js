@@ -669,88 +669,113 @@ export class BaseFoundryVTTAdapter {
      */
     hidePreview(placeable) {
         if (!placeable) return;
-        try {
-            placeable.interactive = false;
-            placeable.interactiveChildren = false;
-            if ("eventMode" in placeable) placeable.eventMode = "none";
-        } catch (e) {}
-        const hideContainers = (obj) => {
-            if (!obj) return;
-            const isSeqCrosshair = obj.constructor?.name === "CrosshairsPlaceable"
-                || Boolean(obj.document?.crosshair)
-                || Boolean(obj.tag && String(obj.tag).includes("sequencer-crosshair"));
-            if (isSeqCrosshair) return;
 
-            obj.visible = false;
-            obj.renderable = false;
-            obj.alpha = 0;
-            if (obj.template) {
-                obj.template.visible = false;
-                obj.template.renderable = false;
-                obj.template.alpha = 0;
-                if (!obj.template._bbcHidden) {
-                    obj.template._bbcHidden = true;
-                    try { Object.defineProperty(obj.template, "visible", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
-                    try { Object.defineProperty(obj.template, "renderable", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
+        const isSeqCrosshair = (target) => {
+            if (!target) return false;
+            return target.constructor?.name === "CrosshairsPlaceable"
+                || Boolean(target.document?.crosshair)
+                || Boolean(target.tag && String(target.tag).includes("sequencer-crosshair"));
+        };
+
+        if (isSeqCrosshair(placeable)) return;
+
+        const makeInvisible = (target) => {
+            if (!target || isSeqCrosshair(target)) return;
+
+            try { target.interactive = false; } catch (e) {}
+            try { target.interactiveChildren = false; } catch (e) {}
+            if ("eventMode" in target) {
+                try { target.eventMode = "none"; } catch (e) {}
+            }
+
+            target.visible = false;
+            target.renderable = false;
+            target.alpha = 0;
+            target.worldAlpha = 0;
+            target.render = () => {};
+            target._render = () => {};
+            target.renderAdvanced = () => {};
+
+            if (!target._bbcPermanentlyHidden) {
+                target._bbcPermanentlyHidden = true;
+                try { Object.defineProperty(target, "visible", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
+                try { Object.defineProperty(target, "renderable", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
+                try { Object.defineProperty(target, "alpha", { get: () => 0, set: () => {}, configurable: true }); } catch (e) {}
+                try { Object.defineProperty(target, "worldAlpha", { get: () => 0, set: () => {}, configurable: true }); } catch (e) {}
+                try { Object.defineProperty(target, "render", { get: () => (() => {}), set: () => {}, configurable: true }); } catch (e) {}
+                try { Object.defineProperty(target, "_render", { get: () => (() => {}), set: () => {}, configurable: true }); } catch (e) {}
+                try { Object.defineProperty(target, "renderAdvanced", { get: () => (() => {}), set: () => {}, configurable: true }); } catch (e) {}
+            }
+        };
+
+        const hideContainers = (obj) => {
+            if (!obj || isSeqCrosshair(obj)) return;
+            makeInvisible(obj);
+
+            const watchedProps = ["template", "border", "shape", "mesh", "ruler", "controlIcon"];
+            for (const prop of watchedProps) {
+                let currentVal = obj[prop];
+                if (currentVal) {
+                    makeInvisible(currentVal);
+                    if (prop === "ruler") {
+                        try { currentVal.text = ""; } catch (e) {}
+                    }
+                }
+                if (!obj._bbcWatchedProperties?.has(prop)) {
+                    if (!obj._bbcWatchedProperties) obj._bbcWatchedProperties = new Set();
+                    obj._bbcWatchedProperties.add(prop);
+                    try {
+                        Object.defineProperty(obj, prop, {
+                            get: () => currentVal,
+                            set: (val) => {
+                                currentVal = val;
+                                if (val) {
+                                    makeInvisible(val);
+                                    if (prop === "ruler") {
+                                        try { val.text = ""; } catch (e) {}
+                                    }
+                                }
+                            },
+                            configurable: true
+                        });
+                    } catch (e) {}
                 }
             }
-            if (obj.ruler) {
-                obj.ruler.visible = false;
-                obj.ruler.renderable = false;
-                try { obj.ruler.text = ""; } catch (e) {}
-            }
-            if (obj.controlIcon) {
-                obj.controlIcon.visible = false;
-            }
-            if (obj.mesh) {
-                obj.mesh.visible = false;
-                obj.mesh.renderable = false;
-                obj.mesh.alpha = 0;
-                if (!obj.mesh._bbcHidden) {
-                    obj.mesh._bbcHidden = true;
-                    try { Object.defineProperty(obj.mesh, "visible", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
-                    try { Object.defineProperty(obj.mesh, "renderable", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
-                }
-            }
-            if (obj.shape) {
-                obj.shape.visible = false;
-                obj.shape.renderable = false;
-                obj.shape.alpha = 0;
-                if (!obj.shape._bbcHidden) {
-                    obj.shape._bbcHidden = true;
-                    try { Object.defineProperty(obj.shape, "visible", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
-                    try { Object.defineProperty(obj.shape, "renderable", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
-                }
-            }
-            if (obj.border) {
-                obj.border.visible = false;
-                obj.border.renderable = false;
-                obj.border.alpha = 0;
-                if (!obj.border._bbcHidden) {
-                    obj.border._bbcHidden = true;
-                    try { Object.defineProperty(obj.border, "visible", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
-                    try { Object.defineProperty(obj.border, "renderable", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
-                }
-            }
+
             if (obj.children) {
                 for (const child of obj.children) {
-                    if (child) {
-                        child.visible = false;
-                        child.renderable = false;
-                        child.alpha = 0;
-                    }
+                    if (child) makeInvisible(child);
+                }
+            }
+
+            if (!obj._bbcAddChildWrapped) {
+                obj._bbcAddChildWrapped = true;
+                const origAddChild = obj.addChild;
+                if (origAddChild) {
+                    obj.addChild = function (...children) {
+                        for (const child of children) {
+                            if (child) makeInvisible(child);
+                        }
+                        return origAddChild.apply(this, children);
+                    };
+                }
+                const origAddChildAt = obj.addChildAt;
+                if (origAddChildAt) {
+                    obj.addChildAt = function (child, index) {
+                        if (child) makeInvisible(child);
+                        return origAddChildAt.apply(this, [child, index]);
+                    };
                 }
             }
         };
 
-        try { Object.defineProperty(placeable, "visible", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
-        try { Object.defineProperty(placeable, "renderable", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
         hideContainers(placeable);
 
         const methodsToIntercept = [
             "refresh", "_refresh",
             "applyRenderFlags", "_applyRenderFlags",
-            "_refreshState", "_refreshShape", "_refreshBorder", "_refreshMeasurements", "_updateMeasurements"
+            "_refreshState", "_refreshShape", "_refreshTemplate", "_refreshBorder", "_refreshMeasurements", "_updateMeasurements",
+            "draw", "_draw", "clear"
         ];
 
         for (const methodName of methodsToIntercept) {
@@ -758,9 +783,10 @@ export class BaseFoundryVTTAdapter {
                 try {
                     const orig = placeable[methodName];
                     placeable[methodName] = function (...args) {
-                        try { orig?.apply(this, args); } catch (e) {}
+                        let result;
+                        try { result = orig?.apply(this, args); } catch (e) {}
                         hideContainers(this);
-                        return this;
+                        return result ?? this;
                     };
                 } catch (e) {}
             }

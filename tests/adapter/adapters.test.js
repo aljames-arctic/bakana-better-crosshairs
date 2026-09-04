@@ -426,17 +426,26 @@ test('Pf2eSystemAdapter handleProgrammaticPlacement branches between Region shap
     assert.equal(createdDocData._id, undefined);
 });
 
-test('hidePreview safely hides PIXI containers immediately and overrides refresh and _refresh methods', () => {
+test('hidePreview safely hides PIXI containers immediately, overrides render methods, and intercepts child mutations', () => {
     const mockPlaceable = {
         visible: true,
         renderable: true,
         alpha: 1,
-        template: { visible: true, renderable: true, alpha: 1 },
-        mesh: { visible: true, renderable: true, alpha: 1 },
-        shape: { visible: true, renderable: true, alpha: 1 },
-        border: { visible: true, renderable: true, alpha: 1 },
-        ruler: { visible: true, renderable: true, text: '20 ft' },
-        controlIcon: { visible: true }
+        worldAlpha: 1,
+        render: () => {},
+        _render: () => {},
+        renderAdvanced: () => {},
+        addChild(child) {
+            this.children = this.children ?? [];
+            this.children.push(child);
+            return child;
+        },
+        template: { visible: true, renderable: true, alpha: 1, worldAlpha: 1, render: () => {} },
+        mesh: { visible: true, renderable: true, alpha: 1, worldAlpha: 1, render: () => {} },
+        shape: { visible: true, renderable: true, alpha: 1, worldAlpha: 1, render: () => {} },
+        border: { visible: true, renderable: true, alpha: 1, worldAlpha: 1, render: () => {} },
+        ruler: { visible: true, renderable: true, alpha: 1, worldAlpha: 1, text: '20 ft' },
+        controlIcon: { visible: true, renderable: true, alpha: 1, worldAlpha: 1 }
     };
 
     crosshairAdapter.hidePreview(mockPlaceable);
@@ -444,23 +453,47 @@ test('hidePreview safely hides PIXI containers immediately and overrides refresh
     assert.equal(mockPlaceable.visible, false);
     assert.equal(mockPlaceable.renderable, false);
     assert.equal(mockPlaceable.alpha, 0);
+    assert.equal(mockPlaceable.worldAlpha, 0);
     assert.equal(mockPlaceable.template.visible, false);
+    assert.equal(mockPlaceable.template.alpha, 0);
     assert.equal(mockPlaceable.mesh.visible, false);
     assert.equal(mockPlaceable.shape.visible, false);
     assert.equal(mockPlaceable.border.visible, false);
     assert.equal(mockPlaceable.ruler.visible, false);
     assert.equal(mockPlaceable.controlIcon.visible, false);
 
-    // Simulate mouse move triggering refresh and _refresh
+    // Verify getter locks prevent reassignment
     mockPlaceable.visible = true;
-    mockPlaceable.mesh.visible = true;
+    mockPlaceable.alpha = 1;
+    mockPlaceable.worldAlpha = 1;
+    assert.equal(mockPlaceable.visible, false, 'visible getter must lock to false');
+    assert.equal(mockPlaceable.alpha, 0, 'alpha getter must lock to 0');
+    assert.equal(mockPlaceable.worldAlpha, 0, 'worldAlpha getter must lock to 0');
+
+    // Verify render override produces zero PIXI draw execution
+    let renderCalled = false;
+    mockPlaceable.render = () => { renderCalled = true; };
+    mockPlaceable.render();
+    assert.equal(renderCalled, false, 'render method must remain a no-op getter');
+
+    // Verify dynamic property reassignment is neutralized
+    const newTemplateContainer = { visible: true, renderable: true, alpha: 1, worldAlpha: 1 };
+    mockPlaceable.template = newTemplateContainer;
+    assert.equal(newTemplateContainer.visible, false, 'Newly assigned template container must be neutralized');
+    assert.equal(newTemplateContainer.alpha, 0);
+
+    // Verify addChild intercepts and neutralizes newly added display objects
+    const dynamicChild = { visible: true, renderable: true, alpha: 1, worldAlpha: 1 };
+    mockPlaceable.addChild(dynamicChild);
+    assert.equal(dynamicChild.visible, false, 'Newly added child via addChild must be neutralized');
+    assert.equal(dynamicChild.alpha, 0);
+
+    // Simulate mouse move triggering refresh and _refresh
     mockPlaceable.refresh();
     assert.equal(mockPlaceable.visible, false);
     assert.equal(mockPlaceable.mesh.visible, false);
 
-    mockPlaceable.visible = true;
-    mockPlaceable.shape.visible = true;
-    if (typeof mockPlaceable._refresh === 'function') {
+    if (mockPlaceable._refresh) {
         mockPlaceable._refresh();
     }
     assert.equal(mockPlaceable.visible, false);
