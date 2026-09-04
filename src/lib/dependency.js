@@ -191,7 +191,7 @@ function hasSomeRecommended(dependencyList) {
  * @returns {void} Throws an error if any required dependency is missing.
  */
 function required(dependencyList) {
-    const list = dependencyList?.length !== undefined ? dependencyList : [dependencyList];
+    const list = Array.isArray(dependencyList) ? dependencyList : [dependencyList];
     let errorMsg = localize("BBC.Dependency.RequiresAll", "Requires all of the following to be installed and activated:\n");
     let dependencyMet = true;
 
