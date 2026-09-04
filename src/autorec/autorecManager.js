@@ -53,6 +53,7 @@ export const DEFAULT_AUTOREC_ENTRY = {
 
     enablePrePlacement: false,
     enableAnimation: false,
+    enablePreviewPlacement: false,
     enablePlacedStyling: false,
     enablePostPlacement: false,
 
@@ -272,6 +273,7 @@ export class AutorecManager {
 
         const enablePrePlacement = Boolean(baseConfig.enablePrePlacement ?? optionsRaw.enablePrePlacement);
         const enableAnimation = Boolean(baseConfig.enableAnimation ?? optionsRaw.enableAnimation);
+        const enablePreviewPlacement = Boolean(baseConfig.enablePreviewPlacement ?? optionsRaw.enablePreviewPlacement);
         const enablePlacedStyling = Boolean(baseConfig.enablePlacedStyling ?? optionsRaw.enablePlacedStyling);
         const enablePostPlacement = Boolean(baseConfig.enablePostPlacement ?? optionsRaw.enablePostPlacement);
 
@@ -312,6 +314,7 @@ export class AutorecManager {
             postPlacementCode,
             enablePrePlacement,
             enableAnimation,
+            enablePreviewPlacement,
             enablePlacedStyling,
             enablePostPlacement
         };
@@ -888,6 +891,7 @@ export class AutorecManager {
             const limitRange = config.limitRange !== false;
             const enablePrePlacement = Boolean(config.enablePrePlacement);
             const enableAnimation = Boolean(config.enableAnimation);
+            const enablePreviewPlacement = Boolean(config.enablePreviewPlacement);
             const enablePlacedStyling = Boolean(config.enablePlacedStyling);
             const enablePostPlacement = Boolean(config.enablePostPlacement);
             const distance = config.distance ?? "";
@@ -898,9 +902,9 @@ export class AutorecManager {
             const borderAlpha = config.borderAlpha ?? DEFAULT_AUTOREC_ENTRY.borderAlpha;
             const fillColor = config.fillColor ?? DEFAULT_AUTOREC_ENTRY.fillColor;
             const fillAlpha = config.fillAlpha ?? DEFAULT_AUTOREC_ENTRY.fillAlpha;
-            const hasCustomStyling = Boolean(config.borderColor)
+            const hasCustomStyling = Boolean(config.borderColor && config.borderColor !== DEFAULT_AUTOREC_ENTRY.borderColor)
                 || (config.borderAlpha !== undefined && config.borderAlpha !== 0)
-                || Boolean(config.fillColor)
+                || Boolean(config.fillColor && config.fillColor !== DEFAULT_AUTOREC_ENTRY.fillColor)
                 || (config.fillAlpha !== undefined && config.fillAlpha !== 0);
 
             const defaultUserColor = getUserColor("#000000");
@@ -966,6 +970,7 @@ export class AutorecManager {
                 limitRange,
                 enablePrePlacement,
                 enableAnimation,
+                enablePreviewPlacement,
                 enablePlacedStyling,
                 enablePostPlacement,
                 lineFile,

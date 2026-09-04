@@ -16,8 +16,13 @@ function inspectScopeCustomState(customConfig) {
     if (!customConfig || typeof customConfig !== "object") {
         return {
             hasCustom: false,
+            isExplicitlyDisabled: false,
+            isBroadcastDisabled: false,
+            enabled: true,
+            broadcast: true,
             enablePrePlacement: false,
             enableAnimation: false,
+            enablePreviewPlacement: false,
             enablePlacedStyling: false,
             enablePostPlacement: false,
             overrideCount: 0
@@ -27,6 +32,7 @@ function inspectScopeCustomState(customConfig) {
     const hasGranularFlags = Boolean(
         "enableAnimation" in customConfig ||
         "enablePrePlacement" in customConfig ||
+        "enablePreviewPlacement" in customConfig ||
         "enablePlacedStyling" in customConfig ||
         "enablePostPlacement" in customConfig
     );
@@ -48,6 +54,15 @@ function inspectScopeCustomState(customConfig) {
                 customConfig.stickToToken !== undefined)
         );
 
+    const enablePreviewPlacement = hasGranularFlags
+        ? Boolean(customConfig.enablePreviewPlacement)
+        : Boolean(
+            (customConfig.fillColor && customConfig.fillColor !== "#000000") ||
+            (customConfig.borderColor && customConfig.borderColor !== "#ffffff") ||
+            (customConfig.fillAlpha !== undefined && customConfig.fillAlpha !== 0) ||
+            (customConfig.borderAlpha !== undefined && customConfig.borderAlpha !== 0)
+        );
+
     const enablePlacedStyling = hasGranularFlags
         ? Boolean(customConfig.enablePlacedStyling)
         : Boolean(customConfig.placedFillColor || customConfig.placedBorderColor || customConfig.persist);
@@ -60,6 +75,7 @@ function inspectScopeCustomState(customConfig) {
     const isBroadcastDisabled = customConfig.broadcast === false;
     const overrideCount = (enablePrePlacement ? 1 : 0) +
         (enableAnimation ? 1 : 0) +
+        (enablePreviewPlacement ? 1 : 0) +
         (enablePlacedStyling ? 1 : 0) +
         (enablePostPlacement ? 1 : 0) +
         (isExplicitlyDisabled ? 1 : 0) +
@@ -73,6 +89,7 @@ function inspectScopeCustomState(customConfig) {
         broadcast: customConfig.broadcast !== false,
         enablePrePlacement,
         enableAnimation,
+        enablePreviewPlacement,
         enablePlacedStyling,
         enablePostPlacement,
         overrideCount
@@ -236,6 +253,7 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             ...source,
             enablePrePlacement: currentCustomState.enablePrePlacement,
             enableAnimation: currentCustomState.enableAnimation,
+            enablePreviewPlacement: currentCustomState.enablePreviewPlacement,
             enablePlacedStyling: currentCustomState.enablePlacedStyling,
             enablePostPlacement: currentCustomState.enablePostPlacement,
 
@@ -288,7 +306,7 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             )
         };
 
-        const { docTerm, prePlacementTitle, placementSectionTitle, postPlacementTitle } = this._getAdapterTitles();
+        const { docTerm, prePlacementTitle, previewPlacementSectionTitle, placementSectionTitle, postPlacementTitle } = this._getAdapterTitles();
 
         const labels = {
             badgeCustom: localize("BBC.itemConfigMenu.badges.custom", "CUSTOM"),
@@ -301,6 +319,7 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
 
             overridePrePlacement: localize("BBC.itemConfigMenu.overridePrePlacement", "Override Pre-Placement Script"),
             overrideAnimation: localize("BBC.itemConfigMenu.overrideAnimation", "Override Animation Configuration"),
+            overridePreviewPlacement: localize("BBC.itemConfigMenu.overridePreviewPlacement", "Override Preview Placement Configuration"),
             overridePlacedStyling: localize("BBC.itemConfigMenu.overridePlacedStyling", "Override Placed Document Styling"),
             overridePostPlacement: localize("BBC.itemConfigMenu.overridePostPlacement", "Override Post-Placement Script"),
             overrideCheckboxLabel: localize("BBC.itemConfigMenu.overrideCheckboxLabel", "Override Global Autorec Settings"),
@@ -309,6 +328,10 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
 
             preSectionDesc: localize("BBC.itemConfigMenu.preSectionDesc", `Executes custom Javascript code before starting ${docTerm} placement selection.`),
             animationDesc: localize("BBC.itemConfigMenu.animationDesc", "Sequencer crosshair graphic asset and interactive rendering properties."),
+            previewSectionDesc: localize("BBC.itemConfigMenu.previewSectionDesc", `Configure fill and border highlight colors and opacities applied to the live preview ${docTerm} during targeting.`),
+            previewFill: localize("BBC.autorecMenu.labels.previewFill", "Preview Fill Styling"),
+            previewBorder: localize("BBC.autorecMenu.labels.previewBorder", "Preview Border Styling"),
+            defaultPreviewPlacementNote: localize("BBC.autorecMenu.labels.defaultPreviewPlacementNote", "Using default preview placement colors (Enable Edit Mode to customize)."),
             placedSectionDesc: localize("BBC.itemConfigMenu.placedSectionDesc", `Configure fill and border highlight colors applied to the created ${docTerm}.`),
             postSectionDesc: localize("BBC.itemConfigMenu.postSectionDesc", `Executes custom Javascript code immediately after the ${docTerm} document is created on the canvas.`),
             noPreScript: localize("BBC.itemConfigMenu.noPreScript", "No custom pre-placement script configured"),
@@ -327,6 +350,7 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             coneFile: localize("BBC.autorecMenu.labels.coneFile", "Cone Sequencer Filepath"),
             rayFile: localize("BBC.autorecMenu.labels.rayFile", "Ray Sequencer Filepath"),
             rectangleFile: localize("BBC.autorecMenu.labels.rectangleFile", "Rectangle Sequencer Filepath"),
+            lineFile: localize("BBC.autorecMenu.labels.lineFile", "Line Sequencer Filepath"),
             lockToToken: localize("BBC.autorecMenu.labels.lockToToken", "Lock to Token (Stick)"),
             originLine: localize("BBC.autorecMenu.labels.originLine", "Origin Stretch Line"),
             showLineLabel: localize("BBC.autorecMenu.labels.showLine", "Show Line"),
@@ -371,6 +395,7 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             showActivityIdentification: false,
 
             prePlacementTitle,
+            previewPlacementSectionTitle,
             placementSectionTitle,
             postPlacementTitle,
             labels
@@ -480,8 +505,9 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             return;
         }
 
-        const form = target instanceof HTMLFormElement ? target : (target?.querySelector?.("form") ?? target);
-        if (!(form instanceof HTMLFormElement)) {
+        const el = this._normalizeElement(target);
+        const form = el?.tagName === "FORM" ? el : el?.querySelector?.("form");
+        if (!form || form.tagName !== "FORM") {
             log.warn("ItemCrosshairConfigApplication | Invalid form element passed to _saveConfiguration.");
             return;
         }
@@ -491,13 +517,15 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
         const broadcast = formData.get("broadcast") === "on";
         const enablePrePlacement = formData.get("enablePrePlacement") === "on";
         const enableAnimation = formData.get("enableAnimation") === "on";
+        const enablePreviewPlacement = formData.get("enablePreviewPlacement") === "on";
         const enablePlacedStyling = formData.get("enablePlacedStyling") === "on";
         const enablePostPlacement = formData.get("enablePostPlacement") === "on";
-        const hasAnyOverride = !enabled || !broadcast || enablePrePlacement || enableAnimation || enablePlacedStyling || enablePostPlacement;
+        const hasAnyOverride = !enabled || !broadcast || enablePrePlacement || enableAnimation || enablePreviewPlacement || enablePlacedStyling || enablePostPlacement;
 
         const config = {
             enablePrePlacement,
             enableAnimation,
+            enablePreviewPlacement,
             enablePlacedStyling,
             enablePostPlacement,
             enabled,

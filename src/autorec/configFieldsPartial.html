@@ -156,7 +156,89 @@
     </div>
 </section>
 
-<!-- Section 3: Template / Region Placement Configuration -->
+<!-- Section 3: Template / Region Preview Placement Configuration -->
+<section class="bbc-section-card">
+    <div class="bbc-section-header">
+        <div class="bbc-section-title">
+            <i class="fa-solid fa-chevron-down bbc-chevron"></i>
+            <i class="fa-solid fa-eye bbc-section-icon"></i>
+            <h3>{{previewPlacementSectionTitle}}</h3>
+        </div>
+    </div>
+    <div class="bbc-section-body">
+        <p class="bbc-section-desc">{{labels.previewSectionDesc}}</p>
+        <table class="bbc-config-table">
+            <tbody>
+                {{#if showOverrides}}
+                <tr>
+                    <th>{{labels.overridePreviewPlacement}}</th>
+                    <td>
+                        <span class="view-only"><span class="bbc-type-badge" data-override-badge="enablePreviewPlacement">{{#if enablePreviewPlacement}}{{labels.badgeCustomOverride}}{{else}}{{labels.badgeInherited}}{{/if}}</span></span>
+                        <div class="bbc-edit-row edit-only">
+                            <label class="bbc-edit-checkbox-label">
+                                <input type="checkbox" name="enablePreviewPlacement" data-field="enablePreviewPlacement" {{#if enablePreviewPlacement}}checked{{/if}} />
+                                <span class="bbc-type-badge" data-override-badge="enablePreviewPlacement">{{#if enablePreviewPlacement}}{{labels.badgeCustomOverride}}{{else}}{{labels.badgeInherited}}{{/if}}</span>
+                            </label>
+                        </div>
+                    </td>
+                </tr>
+                {{#if (and isEditMode (not enablePreviewPlacement))}}
+                <tr class="edit-only">
+                    <td colspan="2" style="text-align: center; color: #64748b; font-style: italic;">
+                        {{labels.defaultPreviewPlacementNote}}
+                    </td>
+                </tr>
+                {{/if}}
+                {{/if}}
+
+                <tr class="{{#if (and (not showOverrides) (not hasCustomStyling))}}edit-only{{/if}}" data-override-child="enablePreviewPlacement" {{#if (and showOverrides (not enablePreviewPlacement))}}style="display: none;"{{/if}}>
+                    <th>{{labels.previewFill}}</th>
+                    <td>
+                        <span class="view-only">
+                            <span class="bbc-color-swatch" data-color="{{fillColor}}"></span>
+                            <code>{{fillColor}}</code> ({{labels.alphaLabel}} {{fillAlpha}})
+                        </span>
+                        <div class="bbc-edit-color-row edit-only">
+                            <input type="color" class="bbc-edit-color" data-color-target="bbc-item-fillcolor" data-field="fillColor" value="{{fillColorPicker}}" />
+                            <input type="text" id="bbc-item-fillcolor" class="bbc-edit-input" name="fillColor" data-field="fillColor" value="{{fillColor}}" placeholder="#000000" />
+                            <label>{{labels.alphaLabel}} <input type="number" step="0.05" min="0" max="1" class="bbc-edit-input small" name="fillAlpha" data-field="fillAlpha" value="{{fillAlpha}}" /></label>
+                            <button type="button" class="bbc-player-color-btn" data-action="use-player-color" title="{{labels.usePlayerColor}}">
+                                <i class="fa-solid fa-palette"></i> {{labels.usePlayerColor}}
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="{{#if (and (not showOverrides) (not hasCustomStyling))}}edit-only{{/if}}" data-override-child="enablePreviewPlacement" {{#if (and showOverrides (not enablePreviewPlacement))}}style="display: none;"{{/if}}>
+                    <th>{{labels.previewBorder}}</th>
+                    <td>
+                        <span class="view-only">
+                            <span class="bbc-color-swatch" data-color="{{borderColor}}"></span>
+                            <code>{{borderColor}}</code> ({{labels.alphaLabel}} {{borderAlpha}})
+                        </span>
+                        <div class="bbc-edit-color-row edit-only">
+                            <input type="color" class="bbc-edit-color" data-color-target="bbc-item-bordercolor" data-field="borderColor" value="{{borderColorPicker}}" />
+                            <input type="text" id="bbc-item-bordercolor" class="bbc-edit-input" name="borderColor" data-field="borderColor" value="{{borderColor}}" placeholder="#ffffff" />
+                            <label>{{labels.alphaLabel}} <input type="number" step="0.05" min="0" max="1" class="bbc-edit-input small" name="borderAlpha" data-field="borderAlpha" value="{{borderAlpha}}" /></label>
+                            <button type="button" class="bbc-player-color-btn" data-action="use-player-color" title="{{labels.usePlayerColor}}">
+                                <i class="fa-solid fa-palette"></i> {{labels.usePlayerColor}}
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+
+                {{#if (and (not showOverrides) (not hasCustomStyling))}}
+                <tr class="view-only">
+                    <td colspan="2" style="text-align: center; color: #64748b; font-style: italic;">
+                        {{labels.defaultPreviewPlacementNote}}
+                    </td>
+                </tr>
+                {{/if}}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- Section 4: Template / Region Placement Configuration -->
 <section class="bbc-section-card">
     <div class="bbc-section-header">
         <div class="bbc-section-title">

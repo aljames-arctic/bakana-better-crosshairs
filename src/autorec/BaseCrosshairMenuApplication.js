@@ -57,6 +57,7 @@ export class BaseCrosshairMenuApplication extends HandlebarsApplicationMixin(App
         if (adapter) {
             return {
                 prePlacementTitle: adapter.prePlacementTitle,
+                previewPlacementSectionTitle: adapter.previewPlacementSectionTitle,
                 placementSectionTitle: adapter.placementSectionTitle,
                 postPlacementTitle: adapter.postPlacementTitle,
                 docTerm: adapter.documentTerm
@@ -64,6 +65,7 @@ export class BaseCrosshairMenuApplication extends HandlebarsApplicationMixin(App
         }
         return {
             prePlacementTitle: localize("BBC.itemConfigMenu.prePlacementTitle", "Pre-Placement Script"),
+            previewPlacementSectionTitle: localize("BBC.itemConfigMenu.previewPlacementSectionTitle", "Preview Placement Configuration"),
             placementSectionTitle: localize("BBC.itemConfigMenu.placementSectionTitle", "Placement Configuration"),
             postPlacementTitle: localize("BBC.itemConfigMenu.postPlacementTitle", "Post-Placement Script"),
             docTerm: localize("BBC.itemConfigMenu.docTerm", "Template")

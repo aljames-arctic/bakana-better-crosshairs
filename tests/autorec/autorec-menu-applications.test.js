@@ -39,6 +39,7 @@ test("BaseCrosshairMenuApplication & normalizeHexColor utility", async (t) => {
         assert.ok(titles);
         assert.ok(typeof titles.docTerm === "string");
         assert.ok(typeof titles.prePlacementTitle === "string");
+        assert.ok(typeof titles.previewPlacementSectionTitle === "string");
         assert.ok(typeof titles.placementSectionTitle === "string");
         assert.ok(typeof titles.postPlacementTitle === "string");
     });
@@ -130,6 +131,25 @@ test("AutorecMenuApplication lifecycle and context preparation", async (t) => {
         assert.ok(context.labels);
         assert.equal(typeof context.labels.usePlayerColor, "string");
         assert.ok(context.labels.usePlayerColor.length > 0);
+        assert.equal(typeof context.previewPlacementSectionTitle, "string");
+        assert.equal(typeof context.labels.previewFill, "string");
+        assert.equal(typeof context.labels.previewBorder, "string");
+        assert.equal(typeof context.labels.overridePreviewPlacement, "string");
+    });
+
+    await t.test("_prepareContext computes hasCustomStyling when preview colors diverge from defaults", async () => {
+        autorecManager.register("Colored Spell", {
+            itemName: "Colored Spell",
+            fillColor: "#ff00ff"
+        }, { local: true });
+
+        const app = new AutorecMenuApplication();
+        const context = await app._prepareContext({});
+        const coloredEntry = context.entries.find(e => e.itemName === "Colored Spell");
+        assert.ok(coloredEntry);
+        assert.equal(coloredEntry.hasCustomStyling, true);
+
+        autorecManager.unregister("Colored Spell", { local: true });
     });
 
     await t.test("AutorecMenuApplication DEFAULT_OPTIONS and PARTS static properties", () => {
@@ -208,8 +228,10 @@ test("ItemCrosshairConfigApplication lifecycle and item normalization", async (t
         assert.equal(context.scopes[0].hasCustom, false);
         assert.equal(context.config.enableAnimation, false);
         assert.equal(context.config.enablePrePlacement, false);
+        assert.equal(context.config.enablePreviewPlacement, false);
         assert.equal(context.config.enablePlacedStyling, false);
         assert.equal(context.config.enablePostPlacement, false);
+        assert.equal(typeof context.previewPlacementSectionTitle, "string");
         assert.ok(context.config);
         assert.equal(typeof context.config.borderColorPicker, "string");
         assert.equal(typeof context.config.fillColorPicker, "string");
@@ -306,5 +328,86 @@ test("ItemCrosshairConfigApplication lifecycle and item normalization", async (t
         assert.equal(context.scopes[0].hasCustom, true);
         assert.equal(context.scopes[0].overrideCount, 1);
         assert.equal(context.config.broadcast, false);
+    });
+
+    await t.test("_prepareContext identifies customConfig.enablePreviewPlacement === true as custom override", async () => {
+        const flags = {
+            customConfig: {
+                enablePreviewPlacement: true,
+                fillColor: "#ff00ff",
+                fillAlpha: 0.75,
+                borderColor: "#00ffff",
+                borderAlpha: 0.9
+            }
+        };
+        const mockItem = {
+            id: "preview-item",
+            name: "Preview Styled Spell",
+            getFlag: (scope, key) => flags[key] ?? null,
+            setFlag: async (scope, key, val) => { flags[key] = val; },
+            unsetFlag: async (scope, key) => { delete flags[key]; }
+        };
+
+        const app = new ItemCrosshairConfigApplication({ item: mockItem });
+        const context = await app._prepareContext({});
+
+        assert.ok(context);
+        assert.equal(context.scopes[0].hasCustom, true);
+        assert.equal(context.scopes[0].overrideCount, 1);
+        assert.equal(context.config.enablePreviewPlacement, true);
+        assert.equal(context.config.fillColor, "#ff00ff");
+        assert.equal(context.config.fillAlpha, 0.75);
+        assert.equal(context.config.borderColor, "#00ffff");
+        assert.equal(context.config.borderAlpha, 0.9);
+    });
+
+    await t.test("_saveConfiguration persists enablePreviewPlacement and preview styling", async () => {
+        const flags = {};
+        const mockItem = {
+            id: "save-preview-item",
+            name: "Save Preview Spell",
+            getFlag: (scope, key) => flags[key] ?? null,
+            setFlag: async (scope, key, val) => { flags[key] = val; },
+            unsetFlag: async (scope, key) => { delete flags[key]; }
+        };
+
+        const app = new ItemCrosshairConfigApplication({ item: mockItem });
+
+        const formDataMap = new Map([
+            ["enabled", "on"],
+            ["broadcast", "on"],
+            ["enablePreviewPlacement", "on"],
+            ["fillColor", "#112233"],
+            ["fillAlpha", "0.45"],
+            ["borderColor", "#445566"],
+            ["borderAlpha", "0.85"]
+        ]);
+
+        const mockForm = {
+            tagName: "FORM",
+            nodeType: 1
+        };
+
+        const originalFormData = globalThis.FormData;
+        globalThis.FormData = class MockFormData {
+            constructor(form) {
+                this._map = formDataMap;
+            }
+            get(key) {
+                return this._map.get(key) ?? null;
+            }
+        };
+
+        try {
+            await app._saveConfiguration(mockForm);
+            assert.ok(flags.customConfig);
+            assert.equal(flags.customConfig.enablePreviewPlacement, true);
+            assert.equal(flags.customConfig.fillColor, "#112233");
+            assert.equal(flags.customConfig.fillAlpha, 0.45);
+            assert.equal(flags.customConfig.borderColor, "#445566");
+            assert.equal(flags.customConfig.borderAlpha, 0.85);
+        } finally {
+            globalThis.FormData = originalFormData;
+        }
     });
 });

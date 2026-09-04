@@ -70,10 +70,16 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
                 (e.placedBorderColor && e.placedBorderColor !== "#ffffff") ||
                 (e.placedBorderAlpha !== undefined && e.placedBorderAlpha !== 0.25) ||
                 Boolean(e.persist)
+            ),
+            hasCustomStyling: Boolean(
+                (e.borderColor && e.borderColor !== "#ffffff") ||
+                (e.borderAlpha !== undefined && e.borderAlpha !== 0) ||
+                (e.fillColor && e.fillColor !== "#000000") ||
+                (e.fillAlpha !== undefined && e.fillAlpha !== 0)
             )
         }));
 
-        const { prePlacementTitle, placementSectionTitle, postPlacementTitle, docTerm } = this._getAdapterTitles();
+        const { prePlacementTitle, previewPlacementSectionTitle, placementSectionTitle, postPlacementTitle, docTerm } = this._getAdapterTitles();
 
         const labels = {
             searchPlaceholder: localize("BBC.autorecMenu.labels.searchPlaceholder", "Filter registered workflows (e.g. Fireball)..."),
@@ -94,7 +100,7 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
 
             noScript: localize("BBC.autorecMenu.labels.noScript", "No custom script configured"),
             animationTitle: localize("BBC.autorecMenu.labels.animationTitle", "Animation Configuration"),
-            workflowDetails: localize("BBC.autorecMenu.labels.workflowDetails", "Workflow Details"),
+            workflowDetails: localize("BBC.autorecMenu.sections.workflowDetails", "Workflow Details"),
             workflowEnabled: localize("BBC.autorecMenu.labels.workflowEnabled", "Workflow Enabled"),
             broadcastCrosshairs: localize("BBC.autorecMenu.labels.broadcastCrosshairs", "Broadcast to Players"),
             enableBtn: localize("BBC.autorecMenu.labels.enableBtn", "Enable"),
@@ -105,6 +111,8 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
             coneFile: localize("BBC.autorecMenu.labels.coneFile", "Cone Sequencer Filepath"),
             rayFile: localize("BBC.autorecMenu.labels.rayFile", "Ray Sequencer Filepath"),
             rectangleFile: localize("BBC.autorecMenu.labels.rectangleFile", "Rectangle Sequencer Filepath"),
+            squareFile: localize("BBC.autorecMenu.labels.squareFile", "Square Sequencer Filepath"),
+            lineFile: localize("BBC.autorecMenu.labels.lineFile", "Line Sequencer Filepath"),
             customHandler: localize("BBC.autorecMenu.labels.customHandler", "Custom Function Handler"),
             lockToToken: localize("BBC.autorecMenu.labels.lockToToken", "Lock to Token (Stick)"),
             originLine: localize("BBC.autorecMenu.labels.originLine", "Origin Stretch Line"),
@@ -116,6 +124,11 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
             limitRangeLabel: localize("BBC.autorecMenu.labels.limitRangeLabel", "Restrict crosshair placement within calling item's maximum range"),
             borderStyling: localize("BBC.autorecMenu.labels.borderStyling", "Border Styling (Tile Highlight)"),
             fillStyling: localize("BBC.autorecMenu.labels.fillStyling", "Fill Styling (Tile Highlight)"),
+            previewSectionDesc: localize("BBC.autorecMenu.labels.previewSectionDesc", `Configures the fill color, border color, and alpha opacities of the live preview ${docTerm} document during crosshair targeting.`),
+            previewFill: localize("BBC.autorecMenu.labels.previewFill", "Preview Fill Styling"),
+            previewBorder: localize("BBC.autorecMenu.labels.previewBorder", "Preview Border Styling"),
+            defaultPreviewPlacementNote: localize("BBC.autorecMenu.labels.defaultPreviewPlacementNote", "Using default preview placement colors (Enable Edit Mode to customize)."),
+            overridePreviewPlacement: localize("BBC.itemConfigMenu.overridePreviewPlacement", "Override Preview Placement Configuration"),
             placedSectionDesc: localize("BBC.autorecMenu.labels.placedSectionDesc", `Configures the fill color, border color, and alpha opacities of the final placed ${docTerm} document on the canvas.`),
             placedFill: localize("BBC.autorecMenu.labels.placedFill", "Placed Fill Styling"),
             placedBorder: localize("BBC.autorecMenu.labels.placedBorder", "Placed Border Styling"),
@@ -155,6 +168,7 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
             isGM: Boolean(game?.user?.isGM),
             supportsActivities: systemAdapter.supportsActivities,
             prePlacementTitle,
+            previewPlacementSectionTitle,
             placementSectionTitle,
             postPlacementTitle,
             docTerm,

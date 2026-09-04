@@ -77,6 +77,7 @@ export function sanitizeEntryForExchange(entry) {
     const limitRange = optionsRaw.limitRange !== undefined ? Boolean(optionsRaw.limitRange) : Boolean(raw.limitRange ?? DEFAULT_AUTOREC_ENTRY.limitRange);
     const enablePrePlacement = Boolean(optionsRaw.enablePrePlacement ?? raw.enablePrePlacement);
     const enableAnimation = Boolean(optionsRaw.enableAnimation ?? raw.enableAnimation);
+    const enablePreviewPlacement = Boolean(optionsRaw.enablePreviewPlacement ?? raw.enablePreviewPlacement);
     const enablePlacedStyling = Boolean(optionsRaw.enablePlacedStyling ?? raw.enablePlacedStyling);
     const enablePostPlacement = Boolean(optionsRaw.enablePostPlacement ?? raw.enablePostPlacement);
     const persist = Boolean(raw.persist ?? optionsRaw.persist ?? placedRaw.persist ?? DEFAULT_AUTOREC_ENTRY.persist);
@@ -100,6 +101,7 @@ export function sanitizeEntryForExchange(entry) {
             limitRange,
             enablePrePlacement,
             enableAnimation,
+            enablePreviewPlacement,
             enablePlacedStyling,
             enablePostPlacement,
             persist

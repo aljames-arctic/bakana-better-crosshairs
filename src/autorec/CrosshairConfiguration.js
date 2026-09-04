@@ -70,6 +70,7 @@ export class CrosshairConfiguration {
         // Granular section override enablement toggles
         this.enablePrePlacement = Boolean(source.enablePrePlacement ?? options.enablePrePlacement);
         this.enableAnimation = Boolean(source.enableAnimation ?? options.enableAnimation);
+        this.enablePreviewPlacement = Boolean(source.enablePreviewPlacement ?? options.enablePreviewPlacement);
         this.enablePlacedStyling = Boolean(source.enablePlacedStyling ?? options.enablePlacedStyling);
         this.enablePostPlacement = Boolean(source.enablePostPlacement ?? options.enablePostPlacement);
 
@@ -130,6 +131,7 @@ export class CrosshairConfiguration {
 
         const hasGranularFlags = "enableAnimation" in customSource
             || "enablePrePlacement" in customSource
+            || "enablePreviewPlacement" in customSource
             || "enablePlacedStyling" in customSource
             || "enablePostPlacement" in customSource;
         const hasExplicitEnabled = "enabled" in customSource;
@@ -137,10 +139,11 @@ export class CrosshairConfiguration {
 
         const isPreOverride = hasGranularFlags ? Boolean(customSource.enablePrePlacement) : Boolean(customSource.concurrentCode);
         const isAnimOverride = hasGranularFlags ? Boolean(customSource.enableAnimation) : Boolean(customSource.enabled !== false);
+        const isPreviewOverride = hasGranularFlags ? Boolean(customSource.enablePreviewPlacement) : (Boolean(customSource.fillColor) || Boolean(customSource.borderColor));
         const isPlacedOverride = hasGranularFlags ? Boolean(customSource.enablePlacedStyling) : (Boolean(customSource.placedFillColor) || Boolean(customSource.placedBorderColor));
         const isPostOverride = hasGranularFlags ? Boolean(customSource.enablePostPlacement) : Boolean(customSource.postPlacementCode);
 
-        if (!isPreOverride && !isAnimOverride && !isPlacedOverride && !isPostOverride && !hasExplicitEnabled && !hasExplicitBroadcast) {
+        if (!isPreOverride && !isAnimOverride && !isPreviewOverride && !isPlacedOverride && !isPostOverride && !hasExplicitEnabled && !hasExplicitBroadcast) {
             return this;
         }
 
@@ -175,6 +178,10 @@ export class CrosshairConfiguration {
             merged.showItemIcon = Boolean(customSource.showItemIcon ?? this.showItemIcon);
             merged.limitRange = Boolean(customSource.limitRange ?? this.limitRange);
             merged.lineFile = customSource.lineFile ?? this.lineFile;
+        }
+
+        if (isPreviewOverride) {
+            merged.enablePreviewPlacement = true;
             merged.borderColor = customSource.borderColor ?? this.borderColor;
             merged.borderAlpha = customSource.borderAlpha ?? this.borderAlpha;
             merged.fillColor = customSource.fillColor ?? this.fillColor;
@@ -233,6 +240,7 @@ export class CrosshairConfiguration {
             postPlacementCode: this.postPlacementCode,
             enablePrePlacement: this.enablePrePlacement,
             enableAnimation: this.enableAnimation,
+            enablePreviewPlacement: this.enablePreviewPlacement,
             enablePlacedStyling: this.enablePlacedStyling,
             enablePostPlacement: this.enablePostPlacement
         };

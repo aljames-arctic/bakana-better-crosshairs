@@ -32,6 +32,14 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
     }
 
     /**
+     * Return section title header for template preview placement configuration.
+     * @returns {string} Section header text
+     */
+    get previewPlacementSectionTitle() {
+        return localize("BBC.autorecMenu.templatePreviewPlacementConfig", "Template Preview Placement Configuration");
+    }
+
+    /**
      * Return section title header for placement configuration.
      * @returns {string} Section header text
      */

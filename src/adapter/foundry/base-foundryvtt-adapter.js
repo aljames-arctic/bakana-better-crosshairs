@@ -477,6 +477,15 @@ export class BaseFoundryVTTAdapter {
     }
 
     /**
+     * Return section title header for preview placement configuration.
+     * @abstract
+     * @returns {string} Section header text
+     */
+    get previewPlacementSectionTitle() {
+        throw new Error("Subclass must implement previewPlacementSectionTitle getter");
+    }
+
+    /**
      * Return section title header for placement configuration.
      * @abstract
      * @returns {string} Section header text

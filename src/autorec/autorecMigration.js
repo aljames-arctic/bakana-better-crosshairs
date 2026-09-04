@@ -48,6 +48,7 @@ export function migrateV1ToV2Entry(legacyEntry) {
         : Boolean(legacyEntry.limitRange ?? DEFAULT_AUTOREC_ENTRY.limitRange);
     const enablePrePlacement = Boolean(optionsObj.enablePrePlacement ?? legacyEntry.enablePrePlacement);
     const enableAnimation = Boolean(optionsObj.enableAnimation ?? legacyEntry.enableAnimation);
+    const enablePreviewPlacement = Boolean(optionsObj.enablePreviewPlacement ?? legacyEntry.enablePreviewPlacement);
     const enablePlacedStyling = Boolean(optionsObj.enablePlacedStyling ?? legacyEntry.enablePlacedStyling);
     const enablePostPlacement = Boolean(optionsObj.enablePostPlacement ?? legacyEntry.enablePostPlacement);
 
@@ -92,6 +93,7 @@ export function migrateV1ToV2Entry(legacyEntry) {
             limitRange,
             enablePrePlacement,
             enableAnimation,
+            enablePreviewPlacement,
             enablePlacedStyling,
             enablePostPlacement,
             persist
