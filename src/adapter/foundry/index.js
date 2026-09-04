@@ -15,19 +15,20 @@ export let crosshairAdapter = new BaseFoundryVTTAdapter();
 /**
  * Initialize the active Foundry VTT version adapter (v13 or v14).
  * Evaluates supported generation boundaries using boolean version.clamp.
- * Should be called during the 'init' hook.
- * @returns {FoundryVTTV13Adapter|FoundryVTTV14Adapter} The initialized Foundry VTT adapter instance.
+ * @returns {BaseFoundryVTTAdapter|FoundryVTTV13Adapter|FoundryVTTV14Adapter} The initialized Foundry VTT adapter instance.
  */
 export function initializeFoundryAdapter() {
-    const ver = game.version;
+    const ver = game?.version;
 
-    if (version.clamp(ver, "14")) {
+    if (ver && version.clamp(ver, "14")) {
         crosshairAdapter = new FoundryVTTV14Adapter();
-    } else if (version.clamp(ver, "13", "14")) {
+    } else if (ver && version.clamp(ver, "13", "14")) {
         crosshairAdapter = new FoundryVTTV13Adapter();
     } else {
-        throw new Error(`[${MODULE_NAME}] Unsupported Foundry VTT generation (${ver}). Required: Foundry v13..v14+.`);
+        crosshairAdapter = new BaseFoundryVTTAdapter();
     }
 
     return crosshairAdapter;
 }
+
+BaseFoundryVTTAdapter.prototype.initialize = initializeFoundryAdapter;

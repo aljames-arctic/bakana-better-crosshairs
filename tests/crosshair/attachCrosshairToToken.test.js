@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import "../setup.js";
 import { attachCrosshairToToken, CrosshairController } from "../../src/crosshair/crosshairController.js";
 import { getPeerCursorPosition } from "../../src/crosshair/remoteCrosshairManager.js";
-import { initializeFoundryAdapter } from "../../src/adapter/foundry/index.js";
+import { crosshairAdapter } from "../../src/adapter/foundry/index.js";
 
-initializeFoundryAdapter();
+crosshairAdapter.initialize();
 
 test("attachCrosshairToToken initializes handle with shape, controller, and tracking functions", async () => {
     const dummyToken = { id: "tok-1", x: 100, y: 100, center: { x: 150, y: 150 }, w: 100, h: 100 };

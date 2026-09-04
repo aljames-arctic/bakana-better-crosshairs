@@ -25,44 +25,44 @@ import { Dnd5eSystemAdapter } from '../../src/adapter/system/dnd5e-adapter.js';
 import { Pf2eSystemAdapter } from '../../src/adapter/system/pf2e-adapter.js';
 import { Pf1SystemAdapter } from '../../src/adapter/system/pf1-adapter.js';
 
-test('initializeFoundryAdapter selects proper Foundry VTT generation adapter based on game.version', () => {
+test('crosshairAdapter.initialize and initializeFoundryAdapter select proper Foundry VTT generation adapter based on game.version', () => {
     globalThis.game.version = "13.335";
-    const adapterV13 = initializeFoundryAdapter();
+    const adapterV13 = crosshairAdapter.initialize();
     assert.ok(adapterV13 instanceof FoundryVTTV13Adapter);
     assert.equal(adapterV13.documentTerm, 'template');
     assert.equal(crosshairAdapter, adapterV13);
 
     globalThis.game.version = "14.300";
-    const adapterV14 = initializeFoundryAdapter();
+    const adapterV14 = crosshairAdapter.initialize();
     assert.ok(adapterV14 instanceof FoundryVTTV14Adapter);
     assert.equal(adapterV14.documentTerm, 'region');
     assert.equal(crosshairAdapter, adapterV14);
 });
 
-test('initializeSystemAdapter selects proper System adapter based on game.system.id', () => {
+test('systemAdapter.initialize and initializeSystemAdapter select proper System adapter based on game.system.id', () => {
     globalThis.game.system.id = "dnd5e";
-    let sysAdapter = initializeSystemAdapter();
+    let sysAdapter = systemAdapter.initialize();
     assert.ok(sysAdapter instanceof Dnd5eSystemAdapter);
     assert.equal(sysAdapter.systemId, 'dnd5e');
     assert.equal(sysAdapter.supportsActivities, true);
     assert.equal(systemAdapter, sysAdapter);
 
     globalThis.game.system.id = "pf2e";
-    sysAdapter = initializeSystemAdapter();
+    sysAdapter = systemAdapter.initialize();
     assert.ok(sysAdapter instanceof Pf2eSystemAdapter);
     assert.equal(sysAdapter.systemId, 'pf2e');
     assert.equal(sysAdapter.supportsActivities, false);
     assert.equal(systemAdapter, sysAdapter);
 
     globalThis.game.system.id = "pf1";
-    sysAdapter = initializeSystemAdapter();
+    sysAdapter = systemAdapter.initialize();
     assert.ok(sysAdapter instanceof Pf1SystemAdapter);
     assert.equal(sysAdapter.systemId, 'pf1');
     assert.equal(sysAdapter.supportsActivities, false);
     assert.equal(systemAdapter, sysAdapter);
 
     globalThis.game.system.id = "pf";
-    sysAdapter = initializeSystemAdapter();
+    sysAdapter = systemAdapter.initialize();
     assert.ok(sysAdapter instanceof Pf1SystemAdapter);
     assert.equal(sysAdapter.systemId, 'pf');
     assert.equal(sysAdapter.supportsActivities, false);
@@ -3485,21 +3485,21 @@ test('Foundry adapter encapsulates mergeObject and deepClone utilities', () => {
     assert.deepEqual(staticMerged, { x: 10, y: 20 });
 });
 
-test('initializeCanvasAdapter selects CanvasV13Adapter or CanvasV14Adapter based on game.version', () => {
+test('canvasAdapter.initialize and initializeCanvasAdapter select CanvasV13Adapter or CanvasV14Adapter based on game.version', () => {
     const origVersion = globalThis.game.version;
     try {
         globalThis.game.version = "13.335";
-        const v13 = initializeCanvasAdapter();
+        const v13 = canvasAdapter.initialize();
         assert.ok(v13 instanceof CanvasV13Adapter);
         assert.equal(canvasAdapter, v13);
 
         globalThis.game.version = "14.200";
-        const v14 = initializeCanvasAdapter();
+        const v14 = canvasAdapter.initialize();
         assert.ok(v14 instanceof CanvasV14Adapter);
         assert.equal(canvasAdapter, v14);
     } finally {
         globalThis.game.version = origVersion;
-        initializeCanvasAdapter();
+        canvasAdapter.initialize();
     }
 });
 

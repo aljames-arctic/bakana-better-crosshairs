@@ -5,10 +5,10 @@ import { BaseCrosshairShape } from '../../src/crosshair/base.js';
 import { CircleCrosshairShape } from '../../src/crosshair/circle.js';
 import { ConeCrosshairShape } from '../../src/crosshair/cone.js';
 
-import { initializeFoundryAdapter } from '../../src/adapter/index.js';
+import { crosshairAdapter } from '../../src/adapter/index.js';
 
 test('BaseCrosshairShape stateful lifecycle: constructor, hide, move, rotate, and getPlacementUpdates', async () => {
-    initializeFoundryAdapter();
+    crosshairAdapter.initialize();
     // 1. Mock template placeable
     const mockDocument = {
         x: 100,

@@ -1,12 +1,12 @@
 import '../setup.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { initializeFoundryAdapter } from '../../src/adapter/foundry/index.js';
+import { crosshairAdapter } from '../../src/adapter/foundry/index.js';
 import { shouldStickToToken, getTokenEdgePoint, snapCoordinates } from '../../src/crosshair/util.js';
 import { BaseSystemAdapter } from '../../src/adapter/system/base-system-adapter.js';
 import { Dnd5eSystemAdapter } from '../../src/adapter/system/dnd5e-adapter.js';
 
-initializeFoundryAdapter();
+crosshairAdapter.initialize();
 
 test('crosshair.util.shouldStickToToken evaluates configuration flags and delegates defaults to system adapters', () => {
     assert.equal(shouldStickToToken({ stickToToken: true }), true);

@@ -16,8 +16,7 @@ export let canvasAdapter = new BaseCanvasAdapter();
 /**
  * Initialize the active Foundry VTT canvas adapter (v13 or v14).
  * Evaluates supported generation boundaries using boolean version.clamp.
- * Should be called during the "init" hook.
- * @returns {BaseCanvasAdapter|CanvasV13Adapter|CanvasV14Adapter}
+ * @returns {BaseCanvasAdapter|CanvasV13Adapter|CanvasV14Adapter} The initialized canvas adapter instance.
  */
 export function initializeCanvasAdapter() {
     const ver = game?.version ?? "14";
@@ -33,4 +32,6 @@ export function initializeCanvasAdapter() {
     log.info(`Initialized Canvas Adapter for Foundry VTT generation: v${canvasAdapter.version ?? "base"}`);
     return canvasAdapter;
 }
+
+BaseCanvasAdapter.prototype.initialize = initializeCanvasAdapter;
 

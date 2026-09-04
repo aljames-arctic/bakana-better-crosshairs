@@ -6,9 +6,9 @@ import { CrosshairConfiguration } from '../../src/autorec/CrosshairConfiguration
 import { DEFAULT_AUTOREC_ENTRY } from '../../src/autorec/autorecManager.js';
 import { FoundryVTTV13Adapter } from '../../src/adapter/foundry/foundryvtt-v13-adapter.js';
 import { FoundryVTTV14Adapter } from '../../src/adapter/foundry/foundryvtt-v14-adapter.js';
-import { initializeFoundryAdapter } from '../../src/adapter/foundry/index.js';
+import { crosshairAdapter } from '../../src/adapter/foundry/index.js';
 
-initializeFoundryAdapter();
+crosshairAdapter.initialize();
 
 test('CrosshairConfiguration normalizes persist flag across default, source, overrides, and toJSON', () => {
     assert.equal(DEFAULT_AUTOREC_ENTRY.persist, false);

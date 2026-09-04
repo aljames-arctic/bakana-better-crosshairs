@@ -1,6 +1,6 @@
-import { systemAdapter, initializeSystemAdapter } from "./system/index.js";
-import { crosshairAdapter, initializeFoundryAdapter } from "./foundry/index.js";
-import { canvasAdapter, initializeCanvasAdapter } from "./canvas/index.js";
+import { systemAdapter } from "./system/index.js";
+import { crosshairAdapter } from "./foundry/index.js";
+import { canvasAdapter } from "./canvas/index.js";
 import { autorecManager } from "../autorec/autorecManager.js";
 
 let hooksInitialized = false;
@@ -46,9 +46,6 @@ export function initializeHooks(options = {}) {
 
 export {
     systemAdapter,
-    initializeSystemAdapter,
     crosshairAdapter,
-    initializeFoundryAdapter,
-    canvasAdapter,
-    initializeCanvasAdapter
+    canvasAdapter
 };

@@ -7,11 +7,8 @@ import { remoteCrosshairManager, getPeerCursorPosition, getGamemasterCursorPosit
 import { socketlib, handleSocketMessage } from './integration/socketlib.js';
 import {
     systemAdapter,
-    initializeSystemAdapter,
     crosshairAdapter,
-    initializeFoundryAdapter,
     canvasAdapter,
-    initializeCanvasAdapter,
     initializeHooks
 } from './adapter/index.js';
 import { attachWheelRotation, detachWheelRotation, resolveCrosshairPlacement, getTokenEdgePoint, snapCoordinates } from './crosshair/util.js';
@@ -40,9 +37,9 @@ export function setupApiCalls(exportedFunctions) {
  */
 export function setupModule() {
     registerModuleSettings();
-    initializeSystemAdapter();
-    initializeFoundryAdapter();
-    initializeCanvasAdapter();
+    systemAdapter.initialize();
+    crosshairAdapter.initialize();
+    canvasAdapter.initialize();
     initializeHooks();
     loadTemplates([
         `modules/${MODULE_ID}/src/autorec/configFieldsPartial.html`,

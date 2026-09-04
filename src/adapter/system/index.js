@@ -6,12 +6,15 @@ import { log } from "../../lib/logger.js";
 
 export { BaseSystemAdapter, Dnd5eSystemAdapter, Pf2eSystemAdapter, Pf1SystemAdapter };
 
+/**
+ * Active system adapter instance, defaulting to base adapter before initialization.
+ * @type {BaseSystemAdapter|Dnd5eSystemAdapter|Pf2eSystemAdapter|Pf1SystemAdapter}
+ */
 export let systemAdapter = new BaseSystemAdapter();
 
 /**
  * Initialize the active System Adapter for the running game system.
- * Should be called during the 'init' hook.
- *
+ * Evaluates game.system.id and loads system default spell dictionaries.
  * @returns {BaseSystemAdapter|Dnd5eSystemAdapter|Pf2eSystemAdapter|Pf1SystemAdapter} The initialized system adapter instance.
  */
 export function initializeSystemAdapter() {
@@ -33,7 +36,8 @@ export function initializeSystemAdapter() {
     }
 
     systemAdapter.loadSystemDefaultsData();
-
     log.info(`Initialized System Adapter for system: "${systemAdapter.systemId}"`);
     return systemAdapter;
 }
+
+BaseSystemAdapter.prototype.initialize = initializeSystemAdapter;
