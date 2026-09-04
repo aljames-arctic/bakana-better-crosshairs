@@ -81,3 +81,42 @@ test('Logger class encapsulates console logging and unified UI notification disp
         notify.error('Test Error Notification');
     });
 });
+
+test('Logger._flushQueues formats single message directly and multiple messages with bullet points and header', () => {
+    const customLogger = new Logger();
+    const calls = [];
+    const origNotifications = ui.notifications;
+    ui.notifications = {
+        info: (msg) => calls.push({ level: 'info', msg }),
+        warn: (msg) => calls.push({ level: 'warn', msg }),
+        error: (msg) => calls.push({ level: 'error', msg })
+    };
+
+    try {
+        // Single message
+        customLogger.notify.info('Single info message');
+        customLogger._flushQueues();
+        assert.equal(calls.length, 1);
+        assert.equal(calls[0].level, 'info');
+        assert.equal(calls[0].msg, 'Single info message');
+
+        // Multiple messages grouped
+        calls.length = 0;
+        customLogger.notify.error('First error');
+        customLogger.notify.error('Second error');
+        customLogger.notify.warn('First warn');
+        customLogger.notify.warn('Second warn');
+        customLogger._flushQueues();
+
+        assert.equal(calls.length, 2);
+        const warnCall = calls.find((c) => c.level === 'warn');
+        const errorCall = calls.find((c) => c.level === 'error');
+
+        assert.ok(warnCall.msg.includes("Bakana's Better Crosshairs — Warnings (2):"));
+        assert.ok(warnCall.msg.includes("• First warn\n• Second warn"));
+        assert.ok(errorCall.msg.includes("Bakana's Better Crosshairs — Errors (2):"));
+        assert.ok(errorCall.msg.includes("• First error\n• Second error"));
+    } finally {
+        ui.notifications = origNotifications;
+    }
+});

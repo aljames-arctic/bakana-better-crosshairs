@@ -1,4 +1,4 @@
-import { MODULE_ID, MODULE_TLA } from "./constants.js";
+import { MODULE_ID, MODULE_NAME, MODULE_TLA } from "./constants.js";
 
 export const VERBOSITY_LEVELS = Object.freeze({
     error: 1,
@@ -12,6 +12,12 @@ export const GROUP_STYLES = Object.freeze({
     warn: "color: #f59e0b; font-weight: bold;",
     info: "color: #ffffff; font-weight: bold;",
     debug: "color: #38bdf8; font-weight: bold;"
+});
+
+export const NOTIFICATION_LABELS = Object.freeze({
+    error: " — Errors",
+    warn: " — Warnings",
+    info: ""
 });
 
 /**
@@ -246,18 +252,12 @@ export class Logger {
             const messages = [...queue];
             queue.length = 0;
 
-            if (messages.length === 1) {
-                ui.notifications[level](messages[0]);
-            } else {
-                const header = level === "error"
-                    ? `Bakana's Better Crosshairs — Errors (${messages.length}):`
-                    : level === "warn"
-                    ? `Bakana's Better Crosshairs — Warnings (${messages.length}):`
-                    : `Bakana's Better Crosshairs (${messages.length}):`;
+            const text = messages.length === 1
+                ? messages[0]
+                : `${MODULE_NAME}${NOTIFICATION_LABELS[level] ?? ""} (${messages.length}):\n` +
+                  messages.map((m) => `• ${m}`).join("\n");
 
-                const groupedMessage = `${header}\n` + messages.map(m => `• ${m}`).join("\n");
-                ui.notifications[level](groupedMessage);
-            }
+            ui.notifications[level](text);
         }
     }
 
