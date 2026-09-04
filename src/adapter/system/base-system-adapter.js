@@ -334,8 +334,8 @@ export class BaseSystemAdapter {
      */
     getSystemDefault(context) {
         if (!context) return null;
-        const itemObj = typeof context === "object" ? (context.item ?? (context.documentName === "Item" ? context : null)) : null;
-        const rawName = typeof context === "string" ? context : (context.itemName ?? itemObj?.name ?? "");
+        const itemObj = context?.item ?? (context?.documentName === "Item" ? context : null);
+        const rawName = context?.itemName ?? itemObj?.name ?? (context?.name ?? (context?.documentName ? "" : String(context ?? "")));
 
         // 1. Check item system identifier / slug if item document is present
         const itemIdentifier = (itemObj?.system?.identifier ?? itemObj?.identifier ?? itemObj?.flags?.[this.systemId]?.identifier ?? "").trim().toLowerCase();
@@ -579,8 +579,8 @@ export class BaseSystemAdapter {
      * @returns {void} No return value
      */
     registerItemSheetHooks() {
-        if (typeof Hooks?.on === "function") {
-            const itemSheetHandler = (app, controls) => this.addItemSheetHeaderControl(app, controls);
+        if (!Hooks?.on) return;
+        const itemSheetHandler = (app, controls) => this.addItemSheetHeaderControl(app, controls);
             for (const hookName of this._getItemSheetHookNames()) {
                 Hooks.on(hookName, itemSheetHandler);
             }
@@ -599,6 +599,5 @@ export class BaseSystemAdapter {
             for (const hookName of this._getActivityContextHookNames()) {
                 Hooks.on(hookName, activityContextHandler);
             }
-        }
     }
 }

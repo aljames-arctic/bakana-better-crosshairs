@@ -216,8 +216,8 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
                             label: localize("BBC.autorecMenu.addWorkflow.label", "Add Workflow"),
                             callback: (event, button, html) => {
                                 const formEl = button.form ?? html;
-                                const itemInput = typeof formEl?.querySelector === "function" ? formEl.querySelector("input[name='workflowName']") : null;
-                                const actInput = supportsActivities && typeof formEl?.querySelector === "function" ? formEl.querySelector("input[name='activityName']") : null;
+                                const itemInput = formEl?.querySelector?.("input[name='workflowName']") ?? null;
+                                const actInput = supportsActivities ? (formEl?.querySelector?.("input[name='activityName']") ?? null) : null;
                                 const itemName = (itemInput?.value ?? "").trim() || null;
                                 const activity = (actInput?.value ?? "").trim() || undefined;
                                 return itemName ? { itemName, activity } : null;

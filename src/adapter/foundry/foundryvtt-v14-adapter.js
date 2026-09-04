@@ -1114,7 +1114,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 const origWarn = console.warn;
                 const wrappedWarn = function (...args) {
                     const first = args[0];
-                    const msg = typeof first === "string" ? first : (first?.message ?? String(first ?? ""));
+                    const msg = first?.message ?? String(first ?? "");
                     if (msg.includes("MEASURED_TEMPLATE_TYPES")) {
                         return;
                     }
@@ -1129,7 +1129,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 const origError = console.error;
                 const wrappedError = function (...args) {
                     const first = args[0];
-                    const msg = typeof first === "string" ? first : (first?.message ?? String(first ?? ""));
+                    const msg = first?.message ?? String(first ?? "");
                     if (msg.includes("MEASURED_TEMPLATE_TYPES")) {
                         return;
                     }
@@ -1146,7 +1146,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             if (foundry?.utils?.logCompatibilityWarning && !foundry.utils.logCompatibilityWarning._bbcPatched) {
                 const origLog = foundry.utils.logCompatibilityWarning;
                 const wrappedLog = function (message, ...args) {
-                    const msgStr = typeof message === "string" ? message : (message?.message ?? "");
+                    const msgStr = message?.message ?? String(message ?? "");
                     if (msgStr.includes("MEASURED_TEMPLATE_TYPES")) {
                         return;
                     }
@@ -1289,8 +1289,8 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         const w = maxX - minX;
         const h = maxY - minY;
 
-        if (typeof PIXI !== "undefined" && PIXI.Rectangle) {
-            return new PIXI.Rectangle(minX, minY, w, h);
+        if (globalThis.PIXI?.Rectangle) {
+            return new globalThis.PIXI.Rectangle(minX, minY, w, h);
         }
 
         return {
@@ -1433,8 +1433,8 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 const y0 = Math.min(bounds.y, pb.y);
                 const x1 = Math.max(bounds.x + bounds.width, pb.x + pb.width);
                 const y1 = Math.max(bounds.y + bounds.height, pb.y + pb.height);
-                bounds = (typeof PIXI !== "undefined" && PIXI.Rectangle)
-                    ? new PIXI.Rectangle(x0, y0, x1 - x0, y1 - y0)
+                bounds = globalThis.PIXI?.Rectangle
+                    ? new globalThis.PIXI.Rectangle(x0, y0, x1 - x0, y1 - y0)
                     : {
                         x: x0,
                         y: y0,

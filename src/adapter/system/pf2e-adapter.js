@@ -73,10 +73,9 @@ export class Pf2eSystemAdapter extends BaseSystemAdapter {
 
         if (!itemObj && originRef) {
             try {
-                if (typeof originRef === "string") {
-                    itemObj = crosshairAdapter.fromUuidSync(originRef);
-                } else if (typeof originRef === "object" && originRef !== null && typeof originRef.uuid === "string") {
-                    itemObj = crosshairAdapter.fromUuidSync(originRef.uuid);
+                const originUuid = originRef?.uuid ?? (originRef?.includes?.(".") ? originRef : null);
+                if (originUuid) {
+                    itemObj = crosshairAdapter.fromUuidSync(originUuid);
                 }
             } catch (e) {
                 log.warn("Pf2eSystemAdapter.extractCallingContext | Could not resolve item from UUID origin:", originRef, e);

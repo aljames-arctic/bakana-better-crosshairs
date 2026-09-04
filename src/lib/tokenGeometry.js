@@ -91,7 +91,7 @@ export class TokenGeometry {
             const RayClass = crosshairAdapter.Ray;
             if (RayClass) {
                 const ray = new RayClass(centerPoint, farPoint);
-                if (typeof ray.intersectSegment === "function") {
+                if (ray?.intersectSegment) {
                     for (let i = 0; i < points.length; i += 2) {
                         const p1 = { x: points[i], y: points[i + 1] };
                         const p2Idx = (i + 2) >= points.length ? 0 : (i + 2);

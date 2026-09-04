@@ -45,7 +45,7 @@ export class Dnd5eSystemAdapter extends BaseSystemAdapter {
 
         const actIdentifier = doc?.flags?.dnd5e?.activity;
         if (!activityObj && actIdentifier) {
-            if (uuidResolver && typeof actIdentifier === "string" && actIdentifier.includes(".")) {
+            if (uuidResolver && actIdentifier?.includes?.(".")) {
                 try { activityObj = uuidResolver(actIdentifier); } catch (e) {}
             }
             if (!activityObj && itemObj?.system?.activities) {

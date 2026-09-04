@@ -14,7 +14,7 @@ import { remoteCrosshairManager } from "./remoteCrosshairManager.js";
  * @returns {{builder: object, target: Token|object, options: object}} The normalized crosshair builder, target token, and configuration object.
  */
 function normalizePlayArguments(typeOrToken, tokenOrConfig, config) {
-    const isTokenFirst = typeof typeOrToken === "object" && typeOrToken !== null;
+    const isTokenFirst = Boolean(typeOrToken?.document || typeOrToken?.center || typeOrToken?.actor || typeOrToken?.id);
     if (isTokenFirst) {
         return {
             builder: circle,
@@ -23,7 +23,7 @@ function normalizePlayArguments(typeOrToken, tokenOrConfig, config) {
         };
     }
     const selectedBuilder = crosshair[typeOrToken];
-    const builder = (selectedBuilder && typeof selectedBuilder.play === "function") ? selectedBuilder : crosshair.circle;
+    const builder = selectedBuilder?.play ? selectedBuilder : crosshair.circle;
     return {
         builder,
         target: tokenOrConfig,

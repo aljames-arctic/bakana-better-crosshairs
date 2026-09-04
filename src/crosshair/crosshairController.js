@@ -262,7 +262,7 @@ export async function attachCrosshairToToken(sourceToken, shape, size, getCursor
     if (shape?.move && shape?.rotate) {
         shapeInstance = shape;
         if (token) shapeInstance.token = token;
-    } else if (typeof shape === "function") {
+    } else if (shape?.prototype) {
         const previewPlaceable = crosshairAdapter.createUnpersistedPreviewPlaceable(mergedConfig);
         shapeInstance = new shape(previewPlaceable, mergedConfig);
     } else {

@@ -11,7 +11,7 @@ import { localize } from './utils.js';
  * @returns {string} The best-fit path in the Sequencer database.
  */
 function bestFit(modulePrefix, ...categories) {
-    if (typeof Sequencer === 'undefined' || !Sequencer?.Database) {
+    if (!globalThis.Sequencer?.Database) {
         return `${modulePrefix}.${categories.join('.')}`;
     }
     let diverged = false;
@@ -26,7 +26,7 @@ function bestFit(modulePrefix, ...categories) {
      * @returns {boolean} True if the component is enclosed in mustache braces, false otherwise.
      */
     function isMustache(component) {
-        return typeof component === 'string' && component.startsWith('{{') && component.endsWith('}}');
+        return Boolean(component?.startsWith?.('{{') && component?.endsWith?.('}}'));
     }
 
     // Traverse the categories that the user has provided
@@ -133,12 +133,12 @@ export function closest(path) {
 export function absolutePath(configPath) {
     if (typeof configPath !== 'string' || !configPath.trim()) return undefined;
     const resolvedConfig = closest(configPath);
-    if (!resolvedConfig || typeof Sequencer === 'undefined' || !Sequencer?.Database) return resolvedConfig;
+    if (!resolvedConfig || !globalThis.Sequencer?.Database) return resolvedConfig;
     try {
         const entry = Sequencer.Database.getEntry(resolvedConfig, { softFail: true });
-        if (typeof entry === "string") return entry;
         if (entry?.file) return entry.file;
         if (entry?.files?.[0]) return entry.files[0];
+        if (entry?.path) return entry.path;
         return resolvedConfig;
     } catch (e) {
         log.debug(`filemanager | Failed to resolve Sequencer entry for: ${resolvedConfig}`, e);

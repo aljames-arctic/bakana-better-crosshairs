@@ -68,7 +68,7 @@ export class BaseFoundryVTTAdapter {
      * Reference to Foundry's canvas PreciseText container or PIXI.Text.
      */
     get PreciseText() {
-        return foundry?.canvas?.containers?.PreciseText ?? globalThis.PreciseText ?? (typeof PIXI !== "undefined" ? PIXI?.Text : undefined);
+        return foundry?.canvas?.containers?.PreciseText ?? globalThis.PreciseText ?? globalThis.PIXI?.Text;
     }
 
     /**
@@ -272,12 +272,6 @@ export class BaseFoundryVTTAdapter {
         if (ColorClass?.from) {
             try {
                 const c = ColorClass.from(col);
-                if (c) return c;
-            } catch (e) {}
-        }
-        if (typeof Color !== "undefined" && Color.from) {
-            try {
-                const c = Color.from(col);
                 if (c) return c;
             } catch (e) {}
         }
@@ -597,7 +591,7 @@ export class BaseFoundryVTTAdapter {
             const defaultEntry = entries.get("DEFAULT");
             if (defaultEntry?.enabled) {
                 const systemDefault = systemAdapter.getSystemDefault(context);
-                const systemAttach = typeof systemDefault === "boolean"
+                const systemAttach = (systemDefault === true || systemDefault === false)
                     ? (systemDefault ? "true" : "false")
                     : (systemDefault?.options?.attachMode ?? systemDefault?.stickToToken);
                 const stickToToken = (defaultEntry.stickToToken && defaultEntry.stickToToken !== "default")
@@ -880,13 +874,13 @@ export class BaseFoundryVTTAdapter {
         candidateIds.add("Template.preview");
         const rawLayers = this.highlightLayers;
         if (rawLayers) {
-            const layerKeys = typeof rawLayers.keys === "function"
+            const layerKeys = rawLayers.keys
                 ? Array.from(rawLayers.keys())
                 : Object.keys(rawLayers);
 
             for (const key of layerKeys) {
-                if (typeof key !== "string") continue;
-                const lower = key.toLowerCase();
+                if (!key) continue;
+                const lower = String(key).toLowerCase();
                 if (lower === "preview" || lower.includes(".preview") || lower.includes("preview")) {
                     candidateIds.add(key);
                 } else if (pId && (key.endsWith(`.${pId}`) || key === pId)) {
@@ -1385,7 +1379,7 @@ export class BaseFoundryVTTAdapter {
 
                 const shapeFileKey = `${crosshairType}File`;
                 const shapeSpecificFile = entryConfig[shapeFileKey]
-                    ?? (typeof entryConfig.file === "string" && entryConfig.file.includes(crosshairType) ? entryConfig.file : null);
+                    ?? (entryConfig.file?.includes?.(crosshairType) ? entryConfig.file : null);
 
                 const finalConfig = {
                     ...mergedConfig,
@@ -1409,7 +1403,7 @@ export class BaseFoundryVTTAdapter {
             }
 
         } catch (err) {
-            const msg = typeof err === "string" ? err : (err?.message ?? "Failed to play Sequencer crosshair effect");
+            const msg = err?.message ?? String(err ?? "Failed to play Sequencer crosshair effect");
             log.error(`BaseFoundryVTTAdapter.handleDrawPreview | Error running sequencer sequence for "${entry.itemName}":`, err);
             notify.error(msg);
             pending.cancelled = true;

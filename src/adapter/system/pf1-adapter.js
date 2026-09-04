@@ -39,12 +39,9 @@ export class Pf1SystemAdapter extends BaseSystemAdapter {
 
         if (!itemObj && originRef) {
             try {
-                if (typeof originRef === "string") {
-                    if (originRef.includes(".")) {
-                        itemObj = crosshairAdapter.fromUuidSync(originRef);
-                    }
-                } else if (typeof originRef === "object" && typeof originRef.uuid === "string") {
-                    itemObj = crosshairAdapter.fromUuidSync(originRef.uuid);
+                const originUuid = originRef?.uuid ?? (originRef?.includes?.(".") ? originRef : null);
+                if (originUuid) {
+                    itemObj = crosshairAdapter.fromUuidSync(originUuid);
                 }
             } catch (e) {
                 log.warn("Pf1SystemAdapter.extractCallingContext | Could not resolve item from UUID origin:", originRef, e);

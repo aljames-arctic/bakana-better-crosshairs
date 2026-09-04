@@ -156,7 +156,7 @@ export class AutorecManager {
      * @returns {void}
      */
     onRegister(callback) {
-        if (typeof callback === "function") {
+        if (callback) {
             this._onRegisterCallback = callback;
         }
     }
@@ -590,9 +590,7 @@ export class AutorecManager {
         ) {
             const displayAct = String(existing.activityName ?? existing.activityId ?? "").trim() || "default";
             const warnMsg = `An overwrite attempt on (${itemName} / ${displayAct} / ${existingModule}) was attempted by ${callingModule}.`;
-            if (typeof ui !== "undefined" && ui?.notifications?.warn) {
-                ui.notifications.warn(warnMsg);
-            }
+            globalThis.ui?.notifications?.warn?.(warnMsg);
             log.warn(`AutorecManager.register | Overwrite attempt rejected: item "${itemName}" is owned by module "${existingModule}".`);
             return {
                 success: false,

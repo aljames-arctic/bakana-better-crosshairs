@@ -171,7 +171,7 @@ function hasRecommended(dependency) {
  * @returns {boolean} Whether at least one dependency is activated.
  */
 function hasSomeRecommended(dependencyList) {
-    if (!Array.isArray(dependencyList) || dependencyList.length === 0) return false;
+    if (!dependencyList?.length) return false;
     for (const dependency of dependencyList) {
         if (isActivated(dependency)) return true;
     }
@@ -192,7 +192,7 @@ function hasSomeRecommended(dependencyList) {
  * @returns {void} Throws an error if any required dependency is missing.
  */
 function required(dependencyList) {
-    const list = Array.isArray(dependencyList) ? dependencyList : [dependencyList];
+    const list = dependencyList?.length !== undefined ? dependencyList : [dependencyList];
     let errorMsg = localize("BBC.Dependency.RequiresAll", "Requires all of the following to be installed and activated:\n");
     let dependencyMet = true;
 
@@ -219,7 +219,7 @@ function required(dependencyList) {
  * @returns {void} Throws an error if no required dependency is activated.
  */
 function someRequired(dependencyList) {
-    if (!Array.isArray(dependencyList) || dependencyList.length === 0) {
+    if (!dependencyList?.length) {
         throw new Error("No dependencies specified for someRequired.\n");
     }
     let errorMsg = localize("BBC.Dependency.RequiresOne", "Requires at least one of the following to be installed and activated:\n");
