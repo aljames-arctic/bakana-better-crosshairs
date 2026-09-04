@@ -53,7 +53,7 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
         const defaultUserColor = getUserColor("#000000");
         const entries = rawEntries.map(e => ({
             ...e,
-            broadcast: Boolean(e.broadcast ?? true),
+            broadcast: Boolean(e.broadcast),
             circleFile: e.circleFile ?? DEFAULT_AUTOREC_ENTRY.circleFile,
             coneFile: e.coneFile ?? DEFAULT_AUTOREC_ENTRY.coneFile,
             rayFile: e.rayFile ?? DEFAULT_AUTOREC_ENTRY.rayFile,
