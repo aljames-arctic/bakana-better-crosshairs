@@ -169,4 +169,27 @@ test("ItemCrosshairConfigApplication lifecycle and item normalization", async (t
         assert.equal(context.config.enableAnimation, true);
         assert.equal(context.config.circleFile, "custom.circle.effect");
     });
+
+    await t.test("_prepareContext identifies customConfig.enabled === false as custom override", async () => {
+        const flags = {
+            customConfig: {
+                enabled: false
+            }
+        };
+        const mockItem = {
+            id: "disabled-item",
+            name: "Disabled Spell",
+            getFlag: (scope, key) => flags[key] ?? null,
+            setFlag: async (scope, key, val) => { flags[key] = val; },
+            unsetFlag: async (scope, key) => { delete flags[key]; }
+        };
+
+        const app = new ItemCrosshairConfigApplication({ item: mockItem });
+        const context = await app._prepareContext({});
+
+        assert.ok(context);
+        assert.equal(context.scopes[0].hasCustom, true);
+        assert.equal(context.scopes[0].overrideCount, 1);
+        assert.equal(context.config.enabled, false);
+    });
 });

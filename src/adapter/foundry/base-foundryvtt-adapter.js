@@ -553,10 +553,25 @@ export class BaseFoundryVTTAdapter {
             return null;
         }
 
+        // 1. Check custom flags on calling item or activity (Item Sheet overrides)
+        const itemConfig = context.item?.getFlag?.(MODULE_ID, "customConfig") ?? null;
+        const activityConfig = Boolean(context.activityId)
+            ? (context.item?.getFlag?.(MODULE_ID, "activityConfigs")?.[context.activityId] ?? null)
+            : null;
+        const activeCustomConfig = activityConfig ?? itemConfig;
+
+        // If explicitly disabled via item or activity custom flag, disable BBC completely
+        const isCustomDisabled = (activityConfig?.enabled === false) || (itemConfig?.enabled === false && activityConfig?.enabled !== true);
+        if (isCustomDisabled) {
+            log.debug(`matchAutorecEntry | [DISABLED VIA FLAG] Crosshairs explicitly disabled for "${context.itemName}" via custom config.`);
+            return null;
+        }
+
+        // 2. Query registered Autorec entries
         const callingItemName = context.itemName.trim().toLowerCase();
         const candidateEntries = [];
         for (const entry of entries.values()) {
-            if (entry.isDefault || !entry.enabled) continue;
+            if (entry.isDefault) continue;
             if ((entry.itemName ?? "").trim().toLowerCase() === callingItemName) {
                 candidateEntries.push(entry);
             }
@@ -571,6 +586,11 @@ export class BaseFoundryVTTAdapter {
         let baseEntry = null;
         for (const entry of candidateEntries) {
             if (systemAdapter.isMatch(context, entry)) {
+                if (entry.enabled === false && activeCustomConfig?.enabled !== true) {
+                    log.debug(`matchAutorecEntry | [DISABLED VIA AUTOREC] Autorec entry for "${entry.itemName}" explicitly disabled crosshairs.`);
+                    return null;
+                }
+
                 log.debug(`matchAutorecEntry | [MATCH FOUND] Specific global entry "${entry.itemName}" matched calling item "${context.itemName}"`);
                 const defaultEntry = entries.get("DEFAULT") ?? {};
                 const hasSpecificStick = entry.stickToToken !== undefined && entry.stickToToken !== null && entry.stickToToken !== "default";
@@ -586,7 +606,7 @@ export class BaseFoundryVTTAdapter {
             }
         }
 
-        if (!baseEntry) {
+        if (!baseEntry && !activeCustomConfig) {
             const defaultEntry = entries.get("DEFAULT");
             if (defaultEntry?.enabled) {
                 const systemDefault = systemAdapter.getSystemDefault(context);
@@ -607,11 +627,6 @@ export class BaseFoundryVTTAdapter {
                 };
             }
         }
-
-        const itemConfig = context.item?.getFlag?.(MODULE_ID, "customConfig") ?? null;
-        const activityConfig = Boolean(context.activityId)
-            ? (context.item?.getFlag?.(MODULE_ID, "activityConfigs")?.[context.activityId] ?? null)
-            : null;
 
         if (!itemConfig && !activityConfig) {
             return baseEntry ? CrosshairConfiguration.fromSource(baseEntry) : null;

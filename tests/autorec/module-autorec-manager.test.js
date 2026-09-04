@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import { autorecManager } from '../../src/autorec/autorecManager.js';
 import { ModuleAutorecManager } from '../../src/autorec/moduleAutorecManager.js';
 import { AUTOREC_EXCHANGE_VERSION } from '../../src/autorec/autorecExchange.js';
+import { crosshairAdapter } from '../../src/adapter/foundry/index.js';
+import { initializeSystemAdapter } from '../../src/adapter/system/index.js';
 
 test('ModuleAutorecManager.register and .unregister require arrays of elements', async () => {
     assert.throws(
@@ -343,4 +345,99 @@ test('Package import (.import) does NOT throw overwrite warning notification whe
 
     await importerModule.unregister(['Shield of Faith'], { local: true });
     globalThis.ui = origUi;
+});
+
+test('Disabling crosshairs via Autorec entry or Item/Activity custom config returns null without falling back to DEFAULT', async () => {
+    crosshairAdapter.initialize();
+    initializeSystemAdapter();
+
+    const pack = autorecManager('test-disable-pack');
+
+    // Register an item with enabled: false (e.g. Spike Growth)
+    await pack.register([
+        {
+            itemName: 'Spike Growth',
+            config: {
+                enabled: false,
+                circleFile: 'spike-growth.png'
+            }
+        },
+        {
+            itemName: 'Fireball',
+            config: {
+                enabled: true,
+                circleFile: 'fireball.png'
+            }
+        }
+    ], { persist: false });
+
+    // Helper to create mock doc
+    const makeDoc = (name, customConfig = null, activityConfigs = null, activityId = null) => {
+        const item = {
+            id: `item-${name.toLowerCase().replace(/\s+/g, '-')}`,
+            name,
+            getFlag(mod, flag) {
+                if (flag === 'customConfig') return customConfig;
+                if (flag === 'activityConfigs') return activityConfigs;
+                return null;
+            }
+        };
+        const doc = {
+            item,
+            documentName: 'MeasuredTemplate'
+        };
+        if (activityId) {
+            doc.activity = { id: activityId, name: 'Default Activity' };
+        }
+        return doc;
+    };
+
+    // 1. Spike Growth has autorec enabled: false -> matchAutorecEntry must return null
+    const spikeGrowthDoc = makeDoc('Spike Growth');
+    const spikeMatch = crosshairAdapter.matchAutorecEntry(spikeGrowthDoc, autorecManager.registeredHandlers);
+    assert.equal(spikeMatch, null, 'Registered autorec entry with enabled: false must return null');
+
+    // 2. Fireball has autorec enabled: true -> returns CrosshairConfiguration
+    const fireballDoc = makeDoc('Fireball');
+    const fireballMatch = crosshairAdapter.matchAutorecEntry(fireballDoc, autorecManager.registeredHandlers);
+    assert.ok(fireballMatch, 'Registered autorec entry with enabled: true must match');
+    assert.equal(fireballMatch.enabled, true);
+    assert.equal(fireballMatch.circleFile, 'fireball.png');
+
+    // 3. Unregistered item (e.g. Acid Splash) -> falls back to DEFAULT entry
+    const acidDoc = makeDoc('Acid Splash');
+    const acidMatch = crosshairAdapter.matchAutorecEntry(acidDoc, autorecManager.registeredHandlers);
+    assert.ok(acidMatch, 'Unregistered item should match default template');
+    assert.equal(acidMatch.enabled, true);
+
+    // 4. Item-level custom override with enabled: false completely disables crosshairs for that item
+    const disabledFireballDoc = makeDoc('Fireball', { enabled: false });
+    const disabledFireballMatch = crosshairAdapter.matchAutorecEntry(disabledFireballDoc, autorecManager.registeredHandlers);
+    assert.equal(disabledFireballMatch, null, 'Item with customConfig enabled: false must return null');
+
+    // 5. Unregistered item with item-level enabled: false returns null instead of DEFAULT fallback
+    const disabledAcidDoc = makeDoc('Acid Splash', { enabled: false });
+    const disabledAcidMatch = crosshairAdapter.matchAutorecEntry(disabledAcidDoc, autorecManager.registeredHandlers);
+    assert.equal(disabledAcidMatch, null, 'Unregistered item with customConfig enabled: false must return null');
+
+    // 6. Item-level custom override with enabled: true re-enables an item disabled in global Autorec
+    const reenabledSpikeDoc = makeDoc('Spike Growth', { enabled: true });
+    const reenabledSpikeMatch = crosshairAdapter.matchAutorecEntry(reenabledSpikeDoc, autorecManager.registeredHandlers);
+    assert.ok(reenabledSpikeMatch, 'Item with customConfig enabled: true must re-enable crosshairs over disabled autorec entry');
+    assert.equal(reenabledSpikeMatch.enabled, true);
+    assert.equal(reenabledSpikeMatch.circleFile, 'spike-growth.png');
+
+    // 7. Activity-level custom override with enabled: false disables crosshairs for that activity
+    const disabledActDoc = makeDoc('Fireball', null, { 'act-1': { enabled: false } }, 'act-1');
+    const disabledActMatch = crosshairAdapter.matchAutorecEntry(disabledActDoc, autorecManager.registeredHandlers);
+    assert.equal(disabledActMatch, null, 'Activity with customConfig enabled: false must return null');
+
+    // 8. Activity-level enabled: true overrides item-level enabled: false
+    const enabledActDoc = makeDoc('Fireball', { enabled: false }, { 'act-1': { enabled: true } }, 'act-1');
+    const enabledActMatch = crosshairAdapter.matchAutorecEntry(enabledActDoc, autorecManager.registeredHandlers);
+    assert.ok(enabledActMatch, 'Activity enabled: true must take precedence over item enabled: false');
+    assert.equal(enabledActMatch.enabled, true);
+
+    // Clean up
+    await pack.unregister(['Spike Growth', 'Fireball'], { local: true });
 });

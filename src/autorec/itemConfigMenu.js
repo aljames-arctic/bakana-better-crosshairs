@@ -56,13 +56,17 @@ function inspectScopeCustomState(customConfig) {
         ? Boolean(customConfig.enablePostPlacement)
         : Boolean(customConfig.postPlacementCode);
 
+    const isExplicitlyDisabled = customConfig.enabled === false;
     const overrideCount = (enablePrePlacement ? 1 : 0) +
         (enableAnimation ? 1 : 0) +
         (enablePlacedStyling ? 1 : 0) +
-        (enablePostPlacement ? 1 : 0);
+        (enablePostPlacement ? 1 : 0) +
+        (isExplicitlyDisabled ? 1 : 0);
 
     return {
-        hasCustom: overrideCount > 0,
+        hasCustom: overrideCount > 0 || isExplicitlyDisabled,
+        isExplicitlyDisabled,
+        enabled: customConfig.enabled !== false,
         enablePrePlacement,
         enableAnimation,
         enablePlacedStyling,
@@ -154,7 +158,7 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
         const itemCustomConfig = item?.getFlag(MODULE_ID, "customConfig") ?? null;
         const activityConfigs = item?.getFlag(MODULE_ID, "activityConfigs") ?? {};
         const autorecMatch = autorecManager.getEntryByName(itemName);
-        const isGlobalAutorec = Boolean(autorecMatch) && !autorecMatch.isDefault && autorecMatch.enabled;
+        const isGlobalAutorec = Boolean(autorecMatch) && !autorecMatch.isDefault;
 
         const itemCustomState = inspectScopeCustomState(itemCustomConfig);
         const itemScope = {
@@ -333,6 +337,8 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             placedBorder: localize("BBC.autorecMenu.labels.placedBorder", "Placed Border Color"),
             persistEffect: localize("BBC.autorecMenu.labels.persistEffect", "Persistent Animation"),
             alphaLabel: localize("BBC.autorecMenu.labels.alpha", "Alpha:"),
+            workflowDetails: localize("BBC.autorecMenu.sections.workflowDetails", "Workflow Details"),
+            workflowEnabled: localize("BBC.autorecMenu.labels.workflowEnabled", "Workflow Enabled"),
             enabledPill: localize("BBC.autorecMenu.pills.enabled", "Enabled"),
             disabledPill: localize("BBC.autorecMenu.pills.disabled", "Disabled"),
             nonePill: localize("BBC.autorecMenu.pills.none", "None"),
@@ -474,18 +480,19 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
         }
 
         const formData = new FormData(form);
+        const enabled = formData.get("enabled") === "on";
         const enablePrePlacement = formData.get("enablePrePlacement") === "on";
         const enableAnimation = formData.get("enableAnimation") === "on";
         const enablePlacedStyling = formData.get("enablePlacedStyling") === "on";
         const enablePostPlacement = formData.get("enablePostPlacement") === "on";
-        const hasAnyOverride = enablePrePlacement || enableAnimation || enablePlacedStyling || enablePostPlacement;
+        const hasAnyOverride = !enabled || enablePrePlacement || enableAnimation || enablePlacedStyling || enablePostPlacement;
 
         const config = {
             enablePrePlacement,
             enableAnimation,
             enablePlacedStyling,
             enablePostPlacement,
-            enabled: true,
+            enabled,
 
             circleFile: String(formData.get("circleFile") ?? "").trim(),
             coneFile: String(formData.get("coneFile") ?? "").trim(),

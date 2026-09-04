@@ -68,3 +68,18 @@ test('CrosshairConfiguration and DEFAULT_AUTOREC_ENTRY default placedFillAlpha t
     }
 });
 
+test('CrosshairConfiguration.overrideWith respects explicit enabled flag', () => {
+    const base = CrosshairConfiguration.fromSource({
+        itemName: 'Spike Growth',
+        enabled: true,
+        circleFile: 'spike.png'
+    });
+
+    const disabled = base.overrideWith({ enabled: false });
+    assert.equal(disabled.enabled, false);
+    assert.equal(disabled.circleFile, 'spike.png');
+
+    const reenabled = disabled.overrideWith({ enabled: true });
+    assert.equal(reenabled.enabled, true);
+});
+

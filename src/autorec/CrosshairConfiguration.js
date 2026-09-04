@@ -131,17 +131,22 @@ export class CrosshairConfiguration {
             || "enablePrePlacement" in customSource
             || "enablePlacedStyling" in customSource
             || "enablePostPlacement" in customSource;
+        const hasExplicitEnabled = "enabled" in customSource;
 
         const isPreOverride = hasGranularFlags ? Boolean(customSource.enablePrePlacement) : Boolean(customSource.concurrentCode);
         const isAnimOverride = hasGranularFlags ? Boolean(customSource.enableAnimation) : Boolean(customSource.enabled !== false);
         const isPlacedOverride = hasGranularFlags ? Boolean(customSource.enablePlacedStyling) : (Boolean(customSource.placedFillColor) || Boolean(customSource.placedBorderColor));
         const isPostOverride = hasGranularFlags ? Boolean(customSource.enablePostPlacement) : Boolean(customSource.postPlacementCode);
 
-        if (!isPreOverride && !isAnimOverride && !isPlacedOverride && !isPostOverride) {
+        if (!isPreOverride && !isAnimOverride && !isPlacedOverride && !isPostOverride && !hasExplicitEnabled) {
             return this;
         }
 
         const merged = { ...this, isCustom: true };
+
+        if (hasExplicitEnabled) {
+            merged.enabled = customSource.enabled !== false;
+        }
 
         if (isPreOverride) {
             merged.concurrentCode = customSource.concurrentCode ?? this.concurrentCode;
@@ -149,7 +154,7 @@ export class CrosshairConfiguration {
         }
 
         if (isAnimOverride) {
-            merged.enabled = true;
+            merged.enabled = customSource.enabled !== false;
             merged.enableAnimation = true;
             merged.circleFile = customSource.circleFile ?? this.circleFile;
             merged.coneFile = customSource.coneFile ?? this.coneFile;

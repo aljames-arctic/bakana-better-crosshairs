@@ -100,6 +100,35 @@
             <div class="bbc-sections-scroll bbc-item-config-body">
                 {{#if (or currentScope.hasCustom isEditMode)}}
                 {{#with config}}
+                <!-- Top Section: Workflow Status -->
+                <section class="bbc-section-card">
+                    <div class="bbc-section-header">
+                        <div class="bbc-section-title">
+                            <i class="fa-solid fa-chevron-down bbc-chevron"></i>
+                            <i class="fa-solid fa-circle-info bbc-section-icon"></i>
+                            <h3>{{../labels.workflowDetails}}</h3>
+                        </div>
+                    </div>
+                    <div class="bbc-section-body">
+                        <table class="bbc-config-table">
+                            <tbody>
+                                <tr>
+                                    <th>{{../labels.workflowEnabled}}</th>
+                                    <td>
+                                        <span class="view-only">
+                                            <span class="bbc-pill {{#if enabled}}enabled{{else}}disabled{{/if}}">{{#if enabled}}{{../labels.enabledPill}}{{else}}{{../labels.disabledPill}}{{/if}}</span>
+                                        </span>
+                                        <label class="bbc-toggle-label edit-only">
+                                            <input type="checkbox" name="enabled" class="bbc-edit-input" {{#if enabled}}checked{{/if}} />
+                                            <span>{{../labels.enabledPill}}</span>
+                                        </label>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
                 {{> "modules/bakana-better-crosshairs/src/autorec/configFieldsPartial.html" labels=../labels prePlacementTitle=../prePlacementTitle placementSectionTitle=../placementSectionTitle postPlacementTitle=../postPlacementTitle showOverrides=true showActivityIdentification=false isEditMode=../isEditMode}}
                 {{/with}}
                 {{else}}
