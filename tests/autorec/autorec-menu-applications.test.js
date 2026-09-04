@@ -151,6 +151,22 @@ test("AutorecMenuApplication lifecycle and context preparation", async (t) => {
         assert.ok(itemConfigHtml.includes("previewPlacementSectionTitle=../previewPlacementSectionTitle"));
     });
 
+    await t.test("autorecMenu.html places Import/Export JSON buttons in row above Add/Remove buttons", async () => {
+        const autorecHtml = await fs.readFile(new URL("../../src/autorec/autorecMenu.html", import.meta.url), "utf8");
+        const importIdx = autorecHtml.indexOf("bbc-import-json-btn");
+        const exportIdx = autorecHtml.indexOf("bbc-export-json-btn");
+        const addIdx = autorecHtml.indexOf("bbc-add-workflow-btn");
+        const removeIdx = autorecHtml.indexOf("bbc-remove-selected-btn");
+
+        assert.ok(importIdx !== -1, "Import JSON button must exist");
+        assert.ok(exportIdx !== -1, "Export JSON button must exist");
+        assert.ok(addIdx !== -1, "Add button must exist");
+        assert.ok(removeIdx !== -1, "Remove button must exist");
+
+        assert.ok(importIdx < addIdx, "Import JSON must be positioned before (above) Add button");
+        assert.ok(exportIdx < addIdx, "Export JSON must be positioned before (above) Add button");
+    });
+
     await t.test("_prepareContext includes persist and hasPlacedStyling for persisted entries", async () => {
         autorecManager.register("Persisted Web", {
             itemName: "Persisted Web",
