@@ -1,6 +1,5 @@
 import { dependency } from './dependency.js';
-import { log } from './logger.js';
-import { notify } from './notifier.js';
+import { log, notify } from './logger.js';
 import { localize } from './utils.js';
 
 /**

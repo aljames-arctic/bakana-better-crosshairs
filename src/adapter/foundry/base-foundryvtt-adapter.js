@@ -1,10 +1,9 @@
 import { systemAdapter } from "../system/index.js";
-import { log } from "../../lib/logger.js";
+import { log, notify } from "../../lib/logger.js";
 import { TokenGeometry } from "../../lib/tokenGeometry.js";
 import { MODULE_ID } from "../../lib/constants.js";
 import { DEFAULT_AUTOREC_ENTRY, autorecManager } from "../../autorec/autorecManager.js";
 import { CrosshairConfiguration } from "../../autorec/CrosshairConfiguration.js";
-import { notify } from "../../lib/notifier.js";
 import { getUserColor } from "../../lib/utils.js";
 import { runConcurrentScript, activePlacementTracker, shouldStickToToken } from "../../crosshair/util.js";
 import { PendingPlacementSession } from "./pendingPlacementSession.js";

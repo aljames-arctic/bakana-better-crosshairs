@@ -1,91 +1,118 @@
 import { MODULE_ID, MODULE_TLA } from "./constants.js";
 
-const VERBOSITY_LEVELS = {
-    'error': 1,
-    'warn': 2,
-    'info': 3,
-    'debug': 4
-};
+export const VERBOSITY_LEVELS = Object.freeze({
+    error: 1,
+    warn: 2,
+    info: 3,
+    debug: 4
+});
 
-export const GROUP_STYLES = {
-    'error': 'color: #ef4444; font-weight: bold;',
-    'warn': 'color: #f59e0b; font-weight: bold;',
-    'info': 'color: #ffffff; font-weight: bold;',
-    'debug': 'color: #38bdf8; font-weight: bold;'
-};
-
-let cachedVerbosity = null;
+export const GROUP_STYLES = Object.freeze({
+    error: "color: #ef4444; font-weight: bold;",
+    warn: "color: #f59e0b; font-weight: bold;",
+    info: "color: #ffffff; font-weight: bold;",
+    debug: "color: #38bdf8; font-weight: bold;"
+});
 
 /**
- * Get the current log verbosity level from the game settings.
- * Defaults to 'warn' if the setting is not yet registered or unavailable.
- * @returns {number} The current numeric verbosity level.
+ * Unified Logger and UI notification dispatcher for Bakana's Better Crosshairs.
+ * Encapsulates console output (error, warn, info, debug, grouping) and debounced,
+ * coalesced UI toast notifications.
  */
-function getVerbosityLevel() {
-    if (cachedVerbosity !== null) return cachedVerbosity;
+export class Logger {
+    constructor() {
+        this._cachedVerbosity = null;
+        this._groupStack = [];
+        this._queues = {
+            info: [],
+            warn: [],
+            error: []
+        };
+        this._flushTimeout = null;
+        this._batchWindowMs = 50;
 
-    try {
-        if (game?.settings) {
-            const setting = game.settings.get(MODULE_ID, 'logVerbosity');
-            cachedVerbosity = VERBOSITY_LEVELS[setting] ?? VERBOSITY_LEVELS['warn'];
-            return cachedVerbosity;
+        this.notify = Object.freeze({
+            info: (message) => this.notifyInfo(message),
+            warn: (message) => this.notifyWarn(message),
+            error: (message) => this.notifyError(message)
+        });
+    }
+
+    /**
+     * Get the current log verbosity level from the game settings.
+     * Defaults to 'warn' if the setting is not yet registered or unavailable.
+     * @returns {number} The current numeric verbosity level.
+     */
+    getVerbosityLevel() {
+        if (this._cachedVerbosity !== null) return this._cachedVerbosity;
+
+        try {
+            if (game?.settings) {
+                const setting = game.settings.get(MODULE_ID, "logVerbosity");
+                this._cachedVerbosity = VERBOSITY_LEVELS[setting] ?? VERBOSITY_LEVELS.warn;
+                return this._cachedVerbosity;
+            }
+        } catch (e) {
+            // Settings not yet registered or game not fully initialized
         }
-    } catch (e) {
-        // Settings not yet registered or game not fully initialized
+        return VERBOSITY_LEVELS.warn;
     }
-    return VERBOSITY_LEVELS['warn'];
-}
 
-const groupStack = [];
+    /**
+     * Dynamically update the cached verbosity level.
+     * Called by the settings onChange callback.
+     * @param {'error'|'warn'|'info'|'debug'} level - The new verbosity level key.
+     * @returns {void}
+     */
+    setVerbosity(level) {
+        this._cachedVerbosity = VERBOSITY_LEVELS[level] ?? VERBOSITY_LEVELS.warn;
+    }
 
-/**
- * Ensure any pending (unstarted) groups on the stack are opened in the console
- * before writing log messages, preventing empty groups when no log messages execute.
- */
-function _ensureGroupsStarted() {
-    for (const entry of groupStack) {
-        if (entry.enabled && !entry.started) {
-            const style = GROUP_STYLES[entry.level] ?? GROUP_STYLES['info'];
-            const shouldCollapse = entry.forceCollapse ?? (entry.level === 'debug' || entry.level === 'info');
-            const consoleFn = (shouldCollapse && console.groupCollapsed) ? console.groupCollapsed : console.group;
-            consoleFn(`%c${MODULE_TLA} | ${entry.message}`, style, ...entry.groupArgs);
-            entry.started = true;
+    /**
+     * Ensure any pending (unstarted) groups on the stack are opened in the console
+     * before writing log messages, preventing empty groups when no log messages execute.
+     * @private
+     */
+    _ensureGroupsStarted() {
+        for (const entry of this._groupStack) {
+            if (entry.enabled && !entry.started) {
+                const style = GROUP_STYLES[entry.level] ?? GROUP_STYLES.info;
+                const shouldCollapse = entry.forceCollapse ?? (entry.level === "debug" || entry.level === "info");
+                const consoleFn = (shouldCollapse && console.groupCollapsed) ? console.groupCollapsed : console.group;
+                consoleFn(`%c${MODULE_TLA} | ${entry.message}`, style, ...entry.groupArgs);
+                entry.started = true;
+            }
         }
     }
-}
 
-/**
- * Internal helper to create a styled console group (or collapsed group)
- * respecting the log verbosity level and highlighting with level-specific colors.
- * Groups default to collapsed for 'info' and 'debug', and expanded for 'warn' and 'error'.
- * Groups are lazy and only start in the console when a log message executes while open.
- * @param {boolean|null} forceCollapse Explicit collapse override, or null to default (info & debug collapsed, warn & error expanded)
- * @param {string} message Group label/message
- * @param {...*} args Optional verbosity level as first argument, followed by group payload
- */
-function _createGroup(forceCollapse, message, ...args) {
-    let level = 'info';
-    let groupArgs = args;
-    if (args.length > 0 && VERBOSITY_LEVELS[args[0]] !== undefined) {
-        level = args[0];
-        groupArgs = args.slice(1);
+    /**
+     * Internal helper to create a styled console group (or collapsed group)
+     * respecting the log verbosity level and highlighting with level-specific colors.
+     * Groups default to collapsed for 'info' and 'debug', and expanded for 'warn' and 'error'.
+     * Groups are lazy and only start in the console when a log message executes while open.
+     * @param {boolean|null} forceCollapse Explicit collapse override, or null to default (info & debug collapsed, warn & error expanded)
+     * @param {string} message Group label/message
+     * @param {...*} args Optional verbosity level as first argument, followed by group payload
+     * @private
+     */
+    _createGroup(forceCollapse, message, ...args) {
+        let level = "info";
+        let groupArgs = args;
+        if (args.length > 0 && VERBOSITY_LEVELS[args[0]] !== undefined) {
+            level = args[0];
+            groupArgs = args.slice(1);
+        }
+        const enabled = this.getVerbosityLevel() >= VERBOSITY_LEVELS[level];
+        this._groupStack.push({
+            message,
+            level,
+            groupArgs,
+            forceCollapse,
+            started: false,
+            enabled
+        });
     }
-    const enabled = getVerbosityLevel() >= VERBOSITY_LEVELS[level];
-    groupStack.push({
-        message,
-        level,
-        groupArgs,
-        forceCollapse,
-        started: false,
-        enabled
-    });
-}
 
-/**
- * Premium logging utility for Bakana's Better Crosshairs.
- * Supports levels: error, warn, info, debug, and console grouping.
- */
-export const log = {
     /**
      * Log an error message to the console if the current verbosity level allows.
      * @param {string} message - The error message to log.
@@ -93,11 +120,11 @@ export const log = {
      * @returns {void}
      */
     error(message, ...args) {
-        if (getVerbosityLevel() >= VERBOSITY_LEVELS['error']) {
-            _ensureGroupsStarted();
+        if (this.getVerbosityLevel() >= VERBOSITY_LEVELS.error) {
+            this._ensureGroupsStarted();
             console.error(`${MODULE_TLA} | ${message}`, ...args);
         }
-    },
+    }
 
     /**
      * Log a warning message to the console if the current verbosity level allows.
@@ -106,11 +133,11 @@ export const log = {
      * @returns {void}
      */
     warn(message, ...args) {
-        if (getVerbosityLevel() >= VERBOSITY_LEVELS['warn']) {
-            _ensureGroupsStarted();
+        if (this.getVerbosityLevel() >= VERBOSITY_LEVELS.warn) {
+            this._ensureGroupsStarted();
             console.warn(`${MODULE_TLA} | ${message}`, ...args);
         }
-    },
+    }
 
     /**
      * Log a high-level lifecycle or status info message to the console if the current verbosity level allows.
@@ -119,11 +146,11 @@ export const log = {
      * @returns {void}
      */
     info(message, ...args) {
-        if (getVerbosityLevel() >= VERBOSITY_LEVELS['info']) {
-            _ensureGroupsStarted();
+        if (this.getVerbosityLevel() >= VERBOSITY_LEVELS.info) {
+            this._ensureGroupsStarted();
             console.log(`${MODULE_TLA} | ${message}`, ...args);
         }
-    },
+    }
 
     /**
      * Log a debug trace or diagnostic message to the console if the current verbosity level allows.
@@ -132,12 +159,12 @@ export const log = {
      * @returns {void}
      */
     debug(message, ...args) {
-        if (getVerbosityLevel() >= VERBOSITY_LEVELS['debug']) {
-            _ensureGroupsStarted();
-            const timestamp = game?.time?.serverTime ?? 'Unknown';
+        if (this.getVerbosityLevel() >= VERBOSITY_LEVELS.debug) {
+            this._ensureGroupsStarted();
+            const timestamp = game?.time?.serverTime ?? "Unknown";
             console.log(`%c[${MODULE_TLA} Debug (${timestamp})]`, "color: #38bdf8; font-weight: bold;", message, ...args);
         }
-    },
+    }
 
     /**
      * Start a console group if the current verbosity level allows.
@@ -148,8 +175,8 @@ export const log = {
      * @returns {void}
      */
     group(message, ...args) {
-        _createGroup(null, message, ...args);
-    },
+        this._createGroup(null, message, ...args);
+    }
 
     /**
      * Start a collapsed console group if the current verbosity level allows.
@@ -159,8 +186,8 @@ export const log = {
      * @returns {void}
      */
     groupCollapsed(message, ...args) {
-        _createGroup(true, message, ...args);
-    },
+        this._createGroup(true, message, ...args);
+    }
 
     /**
      * Start an expanded console group if the current verbosity level allows.
@@ -170,27 +197,120 @@ export const log = {
      * @returns {void}
      */
     groupExpanded(message, ...args) {
-        _createGroup(false, message, ...args);
-    },
+        this._createGroup(false, message, ...args);
+    }
 
     /**
      * End the most recently started console group if it was actively logged.
      * @returns {void}
      */
     groupEnd() {
-        const group = groupStack.pop();
+        const group = this._groupStack.pop();
         if (group?.started) {
             console.groupEnd();
         }
-    },
+    }
+
+    // --- UI Notifications (Debounced & Batched) ---
 
     /**
-     * Dynamically update the cached verbosity level.
-     * Called by the settings onChange callback.
-     * @param {'error'|'warn'|'info'|'debug'} level - The new verbosity level key.
+     * Schedule a debounced flush of all queued notifications.
+     * @private
      * @returns {void}
      */
-    setVerbosity(level) {
-        cachedVerbosity = VERBOSITY_LEVELS[level] ?? VERBOSITY_LEVELS['warn'];
+    _scheduleFlush() {
+        if (this._flushTimeout !== null) return;
+        this._flushTimeout = setTimeout(() => {
+            this._flushTimeout = null;
+            this._flushQueues();
+        }, this._batchWindowMs);
     }
-};
+
+    /**
+     * Flush and display grouped notifications for each severity level (`info`, `warn`, `error`).
+     * @private
+     * @returns {void}
+     */
+    _flushQueues() {
+        if (!ui?.notifications) {
+            this._queues.info.length = 0;
+            this._queues.warn.length = 0;
+            this._queues.error.length = 0;
+            return;
+        }
+
+        for (const level of ["info", "warn", "error"]) {
+            const queue = this._queues[level];
+            if (queue.length === 0) continue;
+
+            const messages = [...queue];
+            queue.length = 0;
+
+            if (messages.length === 1) {
+                ui.notifications[level](messages[0]);
+            } else {
+                const header = level === "error"
+                    ? `Bakana's Better Crosshairs — Errors (${messages.length}):`
+                    : level === "warn"
+                    ? `Bakana's Better Crosshairs — Warnings (${messages.length}):`
+                    : `Bakana's Better Crosshairs (${messages.length}):`;
+
+                const groupedMessage = `${header}\n` + messages.map(m => `• ${m}`).join("\n");
+                ui.notifications[level](groupedMessage);
+            }
+        }
+    }
+
+    /**
+     * Common internal helper to enqueue a message for debounced notification dispatch.
+     * @param {'info'|'warn'|'error'} level - Notification severity level
+     * @param {string} message - Notification message text
+     * @private
+     * @returns {void}
+     */
+    _enqueueNotification(level, message) {
+        const trimmed = String(message ?? "").trim();
+        if (!trimmed) return;
+        const queue = this._queues[level];
+        if (queue && !queue.includes(trimmed)) {
+            queue.push(trimmed);
+            this._scheduleFlush();
+        }
+    }
+
+    /**
+     * Queue an informational UI notification.
+     * Multiple info calls within 50ms are grouped into a single notification display.
+     * @param {string} message - Notification message text
+     * @returns {void}
+     */
+    notifyInfo(message) {
+        this._enqueueNotification("info", message);
+    }
+
+    /**
+     * Queue a warning UI notification.
+     * Multiple warn calls within 50ms are grouped into a single notification display.
+     * @param {string} message - Warning message text
+     * @returns {void}
+     */
+    notifyWarn(message) {
+        this._enqueueNotification("warn", message);
+    }
+
+    /**
+     * Queue an error UI notification.
+     * Multiple error calls within 50ms are grouped into a single notification display.
+     * @param {string} message - Error message text
+     * @returns {void}
+     */
+    notifyError(message) {
+        this._enqueueNotification("error", message);
+    }
+}
+
+export const log = new Logger();
+export const notify = log.notify;
+export const notifyInfo = (msg) => log.notifyInfo(msg);
+export const notifyWarn = (msg) => log.notifyWarn(msg);
+export const notifyError = (msg) => log.notifyError(msg);

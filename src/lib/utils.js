@@ -61,5 +61,5 @@ export function getUserColor(fallback = "#000000") {
     return (str && str !== "[object Object]") ? str : fallback;
 }
 
-export { notify } from "./notifier.js";
+export { notify } from "./logger.js";
 
