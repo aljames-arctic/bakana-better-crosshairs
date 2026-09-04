@@ -57,8 +57,7 @@ src/
 │   ├── constants.js                       # Shared module constants
 │   ├── dependency.js                      # Module dependency validation engine
 │   ├── filemanager.js                     # Sequencer database path/asset resolution
-│   ├── logger.js                          # Structured logging system
-│   ├── notifier.js                        # UI notification batcher
+│   ├── logger.js                          # Structured logging & UI notification system
 │   ├── scriptRunner.js                    # Safe script runner utility
 │   ├── tokenGeometry.js                   # Unified geometric token utilities
 │   └── utils.js                           # Localization and version helper utilities

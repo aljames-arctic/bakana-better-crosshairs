@@ -2,7 +2,6 @@ import '../setup.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Logger, log, notify } from '../../src/lib/logger.js';
-import { notify as backwardNotify } from '../../src/lib/notifier.js';
 
 test('logger verbosity check and grouping interface contracts', () => {
     log.setVerbosity('info');
@@ -80,6 +79,5 @@ test('Logger class encapsulates console logging and unified UI notification disp
         notify.info('Test Info Notification');
         notify.warn('Test Warn Notification');
         notify.error('Test Error Notification');
-        backwardNotify.info('Test backward compat notify');
     });
 });
