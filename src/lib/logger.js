@@ -32,9 +32,9 @@ export class Logger {
         this._batchWindowMs = 50;
 
         this.notify = Object.freeze({
-            info: (message) => this.notifyInfo(message),
-            warn: (message) => this.notifyWarn(message),
-            error: (message) => this.notifyError(message)
+            info: (message) => this._enqueueNotification("info", message),
+            warn: (message) => this._enqueueNotification("warn", message),
+            error: (message) => this._enqueueNotification("error", message)
         });
     }
 
@@ -278,39 +278,7 @@ export class Logger {
         }
     }
 
-    /**
-     * Queue an informational UI notification.
-     * Multiple info calls within 50ms are grouped into a single notification display.
-     * @param {string} message - Notification message text
-     * @returns {void}
-     */
-    notifyInfo(message) {
-        this._enqueueNotification("info", message);
-    }
-
-    /**
-     * Queue a warning UI notification.
-     * Multiple warn calls within 50ms are grouped into a single notification display.
-     * @param {string} message - Warning message text
-     * @returns {void}
-     */
-    notifyWarn(message) {
-        this._enqueueNotification("warn", message);
-    }
-
-    /**
-     * Queue an error UI notification.
-     * Multiple error calls within 50ms are grouped into a single notification display.
-     * @param {string} message - Error message text
-     * @returns {void}
-     */
-    notifyError(message) {
-        this._enqueueNotification("error", message);
-    }
 }
 
 export const log = new Logger();
 export const notify = log.notify;
-export const notifyInfo = (msg) => log.notifyInfo(msg);
-export const notifyWarn = (msg) => log.notifyWarn(msg);
-export const notifyError = (msg) => log.notifyError(msg);
