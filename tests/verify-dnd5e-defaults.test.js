@@ -100,7 +100,12 @@ assert.equal(shouldStickToToken({ itemName: 'Cone of Cold', stickToToken: 'defau
 assert.equal(shouldStickToToken({ itemName: 'Cono de frío', stickToToken: 'default' }, 'cone', dnd5eAdapter), true);
 assert.equal(shouldStickToToken({ itemName: 'コーン・オブ・コールド', stickToToken: 'default' }, 'cone', dnd5eAdapter), true);
 
-// 6. Test key collision conflict detection & warning
+// 6. Test final fallback for completely unrecognized actions (always detached)
+assert.equal(shouldStickToToken({ itemName: 'Unknown Spell', stickToToken: 'default' }, 'cone', dnd5eAdapter), false);
+assert.equal(shouldStickToToken({ itemName: 'Unknown Spell', stickToToken: 'default' }, 'ray', dnd5eAdapter), false);
+assert.equal(shouldStickToToken({ itemName: 'Unknown Spell', stickToToken: 'default' }, 'circle', dnd5eAdapter), false);
+
+// 7. Test key collision conflict detection & warning
 console.log('Testing key collision conflict detection...');
 const testAdapter = new Dnd5eSystemAdapter();
 testAdapter.setDefaultsData({ 'fireball': false, 'web': false, 'thunderwave': true });

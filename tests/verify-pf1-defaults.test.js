@@ -110,4 +110,9 @@ assert.equal(shouldStickToToken({ itemName: 'Channel Energy', stickToToken: 'def
 assert.equal(shouldStickToToken({ itemName: 'Canalizar energía', stickToToken: 'default' }, 'circle', pf1Adapter), true);
 assert.equal(shouldStickToToken({ itemName: 'チャネル・エナジー', stickToToken: 'default' }, 'circle', pf1Adapter), true);
 
+// 6. Test final fallback for completely unrecognized actions (always detached)
+assert.equal(shouldStickToToken({ itemName: 'Unknown Spell', stickToToken: 'default' }, 'cone', pf1Adapter), false);
+assert.equal(shouldStickToToken({ itemName: 'Unknown Spell', stickToToken: 'default' }, 'ray', pf1Adapter), false);
+assert.equal(shouldStickToToken({ itemName: 'Unknown Spell', stickToToken: 'default' }, 'circle', pf1Adapter), false);
+
 console.log('ALL SIMULTANEOUS MULTI-LANGUAGE PF1E SYSTEM-DEFAULTS VERIFICATIONS PASSED PERFECTLY!');

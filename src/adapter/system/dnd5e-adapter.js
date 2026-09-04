@@ -112,7 +112,7 @@ export class Dnd5eSystemAdapter extends BaseSystemAdapter {
      * Determine the D&D 5e system default for whether a crosshair shape should stick to its source token
      * when no explicit override is configured (stickToToken === "default").
      * Checks the authoritative D&D 5e spell/ability system defaults first (e.g. Thunderwave, Lightning Bolt, Fireball).
-     * If not found in the dataset, falls back to standard shape defaults (cones and rays stick to token).
+     * If completely unrecognized, defaults to detached (false).
      * @param {string} shapeType - The template or crosshair shape (`"cone"`, `"circle"`, `"ray"`, `"rect"`, `"square"`)
      * @param {object} [config={}] - Optional crosshair configuration or calling context object
      * @returns {boolean} Whether the crosshair shape defaults to sticking to the token in D&D 5e
@@ -122,7 +122,7 @@ export class Dnd5eSystemAdapter extends BaseSystemAdapter {
         if (itemDefault !== null && itemDefault !== undefined) {
             return Boolean(itemDefault);
         }
-        return shapeType === "cone" || shapeType === "ray";
+        return false;
     }
 
     /**

@@ -110,4 +110,9 @@ assert.equal(shouldStickToToken({ itemName: 'Courageous Anthem', stickToToken: '
 assert.equal(shouldStickToToken({ itemName: 'Himno valeroso', stickToToken: 'default' }, 'circle', pf2eAdapter), true);
 assert.equal(shouldStickToToken({ itemName: 'カレイジャス・アンセム', stickToToken: 'default' }, 'circle', pf2eAdapter), true);
 
+// 6. Test final fallback for completely unrecognized actions (always detached)
+assert.equal(shouldStickToToken({ itemName: 'Unknown Spell', stickToToken: 'default' }, 'cone', pf2eAdapter), false);
+assert.equal(shouldStickToToken({ itemName: 'Unknown Spell', stickToToken: 'default' }, 'ray', pf2eAdapter), false);
+assert.equal(shouldStickToToken({ itemName: 'Unknown Spell', stickToToken: 'default' }, 'circle', pf2eAdapter), false);
+
 console.log('ALL SIMULTANEOUS MULTI-LANGUAGE PF2E SYSTEM-DEFAULTS VERIFICATIONS PASSED PERFECTLY!');

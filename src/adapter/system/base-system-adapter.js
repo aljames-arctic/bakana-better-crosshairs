@@ -362,7 +362,7 @@ export class BaseSystemAdapter {
     /**
      * Determine the system default for whether a crosshair shape should stick to its source token
      * when no explicit item/autorec override (`stickToToken`) is defined.
-     * Checks built-in system defaults dataset first, then falls back to shape defaults (cones stick).
+     * Checks built-in system defaults dataset first; if completely unrecognized, defaults to detached (false).
      * @param {string} shapeType - The template or crosshair shape (`"cone"`, `"circle"`, `"ray"`, `"rect"`, `"square"`)
      * @param {object} [config={}] - Optional crosshair configuration object
      * @returns {boolean} Whether the crosshair shape defaults to sticking to the token
@@ -372,7 +372,7 @@ export class BaseSystemAdapter {
         if (itemDefault !== null && itemDefault !== undefined) {
             return Boolean(itemDefault);
         }
-        return shapeType === "cone";
+        return false;
     }
 
     /**
