@@ -83,7 +83,7 @@ test('PixiGraphicsStyler.applyPlacedStyling prioritizes updated document colors 
     assert.equal(mockPlaceable.document.borderColor, '#abcdef');
 });
 
-test('PixiGraphicsStyler.applyPlacedStyling applies 50% opacity and user color to 0-alpha graphicsData by default', () => {
+test('PixiGraphicsStyler.applyPlacedStyling applies 30% opacity and user color to 0-alpha graphicsData by default', () => {
     const origColor = globalThis.game?.user?.color;
     try {
         if (!globalThis.game) globalThis.game = { user: {} };
@@ -111,7 +111,7 @@ test('PixiGraphicsStyler.applyPlacedStyling applies 50% opacity and user color t
 
         const gd = mockGraphic.geometry.graphicsData[0];
         assert.equal(gd.fillStyle.color, 0x3366cc);
-        assert.equal(gd.fillStyle.alpha, 0.5, 'Default opacity must be 50% (0.5), not 0%');
+        assert.equal(gd.fillStyle.alpha, 0.3, 'Default opacity must be 30% (0.3), not 0%');
     } finally {
         if (globalThis.game?.user) {
             if (origColor !== undefined) globalThis.game.user.color = origColor;

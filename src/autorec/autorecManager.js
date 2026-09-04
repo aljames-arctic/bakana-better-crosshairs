@@ -27,11 +27,11 @@ export const DEFAULT_AUTOREC_ENTRY = {
     showItemIcon: true,
     limitRange: true,
     borderColor: "#ffffff",
-    borderAlpha: 0,
-    borderPlayerColor: false,
+    borderAlpha: 0.3,
+    borderPlayerColor: true,
     fillColor: "#000000",
-    fillAlpha: 0,
-    fillPlayerColor: false,
+    fillAlpha: 0.3,
+    fillPlayerColor: true,
     circleFile: "eskie.crosshair.circle.fantasy_01.white",
     coneFile: "eskie.crosshair.cone.thin.fantasy_01.white",
     rayFile: "eskie.crosshair.ray.fantasy_01.white",
@@ -48,12 +48,12 @@ export const DEFAULT_AUTOREC_ENTRY = {
             enumerable: true
         });
     },
-    placedFillAlpha: 0.5,
-    placedFillPlayerColor: false,
+    placedFillAlpha: 0.3,
+    placedFillPlayerColor: true,
     placedBorderColor: "#ffffff",
-    placedBorderAlpha: 0.25,
-    placedBorderPlayerColor: false,
-    persist: false,
+    placedBorderAlpha: 0.3,
+    placedBorderPlayerColor: true,
+    persist: true,
 
     enablePrePlacement: false,
     enableAnimation: false,
@@ -261,19 +261,33 @@ export class AutorecManager {
         const showItemIcon = Boolean(baseConfig.showItemIcon ?? optionsRaw.showItemIcon ?? DEFAULT_AUTOREC_ENTRY.showItemIcon);
         const limitRange = Boolean(baseConfig.limitRange ?? optionsRaw.limitRange ?? DEFAULT_AUTOREC_ENTRY.limitRange);
 
+        const hasExplicitBorderColor = baseConfig.borderColor !== undefined || previewBorder.color !== undefined;
+        const borderPlayerColor = baseConfig.borderPlayerColor !== undefined || previewBorder.playerColor !== undefined || optionsRaw.borderPlayerColor !== undefined
+            ? Boolean(baseConfig.borderPlayerColor ?? previewBorder.playerColor ?? optionsRaw.borderPlayerColor)
+            : (hasExplicitBorderColor ? false : Boolean(DEFAULT_AUTOREC_ENTRY.borderPlayerColor));
         const borderColor = String(baseConfig.borderColor ?? previewBorder.color ?? DEFAULT_AUTOREC_ENTRY.borderColor).trim();
         const borderAlpha = Number(baseConfig.borderAlpha ?? previewBorder.alpha ?? DEFAULT_AUTOREC_ENTRY.borderAlpha);
-        const borderPlayerColor = Boolean(baseConfig.borderPlayerColor ?? previewBorder.playerColor ?? optionsRaw.borderPlayerColor ?? DEFAULT_AUTOREC_ENTRY.borderPlayerColor);
+
+        const hasExplicitFillColor = baseConfig.fillColor !== undefined || previewFill.color !== undefined;
+        const fillPlayerColor = baseConfig.fillPlayerColor !== undefined || previewFill.playerColor !== undefined || optionsRaw.fillPlayerColor !== undefined
+            ? Boolean(baseConfig.fillPlayerColor ?? previewFill.playerColor ?? optionsRaw.fillPlayerColor)
+            : (hasExplicitFillColor ? false : Boolean(DEFAULT_AUTOREC_ENTRY.fillPlayerColor));
         const fillColor = String(baseConfig.fillColor ?? previewFill.color ?? DEFAULT_AUTOREC_ENTRY.fillColor).trim();
         const fillAlpha = Number(baseConfig.fillAlpha ?? previewFill.alpha ?? DEFAULT_AUTOREC_ENTRY.fillAlpha);
-        const fillPlayerColor = Boolean(baseConfig.fillPlayerColor ?? previewFill.playerColor ?? optionsRaw.fillPlayerColor ?? DEFAULT_AUTOREC_ENTRY.fillPlayerColor);
 
+        const hasExplicitPlacedFillColor = baseConfig.placedFillColor !== undefined || placedFill.color !== undefined;
+        const placedFillPlayerColor = baseConfig.placedFillPlayerColor !== undefined || placedFill.playerColor !== undefined || optionsRaw.placedFillPlayerColor !== undefined
+            ? Boolean(baseConfig.placedFillPlayerColor ?? placedFill.playerColor ?? optionsRaw.placedFillPlayerColor)
+            : (hasExplicitPlacedFillColor ? false : Boolean(DEFAULT_AUTOREC_ENTRY.placedFillPlayerColor));
         const placedFillColor = String(baseConfig.placedFillColor ?? placedFill.color ?? DEFAULT_AUTOREC_ENTRY.placedFillColor).trim();
         const placedFillAlpha = Number(baseConfig.placedFillAlpha ?? placedFill.alpha ?? DEFAULT_AUTOREC_ENTRY.placedFillAlpha);
-        const placedFillPlayerColor = Boolean(baseConfig.placedFillPlayerColor ?? placedFill.playerColor ?? optionsRaw.placedFillPlayerColor ?? DEFAULT_AUTOREC_ENTRY.placedFillPlayerColor);
+
+        const hasExplicitPlacedBorderColor = baseConfig.placedBorderColor !== undefined || placedBorder.color !== undefined;
+        const placedBorderPlayerColor = baseConfig.placedBorderPlayerColor !== undefined || placedBorder.playerColor !== undefined || optionsRaw.placedBorderPlayerColor !== undefined
+            ? Boolean(baseConfig.placedBorderPlayerColor ?? placedBorder.playerColor ?? optionsRaw.placedBorderPlayerColor)
+            : (hasExplicitPlacedBorderColor ? false : Boolean(DEFAULT_AUTOREC_ENTRY.placedBorderPlayerColor));
         const placedBorderColor = String(baseConfig.placedBorderColor ?? placedBorder.color ?? DEFAULT_AUTOREC_ENTRY.placedBorderColor).trim();
         const placedBorderAlpha = Number(baseConfig.placedBorderAlpha ?? placedBorder.alpha ?? DEFAULT_AUTOREC_ENTRY.placedBorderAlpha);
-        const placedBorderPlayerColor = Boolean(baseConfig.placedBorderPlayerColor ?? placedBorder.playerColor ?? optionsRaw.placedBorderPlayerColor ?? DEFAULT_AUTOREC_ENTRY.placedBorderPlayerColor);
         const persist = Boolean(baseConfig.persist ?? optionsRaw.persist ?? placedRaw.persist ?? DEFAULT_AUTOREC_ENTRY.persist);
 
         const concurrentCode = String(baseConfig.concurrentCode ?? macroRaw.pre ?? "").trim();
@@ -443,7 +457,7 @@ export class AutorecManager {
         const defaultEntry = this.registeredHandlers.get("DEFAULT");
         if (defaultEntry && !defaultEntry.enablePlacedStyling) {
             defaultEntry.placedFillColor = getUserColor("#000000");
-            defaultEntry.placedFillAlpha = 0.5;
+            defaultEntry.placedFillAlpha = DEFAULT_AUTOREC_ENTRY.placedFillAlpha;
         }
 
         socketlib.on((data) => {
@@ -925,7 +939,7 @@ export class AutorecManager {
 
             const defaultUserColor = getUserColor("#000000");
             const placedFillColor = config.placedFillColor ?? defaultUserColor;
-            const placedFillAlpha = config.placedFillAlpha ?? 0.5;
+            const placedFillAlpha = config.placedFillAlpha ?? DEFAULT_AUTOREC_ENTRY.placedFillAlpha;
             const placedFillPlayerColor = Boolean(config.placedFillPlayerColor);
             const placedBorderColor = config.placedBorderColor ?? DEFAULT_AUTOREC_ENTRY.placedBorderColor;
             const placedBorderAlpha = config.placedBorderAlpha ?? DEFAULT_AUTOREC_ENTRY.placedBorderAlpha;
@@ -934,9 +948,9 @@ export class AutorecManager {
             const hasPlacedStyling = placedFillPlayerColor
                 || placedBorderPlayerColor
                 || Boolean(config.placedFillColor && config.placedFillColor !== defaultUserColor)
-                || (config.placedFillAlpha !== undefined && config.placedFillAlpha !== 0.5)
-                || Boolean(config.placedBorderColor && config.placedBorderColor !== "#ffffff")
-                || (config.placedBorderAlpha !== undefined && config.placedBorderAlpha !== 0.25)
+                || (config.placedFillAlpha !== undefined && config.placedFillAlpha !== DEFAULT_AUTOREC_ENTRY.placedFillAlpha)
+                || Boolean(config.placedBorderColor && config.placedBorderColor !== DEFAULT_AUTOREC_ENTRY.placedBorderColor)
+                || (config.placedBorderAlpha !== undefined && config.placedBorderAlpha !== DEFAULT_AUTOREC_ENTRY.placedBorderAlpha)
                 || persist;
 
             const concurrentCode = (config.concurrentCode ?? "").trim();

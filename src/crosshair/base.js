@@ -8,6 +8,7 @@ import { CrosshairController } from "./crosshairController.js";
 import { getPeerCursorPosition } from "./remoteCrosshairManager.js";
 import { CrosshairRangeOverlay } from "./rangeOverlay.js";
 import { CrosshairBroadcaster } from "./crosshairBroadcaster.js";
+import { DEFAULT_AUTOREC_ENTRY } from "../autorec/autorecManager.js";
 
 /**
  * Base class for crosshair shape instances, managing Sequencer animations, grid alignments,
@@ -66,14 +67,24 @@ export class BaseCrosshairShape {
         this.type = (rawType === "square") ? "rect" : rawType;
         this.stickToToken = shouldStickToToken(config, this.type);
         this.context = config.context ?? null;
-        this.borderColor = config.borderPlayerColor
+        const hasExplicitBorderColor = config.borderColor !== undefined && config.borderColor !== null;
+        const borderPlayerColor = config.borderPlayerColor !== undefined
+            ? Boolean(config.borderPlayerColor)
+            : (hasExplicitBorderColor ? false : DEFAULT_AUTOREC_ENTRY.borderPlayerColor);
+        this.borderPlayerColor = borderPlayerColor;
+        this.borderColor = borderPlayerColor
             ? getUserColor("#ffffff")
-            : (config.borderColor ?? "#ffffff");
-        this.borderAlpha = config.borderAlpha ?? 0;
-        this.fillColor = config.fillPlayerColor
+            : (config.borderColor ?? DEFAULT_AUTOREC_ENTRY.borderColor);
+        this.borderAlpha = config.borderAlpha ?? DEFAULT_AUTOREC_ENTRY.borderAlpha;
+        const hasExplicitFillColor = config.fillColor !== undefined && config.fillColor !== null;
+        const fillPlayerColor = config.fillPlayerColor !== undefined
+            ? Boolean(config.fillPlayerColor)
+            : (hasExplicitFillColor ? false : DEFAULT_AUTOREC_ENTRY.fillPlayerColor);
+        this.fillPlayerColor = fillPlayerColor;
+        this.fillColor = fillPlayerColor
             ? getUserColor("#000000")
-            : (config.fillColor ?? "#000000");
-        this.fillAlpha = config.fillAlpha ?? 0;
+            : (config.fillColor ?? DEFAULT_AUTOREC_ENTRY.fillColor);
+        this.fillAlpha = config.fillAlpha ?? DEFAULT_AUTOREC_ENTRY.fillAlpha;
         this.showLine = config.showLine !== false;
         this._rawLineFile = config.lineFile ?? "eskie.crosshair.line.generic_01.white";
         this.showItemIcon = config.showItemIcon !== false;

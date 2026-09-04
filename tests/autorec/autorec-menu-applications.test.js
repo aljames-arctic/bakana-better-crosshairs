@@ -218,6 +218,24 @@ test("AutorecMenuApplication lifecycle and context preparation", async (t) => {
 
         autorecManager.unregister("Player Color Spell", { local: true });
     });
+
+    await t.test("DEFAULT entry defaults to player color and 0.3 alpha for preview and placed styling with persistent animation", async () => {
+        const app = new AutorecMenuApplication();
+        const context = await app._prepareContext({});
+        const defaultEntry = context.entries.find(e => e.itemName === "DEFAULT");
+        assert.ok(defaultEntry, "DEFAULT entry must exist in context");
+        assert.equal(defaultEntry.fillPlayerColor, true);
+        assert.equal(defaultEntry.borderPlayerColor, true);
+        assert.equal(defaultEntry.fillAlpha, 0.3);
+        assert.equal(defaultEntry.borderAlpha, 0.3);
+        assert.equal(defaultEntry.persist, true);
+        assert.equal(defaultEntry.placedFillPlayerColor, true);
+        assert.equal(defaultEntry.placedBorderPlayerColor, true);
+        assert.equal(defaultEntry.placedFillAlpha, 0.3);
+        assert.equal(defaultEntry.placedBorderAlpha, 0.3);
+        assert.equal(defaultEntry.hasCustomStyling, true);
+        assert.equal(defaultEntry.hasPlacedStyling, true);
+    });
 });
 
 test("ItemCrosshairConfigApplication lifecycle and item normalization", async (t) => {

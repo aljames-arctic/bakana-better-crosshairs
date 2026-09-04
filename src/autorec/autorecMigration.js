@@ -64,19 +64,19 @@ export function migrateV1ToV2Entry(legacyEntry) {
     const previewBorderObj = previewObj.border ?? {};
     const previewFillColor = String(previewFillObj.color ?? legacyEntry.fillColor ?? DEFAULT_AUTOREC_ENTRY.fillColor);
     const previewFillAlpha = Number(previewFillObj.alpha ?? legacyEntry.fillAlpha ?? DEFAULT_AUTOREC_ENTRY.fillAlpha);
-    const previewFillPlayerColor = Boolean(previewFillObj.playerColor ?? optionsObj.fillPlayerColor ?? legacyEntry.fillPlayerColor ?? false);
+    const previewFillPlayerColor = Boolean(previewFillObj.playerColor ?? optionsObj.fillPlayerColor ?? legacyEntry.fillPlayerColor ?? DEFAULT_AUTOREC_ENTRY.fillPlayerColor);
     const previewBorderColor = String(previewBorderObj.color ?? legacyEntry.borderColor ?? DEFAULT_AUTOREC_ENTRY.borderColor);
     const previewBorderAlpha = Number(previewBorderObj.alpha ?? legacyEntry.borderAlpha ?? DEFAULT_AUTOREC_ENTRY.borderAlpha);
-    const previewBorderPlayerColor = Boolean(previewBorderObj.playerColor ?? optionsObj.borderPlayerColor ?? legacyEntry.borderPlayerColor ?? false);
+    const previewBorderPlayerColor = Boolean(previewBorderObj.playerColor ?? optionsObj.borderPlayerColor ?? legacyEntry.borderPlayerColor ?? DEFAULT_AUTOREC_ENTRY.borderPlayerColor);
 
     const placedFillObj = placedObj.fill ?? {};
     const placedBorderObj = placedObj.border ?? {};
     const placedFillColor = String(placedFillObj.color ?? legacyEntry.placedFillColor ?? DEFAULT_AUTOREC_ENTRY.placedFillColor);
     const placedFillAlpha = Number(placedFillObj.alpha ?? legacyEntry.placedFillAlpha ?? DEFAULT_AUTOREC_ENTRY.placedFillAlpha);
-    const placedFillPlayerColor = Boolean(placedFillObj.playerColor ?? optionsObj.placedFillPlayerColor ?? legacyEntry.placedFillPlayerColor ?? false);
+    const placedFillPlayerColor = Boolean(placedFillObj.playerColor ?? optionsObj.placedFillPlayerColor ?? legacyEntry.placedFillPlayerColor ?? DEFAULT_AUTOREC_ENTRY.placedFillPlayerColor);
     const placedBorderColor = String(placedBorderObj.color ?? legacyEntry.placedBorderColor ?? DEFAULT_AUTOREC_ENTRY.placedBorderColor);
     const placedBorderAlpha = Number(placedBorderObj.alpha ?? legacyEntry.placedBorderAlpha ?? DEFAULT_AUTOREC_ENTRY.placedBorderAlpha);
-    const placedBorderPlayerColor = Boolean(placedBorderObj.playerColor ?? optionsObj.placedBorderPlayerColor ?? legacyEntry.placedBorderPlayerColor ?? false);
+    const placedBorderPlayerColor = Boolean(placedBorderObj.playerColor ?? optionsObj.placedBorderPlayerColor ?? legacyEntry.placedBorderPlayerColor ?? DEFAULT_AUTOREC_ENTRY.placedBorderPlayerColor);
 
     // Macro macro.pre and macro.post
     const macroObj = legacyEntry.macro ?? {};

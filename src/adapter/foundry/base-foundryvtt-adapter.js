@@ -632,7 +632,7 @@ export class BaseFoundryVTTAdapter {
                     item: context.item,
                     activity: context.activity,
                     placedFillColor: defaultEntry.placedFillColor ?? getUserColor("#000000"),
-                    placedFillAlpha: defaultEntry.placedFillAlpha ?? 0.5
+                    placedFillAlpha: defaultEntry.placedFillAlpha ?? DEFAULT_AUTOREC_ENTRY.placedFillAlpha
                 };
             }
         }
@@ -1005,20 +1005,26 @@ export class BaseFoundryVTTAdapter {
     extractPlacedStylingFlags(config = {}) {
         const userColor = getUserColor("#000000");
         const hasExplicitDisable = config.enablePlacedStyling === false;
-        const placedFillPlayerColor = Boolean(config.placedFillPlayerColor);
-        const placedBorderPlayerColor = Boolean(config.placedBorderPlayerColor);
-        const placedFillColor = (!hasExplicitDisable && !placedFillPlayerColor && config.placedFillColor !== undefined && config.placedFillColor !== null)
+        const hasExplicitPlacedFillColor = config.placedFillColor !== undefined && config.placedFillColor !== null;
+        const placedFillPlayerColor = config.placedFillPlayerColor !== undefined
+            ? Boolean(config.placedFillPlayerColor)
+            : (hasExplicitPlacedFillColor ? false : Boolean(DEFAULT_AUTOREC_ENTRY.placedFillPlayerColor));
+        const hasExplicitPlacedBorderColor = config.placedBorderColor !== undefined && config.placedBorderColor !== null;
+        const placedBorderPlayerColor = config.placedBorderPlayerColor !== undefined
+            ? Boolean(config.placedBorderPlayerColor)
+            : (hasExplicitPlacedBorderColor ? false : Boolean(DEFAULT_AUTOREC_ENTRY.placedBorderPlayerColor));
+        const placedFillColor = (!hasExplicitDisable && !placedFillPlayerColor && hasExplicitPlacedFillColor)
             ? config.placedFillColor
             : userColor;
         const placedFillAlpha = (!hasExplicitDisable && config.placedFillAlpha !== undefined && config.placedFillAlpha !== null)
             ? config.placedFillAlpha
-            : 0.5;
+            : DEFAULT_AUTOREC_ENTRY.placedFillAlpha;
         const placedBorderColor = placedBorderPlayerColor
             ? userColor
-            : (config.placedBorderColor ?? "#ffffff");
+            : (config.placedBorderColor ?? DEFAULT_AUTOREC_ENTRY.placedBorderColor);
         const placedBorderAlpha = (config.placedBorderAlpha !== undefined && config.placedBorderAlpha !== null)
             ? config.placedBorderAlpha
-            : 0.25;
+            : DEFAULT_AUTOREC_ENTRY.placedBorderAlpha;
         const postPlacementCode = config.postPlacementCode ?? "";
 
         const flags = {
@@ -1033,7 +1039,7 @@ export class BaseFoundryVTTAdapter {
                 placedBorderAlpha,
                 placedFillPlayerColor,
                 placedBorderPlayerColor,
-                persist: Boolean(config.persist),
+                persist: Boolean(config.persist ?? DEFAULT_AUTOREC_ENTRY.persist),
                 circleFile: config.circleFile,
                 coneFile: config.coneFile,
                 rayFile: config.rayFile,

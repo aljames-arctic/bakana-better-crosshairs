@@ -46,25 +46,39 @@ export class CrosshairConfiguration {
         this.showRange = Boolean(source.showRange ?? options.showRange ?? defaults.showRange);
         this.showItemIcon = Boolean(source.showItemIcon ?? options.showItemIcon ?? defaults.showItemIcon ?? true);
         this.limitRange = Boolean(source.limitRange ?? options.limitRange ?? defaults.limitRange);
+        const hasExplicitBorderColor = source.borderColor !== undefined || previewBorder.color !== undefined;
+        this.borderPlayerColor = source.borderPlayerColor !== undefined || previewBorder.playerColor !== undefined || options.borderPlayerColor !== undefined
+            ? Boolean(source.borderPlayerColor ?? previewBorder.playerColor ?? options.borderPlayerColor)
+            : (hasExplicitBorderColor ? false : defaults.borderPlayerColor);
         this.borderColor = String(source.borderColor ?? previewBorder.color ?? defaults.borderColor).trim();
         const borderAlphaVal = Number(source.borderAlpha ?? previewBorder.alpha ?? defaults.borderAlpha);
         this.borderAlpha = Number.isFinite(borderAlphaVal) ? borderAlphaVal : defaults.borderAlpha;
-        this.borderPlayerColor = Boolean(source.borderPlayerColor ?? previewBorder.playerColor ?? options.borderPlayerColor ?? false);
+
+        const hasExplicitFillColor = source.fillColor !== undefined || previewFill.color !== undefined;
+        this.fillPlayerColor = source.fillPlayerColor !== undefined || previewFill.playerColor !== undefined || options.fillPlayerColor !== undefined
+            ? Boolean(source.fillPlayerColor ?? previewFill.playerColor ?? options.fillPlayerColor)
+            : (hasExplicitFillColor ? false : defaults.fillPlayerColor);
         this.fillColor = String(source.fillColor ?? previewFill.color ?? defaults.fillColor).trim();
         const fillAlphaVal = Number(source.fillAlpha ?? previewFill.alpha ?? defaults.fillAlpha);
         this.fillAlpha = Number.isFinite(fillAlphaVal) ? fillAlphaVal : defaults.fillAlpha;
-        this.fillPlayerColor = Boolean(source.fillPlayerColor ?? previewFill.playerColor ?? options.fillPlayerColor ?? false);
 
         // Placed document styling options
         const defaultColor = defaults.placedFillColor ?? getUserColor("#000000");
+        const hasExplicitPlacedFillColor = source.placedFillColor !== undefined || placedFill.color !== undefined;
+        this.placedFillPlayerColor = source.placedFillPlayerColor !== undefined || placedFill.playerColor !== undefined || options.placedFillPlayerColor !== undefined
+            ? Boolean(source.placedFillPlayerColor ?? placedFill.playerColor ?? options.placedFillPlayerColor)
+            : (hasExplicitPlacedFillColor ? false : defaults.placedFillPlayerColor);
         this.placedFillColor = String(source.placedFillColor ?? placedFill.color ?? defaultColor).trim();
         const placedFillAlphaVal = Number(source.placedFillAlpha ?? placedFill.alpha ?? defaults.placedFillAlpha);
         this.placedFillAlpha = Number.isFinite(placedFillAlphaVal) ? placedFillAlphaVal : defaults.placedFillAlpha;
-        this.placedFillPlayerColor = Boolean(source.placedFillPlayerColor ?? placedFill.playerColor ?? options.placedFillPlayerColor ?? false);
+
+        const hasExplicitPlacedBorderColor = source.placedBorderColor !== undefined || placedBorder.color !== undefined;
+        this.placedBorderPlayerColor = source.placedBorderPlayerColor !== undefined || placedBorder.playerColor !== undefined || options.placedBorderPlayerColor !== undefined
+            ? Boolean(source.placedBorderPlayerColor ?? placedBorder.playerColor ?? options.placedBorderPlayerColor)
+            : (hasExplicitPlacedBorderColor ? false : defaults.placedBorderPlayerColor);
         this.placedBorderColor = String(source.placedBorderColor ?? placedBorder.color ?? defaults.placedBorderColor).trim();
         const placedBorderAlphaVal = Number(source.placedBorderAlpha ?? placedBorder.alpha ?? defaults.placedBorderAlpha);
         this.placedBorderAlpha = Number.isFinite(placedBorderAlphaVal) ? placedBorderAlphaVal : defaults.placedBorderAlpha;
-        this.placedBorderPlayerColor = Boolean(source.placedBorderPlayerColor ?? placedBorder.playerColor ?? options.placedBorderPlayerColor ?? false);
         this.persist = Boolean(source.persist ?? options.persist ?? defaults.persist ?? false);
 
         // Custom script hooks
@@ -148,7 +162,7 @@ export class CrosshairConfiguration {
             : (Boolean(customSource.fillColor) || Boolean(customSource.borderColor) || Boolean(customSource.fillPlayerColor) || Boolean(customSource.borderPlayerColor));
         const isPlacedOverride = hasGranularFlags
             ? Boolean(customSource.enablePlacedStyling)
-            : (Boolean(customSource.placedFillColor) || Boolean(customSource.placedBorderColor) || Boolean(customSource.placedFillPlayerColor) || Boolean(customSource.placedBorderPlayerColor));
+            : (Boolean(customSource.placedFillColor) || Boolean(customSource.placedBorderColor) || Boolean(customSource.placedFillPlayerColor) || Boolean(customSource.placedBorderPlayerColor) || customSource.persist !== undefined);
         const isPostOverride = hasGranularFlags ? Boolean(customSource.enablePostPlacement) : Boolean(customSource.postPlacementCode);
 
         if (!isPreOverride && !isAnimOverride && !isPreviewOverride && !isPlacedOverride && !isPostOverride && !hasExplicitEnabled && !hasExplicitBroadcast) {

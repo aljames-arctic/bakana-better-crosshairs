@@ -1,5 +1,6 @@
 import { getUserColor } from "../../lib/utils.js";
 import { crosshairAdapter } from "./index.js";
+import { DEFAULT_AUTOREC_ENTRY } from "../../autorec/autorecManager.js";
 
 /**
  * Utility for applying customized BBC placed border and fill styles onto PIXI graphics containers
@@ -41,16 +42,16 @@ export class PixiGraphicsStyler {
         const placedBorderColor = bbcFlags.placedBorderPlayerColor
             ? getUserColor("#ffffff")
             : (docBorderColor ?? bbcFlags.placedBorderColor ?? "#ffffff");
-        const placedBorderAlpha = docBorderAlpha ?? bbcFlags.placedBorderAlpha ?? 0.25;
+        const placedBorderAlpha = docBorderAlpha ?? bbcFlags.placedBorderAlpha ?? DEFAULT_AUTOREC_ENTRY.placedBorderAlpha;
         const placedFillColor = bbcFlags.placedFillPlayerColor
             ? getUserColor("#000000")
             : (docFillColor ?? bbcFlags.placedFillColor ?? getUserColor("#000000"));
-        const placedFillAlpha = docFillAlpha ?? bbcFlags.placedFillAlpha ?? 0.5;
+        const placedFillAlpha = docFillAlpha ?? bbcFlags.placedFillAlpha ?? DEFAULT_AUTOREC_ENTRY.placedFillAlpha;
 
         const borderNum = this.toColorNumber(placedBorderColor);
-        const borderAlphaNum = Number.isFinite(placedBorderAlpha) ? placedBorderAlpha : 0.25;
+        const borderAlphaNum = Number.isFinite(placedBorderAlpha) ? placedBorderAlpha : DEFAULT_AUTOREC_ENTRY.placedBorderAlpha;
         const fillNum = this.toColorNumber(placedFillColor);
-        const fillAlphaNum = Number.isFinite(placedFillAlpha) ? placedFillAlpha : 0.5;
+        const fillAlphaNum = Number.isFinite(placedFillAlpha) ? placedFillAlpha : DEFAULT_AUTOREC_ENTRY.placedFillAlpha;
 
         const applyGraphicsData = (gfx) => {
             if (!gfx) return false;

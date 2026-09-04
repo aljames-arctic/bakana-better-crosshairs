@@ -68,18 +68,18 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
                 e.placedFillPlayerColor ||
                 e.placedBorderPlayerColor ||
                 (e.placedFillColor && e.placedFillColor !== defaultUserColor) ||
-                (e.placedFillAlpha !== undefined && e.placedFillAlpha !== 0.5) ||
-                (e.placedBorderColor && e.placedBorderColor !== "#ffffff") ||
-                (e.placedBorderAlpha !== undefined && e.placedBorderAlpha !== 0.25) ||
+                (e.placedFillAlpha !== undefined && e.placedFillAlpha !== DEFAULT_AUTOREC_ENTRY.placedFillAlpha) ||
+                (e.placedBorderColor && e.placedBorderColor !== DEFAULT_AUTOREC_ENTRY.placedBorderColor) ||
+                (e.placedBorderAlpha !== undefined && e.placedBorderAlpha !== DEFAULT_AUTOREC_ENTRY.placedBorderAlpha) ||
                 Boolean(e.persist)
             ),
             hasCustomStyling: Boolean(
                 e.borderPlayerColor ||
                 e.fillPlayerColor ||
-                (e.borderColor && e.borderColor !== "#ffffff") ||
-                (e.borderAlpha !== undefined && e.borderAlpha !== 0) ||
-                (e.fillColor && e.fillColor !== "#000000") ||
-                (e.fillAlpha !== undefined && e.fillAlpha !== 0)
+                (e.borderColor && e.borderColor !== DEFAULT_AUTOREC_ENTRY.borderColor) ||
+                (e.borderAlpha !== undefined && e.borderAlpha !== DEFAULT_AUTOREC_ENTRY.borderAlpha) ||
+                (e.fillColor && e.fillColor !== DEFAULT_AUTOREC_ENTRY.fillColor) ||
+                (e.fillAlpha !== undefined && e.fillAlpha !== DEFAULT_AUTOREC_ENTRY.fillAlpha)
             )
         }));
 

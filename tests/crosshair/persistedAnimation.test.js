@@ -11,19 +11,19 @@ import { crosshairAdapter } from '../../src/adapter/foundry/index.js';
 crosshairAdapter.initialize();
 
 test('CrosshairConfiguration normalizes persist flag across default, source, overrides, and toJSON', () => {
-    assert.equal(DEFAULT_AUTOREC_ENTRY.persist, false);
+    assert.equal(DEFAULT_AUTOREC_ENTRY.persist, true);
 
     const defaultCfg = new CrosshairConfiguration();
-    assert.equal(defaultCfg.persist, false);
-    assert.equal(defaultCfg.toJSON().persist, false);
+    assert.equal(defaultCfg.persist, true);
+    assert.equal(defaultCfg.toJSON().persist, true);
 
-    const customCfg = new CrosshairConfiguration({ persist: true });
-    assert.equal(customCfg.persist, true);
-    assert.equal(customCfg.toJSON().persist, true);
+    const customCfg = new CrosshairConfiguration({ persist: false });
+    assert.equal(customCfg.persist, false);
+    assert.equal(customCfg.toJSON().persist, false);
 
-    const overridden = defaultCfg.overrideWith({ enablePlacedStyling: true, persist: true });
-    assert.equal(overridden.persist, true);
-    assert.equal(overridden.toJSON().persist, true);
+    const overridden = defaultCfg.overrideWith({ enablePlacedStyling: true, persist: false });
+    assert.equal(overridden.persist, false);
+    assert.equal(overridden.toJSON().persist, false);
 });
 
 test('FoundryVTTV13Adapter and FoundryVTTV14Adapter extractPlacedStylingFlags include persist and asset files', () => {

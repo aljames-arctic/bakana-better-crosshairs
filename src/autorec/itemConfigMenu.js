@@ -288,10 +288,10 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             fillPlayerColor: Boolean(source.fillPlayerColor),
 
             placedFillColor: source.placedFillColor ?? getUserColor("#000000"),
-            placedFillAlpha: source.placedFillAlpha ?? 0.5,
+            placedFillAlpha: source.placedFillAlpha ?? DEFAULT_AUTOREC_ENTRY.placedFillAlpha,
             placedFillPlayerColor: Boolean(source.placedFillPlayerColor),
-            placedBorderColor: source.placedBorderColor ?? "#ffffff",
-            placedBorderAlpha: source.placedBorderAlpha ?? 0.25,
+            placedBorderColor: source.placedBorderColor ?? DEFAULT_AUTOREC_ENTRY.placedBorderColor,
+            placedBorderAlpha: source.placedBorderAlpha ?? DEFAULT_AUTOREC_ENTRY.placedBorderAlpha,
             placedBorderPlayerColor: Boolean(source.placedBorderPlayerColor),
             persist: Boolean(source.persist),
 
@@ -306,18 +306,18 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             hasCustomStyling: Boolean(
                 source.borderPlayerColor ||
                 source.fillPlayerColor ||
-                (source.borderColor && source.borderColor !== "#ffffff") ||
-                (source.borderAlpha !== undefined && source.borderAlpha !== 0) ||
-                (source.fillColor && source.fillColor !== "#000000") ||
-                (source.fillAlpha !== undefined && source.fillAlpha !== 0)
+                (source.borderColor && source.borderColor !== DEFAULT_AUTOREC_ENTRY.borderColor) ||
+                (source.borderAlpha !== undefined && source.borderAlpha !== DEFAULT_AUTOREC_ENTRY.borderAlpha) ||
+                (source.fillColor && source.fillColor !== DEFAULT_AUTOREC_ENTRY.fillColor) ||
+                (source.fillAlpha !== undefined && source.fillAlpha !== DEFAULT_AUTOREC_ENTRY.fillAlpha)
             ),
             hasPlacedStyling: Boolean(
                 source.placedFillPlayerColor ||
                 source.placedBorderPlayerColor ||
                 (source.placedFillColor && source.placedFillColor !== getUserColor("#000000")) ||
-                (source.placedFillAlpha !== undefined && source.placedFillAlpha !== 0.5) ||
-                (source.placedBorderColor && source.placedBorderColor !== "#ffffff") ||
-                (source.placedBorderAlpha !== undefined && source.placedBorderAlpha !== 0.25) ||
+                (source.placedFillAlpha !== undefined && source.placedFillAlpha !== DEFAULT_AUTOREC_ENTRY.placedFillAlpha) ||
+                (source.placedBorderColor && source.placedBorderColor !== DEFAULT_AUTOREC_ENTRY.placedBorderColor) ||
+                (source.placedBorderAlpha !== undefined && source.placedBorderAlpha !== DEFAULT_AUTOREC_ENTRY.placedBorderAlpha) ||
                 Boolean(source.persist)
             )
         };
@@ -557,17 +557,17 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             showRange: formData.get("showRange") === "on",
             showItemIcon: formData.get("showItemIcon") === "on",
             limitRange: formData.get("limitRange") === "on",
-            borderColor: String(formData.get("borderColor") ?? "#ffffff").trim(),
-            borderAlpha: parseFloat(String(formData.get("borderAlpha") ?? "0")),
+            borderColor: String(formData.get("borderColor") ?? DEFAULT_AUTOREC_ENTRY.borderColor).trim(),
+            borderAlpha: parseFloat(String(formData.get("borderAlpha") ?? DEFAULT_AUTOREC_ENTRY.borderAlpha)),
             borderPlayerColor: formData.get("borderPlayerColor") === "on",
-            fillColor: String(formData.get("fillColor") ?? "#000000").trim(),
-            fillAlpha: parseFloat(String(formData.get("fillAlpha") ?? "0")),
+            fillColor: String(formData.get("fillColor") ?? DEFAULT_AUTOREC_ENTRY.fillColor).trim(),
+            fillAlpha: parseFloat(String(formData.get("fillAlpha") ?? DEFAULT_AUTOREC_ENTRY.fillAlpha)),
             fillPlayerColor: formData.get("fillPlayerColor") === "on",
             placedFillColor: String(formData.get("placedFillColor") ?? "").trim(),
-            placedFillAlpha: parseFloat(String(formData.get("placedFillAlpha") ?? "0.5")),
+            placedFillAlpha: parseFloat(String(formData.get("placedFillAlpha") ?? DEFAULT_AUTOREC_ENTRY.placedFillAlpha)),
             placedFillPlayerColor: formData.get("placedFillPlayerColor") === "on",
             placedBorderColor: String(formData.get("placedBorderColor") ?? "").trim(),
-            placedBorderAlpha: parseFloat(String(formData.get("placedBorderAlpha") ?? "0.25")),
+            placedBorderAlpha: parseFloat(String(formData.get("placedBorderAlpha") ?? DEFAULT_AUTOREC_ENTRY.placedBorderAlpha)),
             placedBorderPlayerColor: formData.get("placedBorderPlayerColor") === "on",
             persist: formData.get("persist") === "on",
             concurrentCode: String(formData.get("concurrentCode") ?? "").trim(),
