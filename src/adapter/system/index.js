@@ -4,6 +4,8 @@ import { Pf2eSystemAdapter } from "./pf2e-adapter.js";
 import { Pf1SystemAdapter } from "./pf1-adapter.js";
 import { log } from "../../lib/logger.js";
 
+export { BaseSystemAdapter, Dnd5eSystemAdapter, Pf2eSystemAdapter, Pf1SystemAdapter };
+
 export let systemAdapter = new BaseSystemAdapter();
 
 /**
