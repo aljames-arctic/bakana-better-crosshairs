@@ -60,8 +60,8 @@ export class ConeCrosshairShape extends BaseCrosshairShape {
     _getGraphicDimensions() {
         const distance = Math.round(this.config.distance ?? 30);
         const angle = this.config.angle ?? 53.13;
-        const gridDist = canvas?.dimensions?.distance ?? 5;
-        const gridSize = canvas?.dimensions?.size ?? 100;
+        const gridDist = crosshairAdapter.gridDistance;
+        const gridSize = crosshairAdapter.gridSize;
         const lengthPixels = (distance / gridDist) * gridSize;
         const angleRad = (angle * Math.PI) / 180;
         const widthPixels = 2 * lengthPixels * Math.tan(angleRad / 2);

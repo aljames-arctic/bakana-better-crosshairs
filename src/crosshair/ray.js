@@ -60,8 +60,8 @@ export class RayCrosshairShape extends BaseCrosshairShape {
     _getGraphicDimensions() {
         const distance = Math.round(this.config.distance ?? 30);
         const width = Math.round(this.config.width ?? 5);
-        const gridDist = canvas?.dimensions?.distance ?? 5;
-        const gridSize = canvas?.dimensions?.size ?? 100;
+        const gridDist = crosshairAdapter.gridDistance;
+        const gridSize = crosshairAdapter.gridSize;
         const lengthPixels = (distance / gridDist) * gridSize;
         const widthPixels = Math.max(gridSize, (width / gridDist) * gridSize);
         const { factor, gridUnits } = crosshairAdapter.getTemplatePixelFactor();

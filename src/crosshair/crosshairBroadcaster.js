@@ -1,6 +1,7 @@
 import { MODULE_ID, BROADCAST_INTERVAL_MS, BROADCAST_HEARTBEAT_INTERVAL_MS } from "../lib/constants.js";
 import { socketlib } from "../integration/socketlib.js";
 import { log } from "../lib/logger.js";
+import { crosshairAdapter } from "../adapter/index.js";
 
 /**
  * Manages periodic socket broadcasting of local crosshair state to connected peer clients.
@@ -32,11 +33,12 @@ export class CrosshairBroadcaster {
             ? shape.sequencerCrosshair.y
             : shape.y;
 
-        const cursorX = (canvas?.mousePosition && Number.isFinite(canvas.mousePosition.x))
-            ? canvas.mousePosition.x
+        const mousePos = crosshairAdapter.mousePosition;
+        const cursorX = (mousePos && Number.isFinite(mousePos.x))
+            ? mousePos.x
             : originX;
-        const cursorY = (canvas?.mousePosition && Number.isFinite(canvas.mousePosition.y))
-            ? canvas.mousePosition.y
+        const cursorY = (mousePos && Number.isFinite(mousePos.y))
+            ? mousePos.y
             : originY;
 
         let direction = shape.config?.currentDirection ?? shape.direction ?? 0;
@@ -192,8 +194,9 @@ export class CrosshairBroadcaster {
             const shape = this.shape;
             const finalOriginX = (shape.sequencerCrosshair && Number.isFinite(shape.sequencerCrosshair.x)) ? shape.sequencerCrosshair.x : shape.x;
             const finalOriginY = (shape.sequencerCrosshair && Number.isFinite(shape.sequencerCrosshair.y)) ? shape.sequencerCrosshair.y : shape.y;
-            const finalCursorX = (canvas?.mousePosition && Number.isFinite(canvas.mousePosition.x)) ? canvas.mousePosition.x : finalOriginX;
-            const finalCursorY = (canvas?.mousePosition && Number.isFinite(canvas.mousePosition.y)) ? canvas.mousePosition.y : finalOriginY;
+            const mousePos = crosshairAdapter.mousePosition;
+            const finalCursorX = (mousePos && Number.isFinite(mousePos.x)) ? mousePos.x : finalOriginX;
+            const finalCursorY = (mousePos && Number.isFinite(mousePos.y)) ? mousePos.y : finalOriginY;
             let finalDirection = shape.config?.currentDirection ?? shape.direction ?? 0;
             if (shape.sequencerCrosshair && Number.isFinite(shape.sequencerCrosshair.direction)) {
                 finalDirection = shape.sequencerCrosshair.direction;

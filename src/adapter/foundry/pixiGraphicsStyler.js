@@ -1,4 +1,5 @@
 import { getUserColor } from "../../lib/utils.js";
+import { crosshairAdapter } from "./index.js";
 
 /**
  * Utility for applying customized BBC placed border and fill styles onto PIXI graphics containers
@@ -11,11 +12,12 @@ export class PixiGraphicsStyler {
      * @returns {number|undefined} Numeric color value or undefined
      */
     static toColorNumber(col) {
+        if (col === null || col === undefined || col === "") return undefined;
         if (typeof col === "number" && !Number.isNaN(col)) return col;
         if (typeof col === "string" && col.length) {
-            if (typeof foundry?.utils?.Color?.from === "function") {
-                try { return foundry.utils.Color.from(col).valueOf(); } catch (e) {}
-            }
+            const parsed = crosshairAdapter.parseColor(col, undefined);
+            if (parsed && typeof parsed.valueOf === "function") return parsed.valueOf();
+            if (typeof parsed === "number" && !Number.isNaN(parsed)) return parsed;
             try { return parseInt(col.replace(/^#/, ""), 16); } catch (e) {}
         }
         return undefined;

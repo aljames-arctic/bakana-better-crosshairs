@@ -46,13 +46,13 @@ export class CrosshairRotationListener {
             } else if (isSticky && cfg.token && visual && Number.isFinite(visual.x) && Number.isFinite(visual.y)) {
                 targetX = visual.x;
                 targetY = visual.y;
-            } else if (isSticky && cfg.token && canvas?.mousePosition) {
-                const anchored = crosshairAdapter.resolveAnchorPlacement(cfg.token, canvas.mousePosition);
+            } else if (isSticky && cfg.token && crosshairAdapter.mousePosition) {
+                const anchored = crosshairAdapter.resolveAnchorPlacement(cfg.token, crosshairAdapter.mousePosition);
                 targetX = anchored.x;
                 targetY = anchored.y;
             } else {
                 const safeGet = (obj, prop) => { if (!obj) return undefined; try { return obj[prop]; } catch (e) { return undefined; } };
-                const mousePos = canvas?.mousePosition ?? { x: safeGet(tmpl, "x") ?? doc.x ?? 0, y: safeGet(tmpl, "y") ?? doc.y ?? 0 };
+                const mousePos = crosshairAdapter.mousePosition ?? { x: safeGet(tmpl, "x") ?? doc.x ?? 0, y: safeGet(tmpl, "y") ?? doc.y ?? 0 };
                 const snapMode = getGridSnapMode(cfg);
                 const snapped = snapMode !== 0 ? snapCoordinates(mousePos.x, mousePos.y, snapMode) : mousePos;
                 targetX = snapped.x;
@@ -111,10 +111,10 @@ export class CrosshairRotationListener {
             crosshair.shapeInstance._updateRangeText();
         }
         const previewLists = [
-            canvas?.templates?.preview?.children,
-            canvas?.templates?.placeables,
-            canvas?.regions?.preview?.children,
-            canvas?.regions?.placeables,
+            crosshairAdapter.templates?.preview?.children,
+            crosshairAdapter.templates?.placeables,
+            crosshairAdapter.regions?.preview?.children,
+            crosshairAdapter.regions?.placeables,
             crosshair?.template ? [crosshair.template] : null,
             activePlacementTracker.placeable ? [activePlacementTracker.placeable] : null
         ];
@@ -256,9 +256,9 @@ export class CrosshairRotationListener {
             const scheduleFrame = typeof requestAnimationFrame === "function" ? requestAnimationFrame : (fn) => { fn(); return null; };
             this.pendingPointerRaf = scheduleFrame(() => {
                 this.pendingPointerRaf = null;
-                let pt = canvas?.mousePosition;
-                if (!pt && event && canvas?.stage?.toLocal) {
-                    try { pt = canvas.stage.toLocal(event); } catch (e) {}
+                let pt = crosshairAdapter.mousePosition;
+                if (!pt && event && crosshairAdapter.stage?.toLocal) {
+                    try { pt = crosshairAdapter.stage.toLocal(event); } catch (e) {}
                 }
                 if (isShapeInstance) {
                     if (pt) {

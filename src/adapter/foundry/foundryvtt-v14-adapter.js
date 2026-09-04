@@ -220,7 +220,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 break;
         }
 
-        const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
+        const pxPerFoot = this.pixelsPerDistance;
         let distance = 0;
         let width = 5;
         if (shape.type === "rectangle" || shape.type === "box") {
@@ -286,7 +286,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
      * @returns {{factor: number, gridUnits: boolean}} The template scaling factor and grid units flag
      */
     getTemplatePixelFactor() {
-        const gridSize = canvas?.dimensions?.size ?? 100;
+        const gridSize = this.gridSize;
         return { factor: 1 / gridSize, gridUnits: true };
     }
 
@@ -314,7 +314,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         } else {
             const isRect = targetDoc.t === "rect" || coords.type === "square" || coords.type === "rect" || coords.originalType === "square" || coords.t === "rect";
             const isSticky = Boolean(coords.sticky ?? coords.token);
-            const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
+            const pxPerFoot = this.pixelsPerDistance;
             let distFoot = coords.distance ?? coords.radius;
             const widthFoot = coords.width ?? distFoot;
             if (isRect && widthFoot > 0 && distFoot > widthFoot) {
@@ -407,17 +407,13 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                     targetDoc.shapes = [newShape];
                 } catch (e) {}
                 if (data && typeof data === "object") {
-                    data.shapes = foundry.utils.deepClone(updateData.shapes);
-                    if (typeof foundry?.utils?.mergeObject === "function") {
-                        foundry.utils.mergeObject(data, updateData, { recursive: true, overwrite: true });
-                    } else {
-                        Object.assign(data, updateData);
-                    }
-                    data.shapes = foundry.utils.deepClone(updateData.shapes);
+                    data.shapes = this.deepClone(updateData.shapes);
+                    this.mergeObject(data, updateData, { recursive: true, overwrite: true });
+                    data.shapes = this.deepClone(updateData.shapes);
                 }
             }
         } else {
-            const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
+            const pxPerFoot = this.pixelsPerDistance;
             const rawDist = coords.distance ?? coords.radius;
             let distFoot = rawDist ?? config.distance ?? config.radius;
             const widthFoot = coords.width ?? config.width ?? distFoot;
@@ -471,11 +467,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 Object.assign(targetDoc, updateData);
             }
             if (data && typeof data === "object") {
-                if (typeof foundry?.utils?.mergeObject === "function") {
-                    foundry.utils.mergeObject(data, updateData);
-                } else {
-                    Object.assign(data, updateData);
-                }
+                this.mergeObject(data, updateData);
             }
         }
     }
@@ -523,9 +515,9 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         // Deep clone shape payload as a plain object to prevent mutating caller or carrying stale _source references
         const raw = typeof originalShape?.toObject === "function" ? originalShape.toObject() : (originalShape ?? {});
         const { _source, id, _id, ...cleanRaw } = raw;
-        const shape = foundry.utils.deepClone(cleanRaw);
+        const shape = this.deepClone(cleanRaw);
 
-        const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
+        const pxPerFoot = this.pixelsPerDistance;
         const isGridUnits = Boolean(coords.gridUnits ?? true);
 
         const rawType = coords.originalType ?? coords.type ?? coords.t ?? shape.type;
@@ -755,7 +747,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 } else if (canvas?.interface?.grid) {
                     this.addHighlightLayer(highlightId);
                     this.clearHighlightLayer(highlightId);
-                    const hl = canvas.interface.grid.getHighlightLayer?.(highlightId);
+                    const hl = this.getHighlightLayer(highlightId);
                     if (hl) hl.visible = true;
 
                     let shapeBounds = null;
@@ -785,17 +777,15 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                     if (bounds) {
                         const [i0, j0, i1, j1] = this._getGridOffsetRange(bounds);
                         const colorVal = doc.color ?? "#ffaa00";
-                        const colorNum = typeof foundry?.utils?.Color?.from === "function"
-                            ? foundry.utils.Color.from(colorVal)
-                            : (typeof Color !== "undefined" && Color.from ? Color.from(colorVal) : 0xffaa00);
+                        const colorNum = this.parseColor(colorVal, 0xffaa00);
                         const borderNum = 0xffffff;
 
-                        const dxGrid = ((canvas.grid?.sizeX ?? canvas.grid?.size ?? 100) / 2);
-                        const dyGrid = ((canvas.grid?.sizeY ?? canvas.grid?.size ?? 100) / 2);
+                        const dxGrid = this.gridSizeX / 2;
+                        const dyGrid = this.gridSizeY / 2;
 
                         for (let i = i0; i <= i1; i++) {
                             for (let j = j0; j <= j1; j++) {
-                                const center = canvas.grid.getCenterPoint({ i, j });
+                                const center = this.getCenterPoint({ i, j });
                                 if (!center) continue;
 
                                 const testPt = {
@@ -821,21 +811,19 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                                 }
 
                                 if (isCovered) {
-                                    const pt = canvas.grid.getTopLeftPoint({ i, j });
-                                    if (typeof canvas.interface.grid.highlightPosition === "function") {
-                                        canvas.interface.grid.highlightPosition(highlightId, {
-                                            x: pt.x,
-                                            y: pt.y,
-                                            color: colorNum,
-                                            border: borderNum
-                                        });
-                                    }
+                                    const pt = this.getTopLeftPoint({ i, j });
+                                    this.highlightPosition(highlightId, {
+                                        x: pt.x,
+                                        y: pt.y,
+                                        color: colorNum,
+                                        border: borderNum
+                                    });
                                 }
                             }
                         }
                     }
 
-                    const finalHl = canvas.interface.grid.getHighlightLayer?.(highlightId);
+                    const finalHl = this.getHighlightLayer(highlightId);
                     if (finalHl) {
                         finalHl.visible = true;
                         finalHl.renderable = true;
@@ -925,7 +913,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
             const anchorX = shape?.shapeAnchor?.x ?? shape?.config?.anchor?.x ?? shape?.defaultShapeAnchor?.x ?? (isAttached ? 0 : 0);
             const anchorY = shape?.shapeAnchor?.y ?? shape?.config?.anchor?.y ?? shape?.defaultShapeAnchor?.y ?? (isAttached ? 0.5 : 0);
 
-            const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
+            const pxPerFoot = this.pixelsPerDistance;
             const dims = typeof shape?.getGraphicDimensions === "function" ? shape.getGraphicDimensions() : null;
             const wPx = dims?.widthPx ?? (w * pxPerFoot);
             const hPx = dims?.heightPx ?? (h * pxPerFoot);
@@ -956,7 +944,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
 
             this._highlightRotatedRectangle(tmpl, doc, rectShape, highlightId);
 
-            const hl = canvas?.interface?.grid?.getHighlightLayer?.(highlightId);
+            const hl = this.getHighlightLayer(highlightId);
             if (hl) {
                 hl.visible = true;
                 hl.renderable = true;
@@ -977,7 +965,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
 
         const hId = tmpl.highlightId ?? tmpl.objectId ?? `Template.${doc?.id ?? "preview"}`;
         tmpl._bbcHighlightId = hId;
-        const hl = canvas?.interface?.grid?.getHighlightLayer?.(hId);
+        const hl = this.getHighlightLayer(hId);
         if (hl) {
             hl.visible = true;
             hl.renderable = true;
@@ -1078,7 +1066,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                             const rad = ((effectiveDir ?? 0) * Math.PI) / 180;
                             const ox = targetX ?? this.x ?? 0;
                             const oy = targetY ?? this.y ?? 0;
-                            const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
+                            const pxPerFoot = self.pixelsPerDistance;
                             const dist = isRect && !isRegion && this.document?.distance
                                 ? this.document.distance * pxPerFoot
                                 : (this.ray.distance ?? 1000);
@@ -1099,7 +1087,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
 
                     const hId = this.highlightId ?? this.objectId ?? (isRegion ? (this.document?.id ? `Region.${this.document.id}` : "Region.preview") : "preview");
                     this._bbcHighlightId = hId;
-                    const hl = canvas?.interface?.grid?.getHighlightLayer?.(hId);
+                    const hl = self.getHighlightLayer(hId);
                     if (hl) {
                         hl.visible = true;
                         hl.renderable = true;
@@ -1212,13 +1200,11 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
     }
 
     _snapPoint(x, y, numMode) {
-        const snapped = canvas.grid.getSnappedPoint({ x, y }, { mode: numMode });
-        return { x: snapped.x, y: snapped.y };
+        return this.getSnappedPoint({ x, y }, { mode: numMode }) ?? { x, y };
     }
 
     _getGridCenterPoint(x, y) {
-        const pt = canvas.grid.getCenterPoint({ x, y });
-        return { x: pt.x, y: pt.y };
+        return this.getCenterPoint({ x, y }) ?? { x, y };
     }
 
     /**
@@ -1232,8 +1218,8 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         if (!canvas?.grid || !bounds) return [0, 0, 0, 0];
 
         let targetBounds = bounds;
-        if (canvas.dimensions?.rect && typeof targetBounds.fit === "function") {
-            try { targetBounds = targetBounds.fit(canvas.dimensions.rect); } catch (e) {}
+        if (this.dimensionsRect && typeof targetBounds.fit === "function") {
+            try { targetBounds = targetBounds.fit(this.dimensionsRect); } catch (e) {}
         }
 
         const paddedBounds = typeof targetBounds.pad === "function"
@@ -1255,20 +1241,14 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         if (paddedBounds.bottom === undefined) paddedBounds.bottom = paddedBounds.y + paddedBounds.height;
 
         let i0 = 0, j0 = 0, i1 = 0, j1 = 0;
-        if (typeof canvas.grid.getOffsetRange === "function") {
-            try {
-                const res = canvas.grid.getOffsetRange(paddedBounds);
-                if (Array.isArray(res) && res.length >= 4) {
-                    [i0, j0, i1, j1] = res;
-                }
-            } catch (e) {
-                log.debug("FoundryVTTV14Adapter._getGridOffsetRange | getOffsetRange failed:", e);
-            }
+        const res = this.getOffsetRange(paddedBounds);
+        if (Array.isArray(res) && res.length >= 4) {
+            [i0, j0, i1, j1] = res;
         }
 
         if (!Number.isFinite(i0) || !Number.isFinite(j0) || !Number.isFinite(i1) || !Number.isFinite(j1)) {
-            const gx = canvas.grid?.sizeX ?? canvas.grid?.size ?? 100;
-            const gy = canvas.grid?.sizeY ?? canvas.grid?.size ?? 100;
+            const gx = this.gridSizeX;
+            const gy = this.gridSizeY;
             i0 = Math.floor(paddedBounds.x / gx);
             j0 = Math.floor(paddedBounds.y / gy);
             i1 = Math.ceil((paddedBounds.x + paddedBounds.width) / gx);
@@ -1450,7 +1430,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
 
         this.addHighlightLayer(highlightId);
         this.clearHighlightLayer(highlightId);
-        const hl = canvas.interface.grid.getHighlightLayer?.(highlightId);
+        const hl = this.getHighlightLayer(highlightId);
         if (hl) hl.visible = true;
 
         const resolvedWidth = rectShape.width ?? doc?.width ?? tmpl?.bounds?.width ?? 200;
@@ -1493,20 +1473,16 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         if (bounds) {
             const [i0, j0, i1, j1] = this._getGridOffsetRange(bounds);
             const colorVal = doc?.fillColor ?? doc?.color ?? "#ffaa00";
-            const colorNum = typeof foundry?.utils?.Color?.from === "function"
-                ? foundry.utils.Color.from(colorVal)
-                : (typeof Color !== "undefined" && Color.from ? Color.from(colorVal) : 0xffaa00);
+            const colorNum = this.parseColor(colorVal, 0xffaa00);
             const borderVal = doc?.borderColor ?? "#ffffff";
-            const borderNum = tmpl?.borderColor ?? (typeof foundry?.utils?.Color?.from === "function"
-                ? foundry.utils.Color.from(borderVal)
-                : (typeof Color !== "undefined" && Color.from ? Color.from(borderVal) : 0xffffff));
+            const borderNum = tmpl?.borderColor ?? this.parseColor(borderVal, 0xffffff);
 
-            const dxGrid = ((canvas.grid?.sizeX ?? canvas.grid?.size ?? 100) / 2);
-            const dyGrid = ((canvas.grid?.sizeY ?? canvas.grid?.size ?? 100) / 2);
+            const dxGrid = this.gridSizeX / 2;
+            const dyGrid = this.gridSizeY / 2;
 
             for (let i = i0; i <= i1; i++) {
                 for (let j = j0; j <= j1; j++) {
-                    const center = canvas.grid.getCenterPoint({ i, j });
+                    const center = this.getCenterPoint({ i, j });
                     if (!center) continue;
 
                     // Normalize token center point alignment matching core Foundry V14 Region._getCoveredGridSpaceOffsets
@@ -1538,21 +1514,19 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                     }
 
                     if (isCovered) {
-                        const pt = canvas.grid.getTopLeftPoint({ i, j });
-                        if (typeof canvas.interface.grid.highlightPosition === "function") {
-                            canvas.interface.grid.highlightPosition(highlightId, {
-                                x: pt.x,
-                                y: pt.y,
-                                color: colorNum,
-                                border: borderNum
-                            });
-                        }
+                        const pt = this.getTopLeftPoint({ i, j });
+                        this.highlightPosition(highlightId, {
+                            x: pt.x,
+                            y: pt.y,
+                            color: colorNum,
+                            border: borderNum
+                        });
                     }
                 }
             }
         }
 
-        const finalHl = canvas.interface.grid.getHighlightLayer?.(highlightId);
+        const finalHl = this.getHighlightLayer(highlightId);
         if (finalHl) {
             finalHl.visible = true;
             finalHl.renderable = true;

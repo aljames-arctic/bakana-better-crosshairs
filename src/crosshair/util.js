@@ -152,16 +152,16 @@ export function alignCrosshairAndEffects(crosshair, config = {}, rad = 0) {
             targetX = center.x;
             targetY = center.y;
         } else {
-            const cursorPt = (canvas?.mousePosition && Number.isFinite(canvas.mousePosition.x))
-                ? canvas.mousePosition
+            const cursorPt = (crosshairAdapter.mousePosition && Number.isFinite(crosshairAdapter.mousePosition.x))
+                ? crosshairAdapter.mousePosition
                 : { x: shape?.cursorX ?? shape?.x ?? crosshair?.x ?? 0, y: shape?.cursorY ?? shape?.y ?? crosshair?.y ?? 0 };
             const anchored = crosshairAdapter.resolveAnchorPlacement(token, cursorPt);
             targetX = anchored.x;
             targetY = anchored.y;
         }
     } else {
-        const cursorPt = (canvas?.mousePosition && Number.isFinite(canvas.mousePosition.x))
-            ? canvas.mousePosition
+        const cursorPt = (crosshairAdapter.mousePosition && Number.isFinite(crosshairAdapter.mousePosition.x))
+            ? crosshairAdapter.mousePosition
             : { x: shape?.cursorX ?? shape?.x ?? crosshair?.x ?? 0, y: shape?.cursorY ?? shape?.y ?? crosshair?.y ?? 0 };
         targetX = cursorPt.x;
         targetY = cursorPt.y;
@@ -297,7 +297,7 @@ export function resolveCrosshairPlacement(crosshair, config = {}, ...extraArgs) 
         }
     }
 
-    const mousePos = canvas?.mousePosition ?? {};
+    const mousePos = crosshairAdapter.mousePosition ?? {};
     const clickX = mousePos.x ?? 0;
     const clickY = mousePos.y ?? 0;
 
@@ -315,7 +315,7 @@ export function resolveCrosshairPlacement(crosshair, config = {}, ...extraArgs) 
             y = center.y;
             direction = 0;
         } else {
-            const mousePos = canvas?.mousePosition ?? { x: clickX, y: clickY };
+            const mousePos = crosshairAdapter.mousePosition ?? { x: clickX, y: clickY };
             const anchored = crosshairAdapter.resolveAnchorPlacement(config.token, mousePos);
             x = (crosshair && Number.isFinite(crosshair.x)) ? crosshair.x : anchored.x;
             y = (crosshair && Number.isFinite(crosshair.y)) ? crosshair.y : anchored.y;

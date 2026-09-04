@@ -1,5 +1,6 @@
 import { MODULE_ID } from "../lib/constants.js";
 import { remoteCrosshairManager } from "../crosshair/remoteCrosshairManager.js";
+import { crosshairAdapter } from "../adapter/index.js";
 
 /**
  * Socket integration utility encapsulating Foundry VTT socket communications (`game.socket`).
@@ -29,7 +30,7 @@ export const socketlib = {
     },
 
     /**
-     * Remove a previously registered callback listener from the module socket channel.
+     * Unregister a callback listener from the module socket channel.
      * @param {Function} handler - Callback function to remove
      * @returns {void}
      */
@@ -43,10 +44,9 @@ export const socketlib = {
 const tileTrackers = new Map();
 
 /**
- * Distributed multi-client tile replication handshake helper.
- * Ensures active player clients have replicated and loaded temporary visual anchor tiles
- * before advancing downstream crosshair animation sequences.
- * @param {string} tileId - The ID of the canvas tile to verify across connected active players
+ * Wait for a created tile to replicate to all other active connected peer clients.
+ * Sends a ping verification message over the socket and resolves when all peers confirm receipt.
+ * @param {string} tileId - ID of the created Tile document
  * @param {number} [timeoutMs=5000] - Safety timeout in milliseconds
  * @returns {Promise<void>}
  */
@@ -56,7 +56,7 @@ export async function waitForTileReplication(tileId, timeoutMs = 5000) {
     if (activeUsers.length === 0) return;
 
     const expectedUserIds = activeUsers.map((u) => u.id);
-    const trackerId = foundry.utils.randomID();
+    const trackerId = crosshairAdapter.randomID();
 
     return new Promise((resolve) => {
         const timeoutId = setTimeout(() => {
@@ -99,7 +99,7 @@ export function handleSocketMessage(payload) {
 
     if (type === "VERIFY_TILE_REPLICATION") {
         const { tileId, senderUserId, trackerId } = payload;
-        const hasTile = () => Boolean(canvas?.scene?.tiles?.has(tileId));
+        const hasTile = () => Boolean(crosshairAdapter.scene?.tiles?.has(tileId));
 
         const checkReplication = async () => {
             let attempts = 0;

@@ -11,6 +11,7 @@ import { PendingPlacementSession } from "./pendingPlacementSession.js";
 import { PixiGraphicsStyler } from "./pixiGraphicsStyler.js";
 import { ScriptRunner } from "../../lib/scriptRunner.js";
 import { PersistedAnimationManager } from "../../crosshair/persistedAnimationManager.js";
+import { canvasAdapter } from "../canvas/index.js";
 /**
  * Base abstract class for Foundry VTT version-specific adapters.
  */
@@ -80,6 +81,17 @@ export class BaseFoundryVTTAdapter {
     }
 
     /**
+     * Reference to Foundry's canvas PreciseText container or PIXI.Text.
+     */
+    get PreciseText() {
+        return foundry?.canvas?.containers?.PreciseText ?? globalThis.PreciseText ?? (typeof PIXI !== "undefined" ? PIXI?.Text : undefined);
+    }
+
+    static get PreciseText() {
+        return foundry?.canvas?.containers?.PreciseText ?? globalThis.PreciseText ?? (typeof PIXI !== "undefined" ? PIXI?.Text : undefined);
+    }
+
+    /**
      * Construct a Ray instance between two coordinate points.
      * @param {{x: number, y: number}} origin - Ray origin point
      * @param {{x: number, y: number}} target - Ray target point
@@ -114,33 +126,41 @@ export class BaseFoundryVTTAdapter {
     }
 
     /**
+     * Active canvas adapter instance.
+     * @type {BaseCanvasAdapter}
+     */
+    get canvasAdapter() {
+        return canvasAdapter;
+    }
+
+    static get canvasAdapter() {
+        return canvasAdapter;
+    }
+
+    /**
      * Adds the specified grid highlight layer across Foundry canvas versions.
      * @param {string} id - The identifier of the highlight layer to add.
      * @returns {void}
      */
     addHighlightLayer(id) {
-        if (!id || typeof id !== "string") {
-            log.debug("BaseFoundryVTTAdapter.addHighlightLayer | Called with invalid or empty identifier.");
-            return;
-        }
-        const cleanId = id.trim();
-        if (!cleanId) return;
-
-        const gridApi = canvas?.interface?.grid ?? canvas?.grid;
-        if (gridApi?.addHighlightLayer) {
-            try { return gridApi.addHighlightLayer(cleanId); } catch (e) {}
-        }
-
-        const legacyLayer = canvas?.grid?.highlightLayers?.[cleanId];
-        if (!legacyLayer && canvas?.grid?.addHighlightLayer) {
-            try { return canvas.grid.addHighlightLayer(cleanId); } catch (e) {}
-        }
-
-        log.debug(`BaseFoundryVTTAdapter.addHighlightLayer | Could not add highlight layer for key "${cleanId}".`);
+        return this.canvasAdapter.addHighlightLayer(id);
     }
 
     static addHighlightLayer(id) {
-        return new BaseFoundryVTTAdapter().addHighlightLayer(id);
+        return canvasAdapter.addHighlightLayer(id);
+    }
+
+    /**
+     * Retrieves the specified grid highlight layer across Foundry canvas versions.
+     * @param {string} id - The identifier of the highlight layer to get.
+     * @returns {Object|null} The highlight layer or null
+     */
+    getHighlightLayer(id) {
+        return this.canvasAdapter.getHighlightLayer(id);
+    }
+
+    static getHighlightLayer(id) {
+        return canvasAdapter.getHighlightLayer(id);
     }
 
     /**
@@ -149,28 +169,11 @@ export class BaseFoundryVTTAdapter {
      * @returns {void}
      */
     clearHighlightLayer(id) {
-        if (!id || typeof id !== "string") {
-            log.debug("BaseFoundryVTTAdapter.clearHighlightLayer | Called with invalid or empty identifier.");
-            return;
-        }
-        const cleanId = id.trim();
-        if (!cleanId) return;
-
-        const gridApi = canvas?.interface?.grid ?? canvas?.grid;
-        if (gridApi?.clearHighlightLayer) {
-            try { return gridApi.clearHighlightLayer(cleanId); } catch (e) {}
-        }
-
-        const legacyLayer = canvas?.grid?.highlightLayers?.[cleanId];
-        if (legacyLayer?.clear) {
-            try { legacyLayer.clear(); return; } catch (e) {}
-        }
-
-        log.debug(`BaseFoundryVTTAdapter.clearHighlightLayer | No highlight layer available for key "${cleanId}".`);
+        return this.canvasAdapter.clearHighlightLayer(id);
     }
 
     static clearHighlightLayer(id) {
-        return new BaseFoundryVTTAdapter().clearHighlightLayer(id);
+        return canvasAdapter.clearHighlightLayer(id);
     }
 
     /**
@@ -179,26 +182,49 @@ export class BaseFoundryVTTAdapter {
      * @returns {void}
      */
     destroyHighlightLayer(id) {
-        if (!id || typeof id !== "string") return;
-        const cleanId = id.trim();
-        if (!cleanId) return;
-
-        const gridApi = canvas?.interface?.grid ?? canvas?.grid;
-        if (gridApi?.destroyHighlightLayer) {
-            try { gridApi.destroyHighlightLayer(cleanId); } catch (e) {}
-        }
-
-        const legacyLayer = canvas?.grid?.highlightLayers?.[cleanId];
-        if (legacyLayer?.destroy) {
-            try { legacyLayer.destroy({ children: true }); } catch (e) {}
-        }
-        if (canvas?.grid?.highlightLayers && cleanId in canvas.grid.highlightLayers) {
-            try { delete canvas.grid.highlightLayers[cleanId]; } catch (e) {}
-        }
+        return this.canvasAdapter.destroyHighlightLayer(id);
     }
 
     static destroyHighlightLayer(id) {
-        return new BaseFoundryVTTAdapter().destroyHighlightLayer(id);
+        return canvasAdapter.destroyHighlightLayer(id);
+    }
+
+    /**
+     * Highlights a grid position on the canvas across Foundry versions.
+     * @param {string} id - Identifier of the highlight layer
+     * @param {Object} [options={}] - Highlight parameters (x, y, color, border, shape)
+     * @returns {void}
+     */
+    highlightPosition(id, options = {}) {
+        return this.canvasAdapter.highlightPosition(id, options);
+    }
+
+    static highlightPosition(id, options = {}) {
+        return canvasAdapter.highlightPosition(id, options);
+    }
+
+    /**
+     * Safely clears region layer highlights across versions.
+     * @returns {void}
+     */
+    clearRegionsHighlight() {
+        return this.canvasAdapter.clearRegionsHighlight();
+    }
+
+    static clearRegionsHighlight() {
+        return canvasAdapter.clearRegionsHighlight();
+    }
+
+    /**
+     * Deactivates templates and regions placeable layers if active.
+     * @returns {void}
+     */
+    deactivatePlaceablesLayers() {
+        return this.canvasAdapter.deactivatePlaceablesLayers();
+    }
+
+    static deactivatePlaceablesLayers() {
+        return canvasAdapter.deactivatePlaceablesLayers();
     }
 
     /**
@@ -263,6 +289,361 @@ export class BaseFoundryVTTAdapter {
 
     static deepClone(obj) {
         return foundry?.utils?.deepClone ? foundry.utils.deepClone(obj) : JSON.parse(JSON.stringify(obj));
+    }
+
+    /**
+     * Synchronously resolves a document from a UUID across Foundry versions.
+     * @param {string} uuid - The document UUID
+     * @returns {Document|null} The resolved document or null
+     */
+    fromUuidSync(uuid) {
+        if (!uuid || typeof uuid !== "string") return null;
+        return foundry?.utils?.fromUuidSync ? foundry.utils.fromUuidSync(uuid) : null;
+    }
+
+    static fromUuidSync(uuid) {
+        return foundry?.utils?.fromUuidSync ? foundry.utils.fromUuidSync(uuid) : null;
+    }
+
+    /**
+     * Generates a random alphanumeric identifier across Foundry versions.
+     * @param {number} [length=16] - Identifier length
+     * @returns {string} Generated identifier
+     */
+    randomID(length = 16) {
+        if (foundry?.utils?.randomID) return foundry.utils.randomID(length);
+        let id = "";
+        while (id.length < length) id += Math.random().toString(36).substring(2);
+        return id.substring(0, length);
+    }
+
+    static randomID(length = 16) {
+        if (foundry?.utils?.randomID) return foundry.utils.randomID(length);
+        let id = "";
+        while (id.length < length) id += Math.random().toString(36).substring(2);
+        return id.substring(0, length);
+    }
+
+    /**
+     * Calculates the intersection point of two line segments across Foundry versions.
+     * @param {Point} a - First endpoint of segment 1
+     * @param {Point} b - Second endpoint of segment 1
+     * @param {Point} c - First endpoint of segment 2
+     * @param {Point} d - Second endpoint of segment 2
+     * @returns {Point|null} Intersection point or null
+     */
+    lineSegmentIntersection(a, b, c, d) {
+        return foundry?.utils?.lineSegmentIntersection ? foundry.utils.lineSegmentIntersection(a, b, c, d) : null;
+    }
+
+    static lineSegmentIntersection(a, b, c, d) {
+        return foundry?.utils?.lineSegmentIntersection ? foundry.utils.lineSegmentIntersection(a, b, c, d) : null;
+    }
+
+    /**
+     * Reference to Foundry's Color utility class.
+     * @type {typeof foundry.utils.Color}
+     */
+    get Color() {
+        return foundry?.utils?.Color;
+    }
+
+    static get Color() {
+        return foundry?.utils?.Color;
+    }
+
+    /**
+     * Safely parses or converts a color value to a Color representation or numeric value.
+     * @param {string|number|Color} col - Color input
+     * @param {number|null} [fallback=null] - Fallback value
+     * @returns {Color|number|null} Color instance, numeric value, or fallback
+     */
+    parseColor(col, fallback = null) {
+        if (col === null || col === undefined || col === "") return fallback;
+        if (typeof col === "number" && !Number.isNaN(col)) return col;
+        const ColorClass = this.Color;
+        if (ColorClass?.from) {
+            try {
+                const c = ColorClass.from(col);
+                if (c) return c;
+            } catch (e) {}
+        }
+        if (typeof Color !== "undefined" && Color.from) {
+            try {
+                const c = Color.from(col);
+                if (c) return c;
+            } catch (e) {}
+        }
+        if (typeof col === "string" && col.length) {
+            try {
+                const parsed = parseInt(col.replace(/^#/, ""), 16);
+                if (!Number.isNaN(parsed)) return parsed;
+            } catch (e) {}
+        }
+        return fallback;
+    }
+
+    static parseColor(col, fallback = null) {
+        return new BaseFoundryVTTAdapter().parseColor(col, fallback);
+    }
+
+    /**
+     * Reference to the active canvas scene.
+     * @type {Scene|null}
+     */
+    get scene() {
+        return this.canvasAdapter.scene;
+    }
+
+    static get scene() {
+        return canvasAdapter.scene;
+    }
+
+    /**
+     * Current canvas mouse position.
+     * @type {{x: number, y: number}|null}
+     */
+    get mousePosition() {
+        return this.canvasAdapter.mousePosition;
+    }
+
+    static get mousePosition() {
+        return canvasAdapter.mousePosition;
+    }
+
+    /**
+     * Canvas grid size in pixels.
+     * @type {number}
+     */
+    get gridSize() {
+        return this.canvasAdapter.gridSize;
+    }
+
+    static get gridSize() {
+        return canvasAdapter.gridSize;
+    }
+
+    /**
+     * Canvas grid horizontal size in pixels.
+     * @type {number}
+     */
+    get gridSizeX() {
+        return this.canvasAdapter.gridSizeX;
+    }
+
+    static get gridSizeX() {
+        return canvasAdapter.gridSizeX;
+    }
+
+    /**
+     * Canvas grid vertical size in pixels.
+     * @type {number}
+     */
+    get gridSizeY() {
+        return this.canvasAdapter.gridSizeY;
+    }
+
+    static get gridSizeY() {
+        return canvasAdapter.gridSizeY;
+    }
+
+    /**
+     * Canvas grid distance per cell.
+     * @type {number}
+     */
+    get gridDistance() {
+        return this.canvasAdapter.gridDistance;
+    }
+
+    static get gridDistance() {
+        return canvasAdapter.gridDistance;
+    }
+
+    /**
+     * Canvas grid units string.
+     * @type {string}
+     */
+    get gridUnits() {
+        return this.canvasAdapter.gridUnits;
+    }
+
+    static get gridUnits() {
+        return canvasAdapter.gridUnits;
+    }
+
+    /**
+     * Pixels per distance unit (e.g. pixels per foot).
+     * @type {number}
+     */
+    get pixelsPerDistance() {
+        return this.canvasAdapter.pixelsPerDistance;
+    }
+
+    static get pixelsPerDistance() {
+        return canvasAdapter.pixelsPerDistance;
+    }
+
+    /**
+     * Canvas dimensions rectangle.
+     * @type {Rectangle|null}
+     */
+    get dimensionsRect() {
+        return this.canvasAdapter.dimensionsRect;
+    }
+
+    static get dimensionsRect() {
+        return canvasAdapter.dimensionsRect;
+    }
+
+    /**
+     * Tokens currently controlled by the active user on canvas.
+     * @type {Array<Token>}
+     */
+    get controlledTokens() {
+        return this.canvasAdapter.controlledTokens;
+    }
+
+    static get controlledTokens() {
+        return canvasAdapter.controlledTokens;
+    }
+
+    /**
+     * Reference to the primary canvas stage.
+     * @type {PIXI.Container|null}
+     */
+    get stage() {
+        return this.canvasAdapter.stage;
+    }
+
+    static get stage() {
+        return canvasAdapter.stage;
+    }
+
+    /**
+     * Reference to the Foundry canvas Pixi application.
+     * @type {PIXI.Application|null}
+     */
+    get app() {
+        return this.canvasAdapter.app;
+    }
+
+    static get app() {
+        return canvasAdapter.app;
+    }
+
+    /**
+     * Reference to canvas controls layer.
+     * @type {ControlsLayer|null}
+     */
+    get controls() {
+        return this.canvasAdapter.controls;
+    }
+
+    static get controls() {
+        return canvasAdapter.controls;
+    }
+
+    /**
+     * Reference to canvas MeasuredTemplate layer.
+     * @type {PlaceablesLayer|null}
+     */
+    get templates() {
+        return this.canvasAdapter.templates;
+    }
+
+    static get templates() {
+        return canvasAdapter.templates;
+    }
+
+    /**
+     * Reference to canvas Region layer.
+     * @type {PlaceablesLayer|null}
+     */
+    get regions() {
+        return this.canvasAdapter.regions;
+    }
+
+    static get regions() {
+        return canvasAdapter.regions;
+    }
+
+    /**
+     * Active canvas grid highlight layers collection.
+     * @type {Object}
+     */
+    get highlightLayers() {
+        return this.canvasAdapter.highlightLayers;
+    }
+
+    static get highlightLayers() {
+        return canvasAdapter.highlightLayers;
+    }
+
+    /**
+     * Get the center point of a grid space enclosing the given coordinates across Foundry versions.
+     * @param {{x?: number, y?: number, i?: number, j?: number}} coords - Coordinates object
+     * @returns {{x: number, y: number}} The center coordinates
+     */
+    getCenterPoint(coords) {
+        return this.canvasAdapter.getCenterPoint(coords);
+    }
+
+    static getCenterPoint(coords) {
+        return canvasAdapter.getCenterPoint(coords);
+    }
+
+    /**
+     * Get the top-left point of a grid space enclosing the given coordinates across Foundry versions.
+     * @param {{x?: number, y?: number, i?: number, j?: number}} coords - Coordinates object
+     * @returns {{x: number, y: number}} The top-left coordinates
+     */
+    getTopLeftPoint(coords) {
+        return this.canvasAdapter.getTopLeftPoint(coords);
+    }
+
+    static getTopLeftPoint(coords) {
+        return canvasAdapter.getTopLeftPoint(coords);
+    }
+
+    /**
+     * Get snapped point coordinates on the grid.
+     * @param {{x: number, y: number}} point - Target point
+     * @param {Object} [options={}] - Snapping options ({ mode })
+     * @returns {{x: number, y: number}|null} Snapped point or null
+     */
+    getSnappedPoint(point, options = {}) {
+        return this.canvasAdapter.getSnappedPoint(point, options);
+    }
+
+    static getSnappedPoint(point, options = {}) {
+        return canvasAdapter.getSnappedPoint(point, options);
+    }
+
+    /**
+     * Compute integer grid space coordinate offset range [i0, j0, i1, j1] enclosing a bounding rectangle across Foundry versions.
+     * @param {Object} bounds - Bounding rectangle { x, y, width, height }
+     * @returns {number[]|null} [i0, j0, i1, j1] Grid offset range or null
+     */
+    getOffsetRange(bounds) {
+        return this.canvasAdapter.getOffsetRange(bounds);
+    }
+
+    static getOffsetRange(bounds) {
+        return canvasAdapter.getOffsetRange(bounds);
+    }
+
+    /**
+     * Measures grid distance between two coordinate points across Foundry versions.
+     * @param {{x: number, y: number}} origin - Origin point
+     * @param {{x: number, y: number}} target - Target point
+     * @returns {number} Measured distance in grid units
+     */
+    measureDistance(origin, target) {
+        return this.canvasAdapter.measureDistance(origin, target);
+    }
+
+    static measureDistance(origin, target) {
+        return canvasAdapter.measureDistance(origin, target);
     }
 
     /**
@@ -594,7 +975,7 @@ export class BaseFoundryVTTAdapter {
                             const rad = ((targetDir ?? 0) * Math.PI) / 180;
                             const ox = targetX ?? this.x ?? 0;
                             const oy = targetY ?? this.y ?? 0;
-                            const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
+                            const pxPerFoot = self.pixelsPerDistance;
                             const dist = isRect && !isRegion && this.document?.distance
                                 ? this.document.distance * pxPerFoot
                                 : (this.ray.distance ?? 1000);
@@ -616,7 +997,7 @@ export class BaseFoundryVTTAdapter {
                     const isRegion = this.document?.documentName === "Region" || Boolean(this.shapes || this.document?.shapes);
                     const hId = this.highlightId ?? this.objectId ?? (isRegion ? (this.document?.id ? `Region.${this.document.id}` : "Region.preview") : "preview");
                     this._bbcHighlightId = hId;
-                    const hl = canvas?.interface?.grid?.getHighlightLayer?.(hId);
+                    const hl = self.getHighlightLayer(hId);
                     if (hl) hl.visible = true;
 
                     return orig.apply(this, args);
@@ -686,8 +1067,7 @@ export class BaseFoundryVTTAdapter {
         candidateIds.add("preview");
         candidateIds.add("Region.preview");
         candidateIds.add("Template.preview");
-
-        const rawLayers = canvas?.interface?.grid?.highlightLayers ?? canvas?.grid?.highlightLayers;
+        const rawLayers = this.highlightLayers;
         if (rawLayers) {
             const layerKeys = typeof rawLayers.keys === "function"
                 ? Array.from(rawLayers.keys())
@@ -716,23 +1096,18 @@ export class BaseFoundryVTTAdapter {
         this.clearHighlightLayer(finalId);
         this.destroyHighlightLayer(finalId);
 
-        if (typeof canvas?.regions?.highlight?.clear === "function") {
-            try { canvas.regions.highlight.clear(); } catch (e) {}
-        }
+        this.clearRegionsHighlight();
 
         if (placeable.renderFlags && typeof placeable.renderFlags.clear === "function") {
             try { placeable.renderFlags.clear(); } catch (e) {}
         }
-        if (typeof canvas?.app?.ticker?.remove === "function") {
-            try { canvas.app.ticker.remove(placeable.applyRenderFlags, placeable); } catch (e) {}
+        if (typeof this.app?.ticker?.remove === "function") {
+            try { this.app.ticker.remove(placeable.applyRenderFlags, placeable); } catch (e) {}
         }
 
-        try {
-            if (typeof canvas?.templates?.deactivate === "function") canvas.templates.deactivate();
-            if (typeof canvas?.regions?.deactivate === "function") canvas.regions.deactivate();
-        } catch (e) {}
+        this.deactivatePlaceablesLayers();
 
-        const stages = [canvas?.stage, canvas?.app?.stage, canvas?.templates, canvas?.templates?.preview, canvas?.regions, canvas?.regions?.preview].filter(Boolean);
+        const stages = [this.stage, this.app?.stage, this.templates, this.templates?.preview, this.regions, this.regions?.preview].filter(Boolean);
         const eventNames = ["pointermove", "mousemove", "pointerdown", "mousedown", "pointerup", "mouseup", "click", "rightclick"];
         for (const stg of stages) {
             if (typeof stg.listeners === "function" && typeof stg.off === "function") {
@@ -751,11 +1126,11 @@ export class BaseFoundryVTTAdapter {
             }
         }
 
-        if (canvas?.templates?.preview?.children?.includes(placeable)) {
-            try { canvas.templates.preview.removeChild(placeable); } catch (e) {}
+        if (this.templates?.preview?.children?.includes(placeable)) {
+            try { this.templates.preview.removeChild(placeable); } catch (e) {}
         }
-        if (canvas?.regions?.preview?.children?.includes(placeable)) {
-            try { canvas.regions.preview.removeChild(placeable); } catch (e) {}
+        if (this.regions?.preview?.children?.includes(placeable)) {
+            try { this.regions.preview.removeChild(placeable); } catch (e) {}
         }
         try {
             if (typeof placeable.destroy === "function") {
@@ -928,7 +1303,7 @@ export class BaseFoundryVTTAdapter {
      * @returns {PlaceableObject|null} Created placeable or null
      */
     createUnpersistedPreviewPlaceable(config = {}) {
-        if (!canvas?.scene) return null;
+        if (!this.scene) return null;
         try {
             const docClass = CONFIG?.MeasuredTemplate?.documentClass;
             const objClass = CONFIG?.MeasuredTemplate?.objectClass;
@@ -949,7 +1324,7 @@ export class BaseFoundryVTTAdapter {
                 borderColor: config.borderColor ?? "#ffffff"
             };
 
-            const doc = new docClass(data, { parent: canvas.scene });
+            const doc = new docClass(data, { parent: this.scene });
             const placeable = new objClass(doc);
             this.hidePreview(placeable);
             return placeable;
@@ -962,22 +1337,23 @@ export class BaseFoundryVTTAdapter {
     /**
      * Mutate a live preview placeable document's shape coordinates during mouse drag.
      * @param {Document} previewDoc - Preview MeasuredTemplate or Region document
-     * @param {Object} coords - Destination coordinates payload
-     * @returns {void} No return value
+     * @param {Object} coords - New placement coordinates
+     * @returns {void}
      */
     updatePreviewShape(previewDoc, coords) {
         throw new Error("Subclasses of BaseFoundryVTTAdapter must implement updatePreviewShape(previewDoc, coords).");
     }
 
     /**
-     * Apply placement coordinates and workflow metadata onto a newly created document.
-     * @param {Document} doc - MeasuredTemplate or Region document
-     * @param {Object} coords - Resolved placement coordinates
-     * @param {Object} [config={}] - Workflow placement configuration
-     * @returns {void} No return value
+     * Finalize document placement properties and dimensions on placement confirmation.
+     * @param {Document} doc - Target document being placed
+     * @param {Object} [coords={}] - Placement coordinates
+     * @param {Object} [config={}] - Crosshair options
+     * @param {Object|null} [data=null] - Document update payload
+     * @returns {void}
      */
-    applyDocumentPlacement(doc, coords, config) {
-        throw new Error("Subclasses of BaseFoundryVTTAdapter must implement applyDocumentPlacement(doc, coords, config).");
+    applyDocumentPlacement(doc, coords = {}, config = {}, data = null) {
+        throw new Error("Subclasses of BaseFoundryVTTAdapter must implement applyDocumentPlacement(doc, coords, config, data).");
     }
 
     /**
@@ -992,15 +1368,17 @@ export class BaseFoundryVTTAdapter {
     }
 
     /**
-     * Resume deferred document creation when an interactive Sequencer crosshair placement resolves.
-     * @param {Scene} scene - Target Canvas Scene
-     * @param {Object} deferredData - Initial raw document creation data (`doc.toObject()`)
-     * @param {Object} coords - Resolved placement coordinates from Sequencer
+     * Resume deferred document creation when an interactive Sequencer placement resolves.
+     * @param {Scene} scene - Target canvas Scene
+     * @param {Object} deferredData - Initial raw document creation data
+     * @param {Object} coords - Resolved placement coordinates
+     * @param {string} documentName - Document type name ("MeasuredTemplate" or "Region")
+     * @param {Object} [config={}] - Optional configuration
      * @returns {Promise<void>} Resolves when deferred document creation completes
      */
     async createDeferredDocument(scene, deferredData, coords, documentName, config = {}) {
         if (!scene || !deferredData || !coords) return;
-        const cloned = foundry.utils.deepClone(deferredData);
+        const cloned = this.deepClone(deferredData);
         const { id, _id, _source, ...data } = cloned;
 
         const docName = this._getDeferredDocumentName(data, documentName);
@@ -1037,41 +1415,11 @@ export class BaseFoundryVTTAdapter {
     }
 
     snapCoordinates(x, y, mode = "all") {
-        if (!canvas?.grid || mode === false || mode === "none" || mode === 0 || mode === "0") return { x, y };
+        return this.canvasAdapter.snapCoordinates(x, y, mode);
+    }
 
-        const size = canvas.grid.size ?? 100;
-
-        if (mode !== "center" && mode !== "corner" && mode !== "corners") {
-            const numMode = typeof mode === "number" ? mode : this._getGridSnapMode(mode);
-            if (numMode !== 0) {
-                const snapped = this._snapPoint(x, y, numMode);
-                if (snapped) return snapped;
-            }
-        }
-
-        if (mode === "center" || mode === 1) {
-            const center = this._getGridCenterPoint(x, y);
-            if (center) return center;
-        }
-
-        if (mode === "corner" || mode === "corners" || mode === 2) {
-            const sx = Math.round(x / size) * size;
-            const sy = Math.round(y / size) * size;
-            return { x: sx, y: sy };
-        }
-
-        if (mode === "all" || mode === true || mode === "default" || mode === "edges" || mode === "edge" || typeof mode === "number") {
-            const snapped = this._snapPoint(x, y, 1);
-            if (snapped) return snapped;
-
-            // Fallback: manual half-grid snap
-            const half = size / 2;
-            const sx = Math.round(x / half) * half;
-            const sy = Math.round(y / half) * half;
-            return { x: sx, y: sy };
-        }
-
-        return { x, y };
+    static snapCoordinates(x, y, mode = "all") {
+        return canvasAdapter.snapCoordinates(x, y, mode);
     }
 
     _getGridSnapMode(snapToGrid) {
@@ -1182,7 +1530,7 @@ export class BaseFoundryVTTAdapter {
         // 2. Resolve token and item context deterministically through version adapter
         const callingContext = this.extractCallingContext(doc);
         const item = entry.item ?? callingContext.item;
-        const rawToken = item?.parent?.getActiveTokens?.()[0] ?? canvas?.tokens?.controlled?.[0];
+        const rawToken = item?.parent?.getActiveTokens?.()[0] ?? this.controlledTokens[0];
         const token = this.toToken(rawToken);
         const actor = token?.actor ?? item?.actor;
 
@@ -1368,7 +1716,7 @@ export class BaseFoundryVTTAdapter {
 
         const callingContext = this.extractCallingContext(doc);
         const item = config.item ?? callingContext.item;
-        const rawToken = item?.parent?.getActiveTokens?.()[0] ?? canvas?.tokens?.controlled?.[0];
+        const rawToken = item?.parent?.getActiveTokens?.()[0] ?? this.controlledTokens[0];
         const token = this.toToken(rawToken);
         const actor = token?.actor ?? item?.actor;
         const scope = { doc, token, actor, item, config };

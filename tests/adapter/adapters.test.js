@@ -11,12 +11,33 @@ import {
     Region,
     Ray,
     addHighlightLayer,
+    getHighlightLayer,
     clearHighlightLayer,
     destroyHighlightLayer,
+    highlightPosition,
+    clearRegionsHighlight,
+    deactivatePlaceablesLayers,
+    getCenterPoint,
+    getTopLeftPoint,
+    getSnappedPoint,
+    getOffsetRange,
+    measureDistance,
+    fromUuidSync,
+    randomID,
+    lineSegmentIntersection,
+    parseColor,
+    PreciseText,
     saveDataToFile,
     mergeObject,
     deepClone
 } from '../../src/adapter/foundry/index.js';
+import {
+    canvasAdapter,
+    initializeCanvasAdapter,
+    BaseCanvasAdapter,
+    CanvasV13Adapter,
+    CanvasV14Adapter
+} from '../../src/adapter/canvas/index.js';
 import { initializeSystemAdapter, systemAdapter } from '../../src/adapter/system/index.js';
 import { registerPlacementHooks, initializeHooks } from '../../src/adapter/index.js';
 import { snapCoordinates, attachWheelRotation, detachWheelRotation, resolveCrosshairPlacement, alignCrosshairAndEffects, shouldStickToToken, activePlacementTracker } from '../../src/crosshair/util.js';
@@ -3512,4 +3533,209 @@ test('Foundry adapter encapsulates mergeObject and deepClone utilities', () => {
 
     const barrelMerged = mergeObject({ p: 1 }, { q: 2 });
     assert.deepEqual(barrelMerged, { p: 1, q: 2 });
+});
+
+test('initializeCanvasAdapter selects CanvasV13Adapter or CanvasV14Adapter based on game.version', () => {
+    const origVersion = globalThis.game.version;
+    try {
+        globalThis.game.version = "13.335";
+        const v13 = initializeCanvasAdapter();
+        assert.ok(v13 instanceof CanvasV13Adapter);
+        assert.equal(canvasAdapter, v13);
+
+        globalThis.game.version = "14.200";
+        const v14 = initializeCanvasAdapter();
+        assert.ok(v14 instanceof CanvasV14Adapter);
+        assert.equal(canvasAdapter, v14);
+    } finally {
+        globalThis.game.version = origVersion;
+        initializeCanvasAdapter();
+    }
+});
+
+test('Canvas adapter hierarchy exposes canonical canvas and grid getters', () => {
+    const origCanvas = globalThis.canvas;
+    try {
+        globalThis.canvas = {
+            scene: { id: "scene1" },
+            mousePosition: { x: 150, y: 250 },
+            dimensions: { size: 100, distance: 5, units: "ft", rect: { x: 0, y: 0, width: 1000, height: 1000 } },
+            grid: { size: 100, sizeX: 100, sizeY: 100, units: "ft", distance: 5, highlightLayers: {} },
+            tokens: { controlled: [{ id: "tok1" }] },
+            stage: { id: "stage1" },
+            app: { ticker: {} },
+            controls: {},
+            templates: { preview: { children: [] }, placeables: [] },
+            regions: { preview: { children: [] }, placeables: [] }
+        };
+
+        const adapter = new BaseCanvasAdapter();
+        assert.equal(adapter.scene?.id, "scene1");
+        assert.deepEqual(adapter.mousePosition, { x: 150, y: 250 });
+        assert.equal(adapter.gridSize, 100);
+        assert.equal(adapter.gridSizeX, 100);
+        assert.equal(adapter.gridSizeY, 100);
+        assert.equal(adapter.gridDistance, 5);
+        assert.equal(adapter.gridUnits, "ft");
+        assert.equal(adapter.pixelsPerDistance, 20);
+        assert.deepEqual(adapter.dimensionsRect, { x: 0, y: 0, width: 1000, height: 1000 });
+        assert.equal(adapter.controlledTokens.length, 1);
+        assert.equal(adapter.controlledTokens[0].id, "tok1");
+        assert.ok(adapter.stage);
+        assert.ok(adapter.app);
+        assert.ok(adapter.controls);
+        assert.ok(adapter.templates);
+        assert.ok(adapter.regions);
+        assert.ok(adapter.highlightLayers);
+    } finally {
+        globalThis.canvas = origCanvas;
+    }
+});
+
+test('Canvas adapter hierarchy manages highlight layers and positions across V13 and V14', () => {
+    const origCanvas = globalThis.canvas;
+    try {
+        const mockGrid = {
+            highlightLayers: {},
+            addHighlightLayer(name) {
+                this.highlightLayers[name] = { name, positions: new Set() };
+                return this.highlightLayers[name];
+            },
+            getHighlightLayer(name) {
+                return this.highlightLayers[name] ?? null;
+            },
+            clearHighlightLayer(name) {
+                if (this.highlightLayers[name]) {
+                    this.highlightLayers[name].positions.clear();
+                }
+            },
+            destroyHighlightLayer(name) {
+                delete this.highlightLayers[name];
+            },
+            highlightPosition(name, options) {
+                if (this.highlightLayers[name]) {
+                    this.highlightLayers[name].positions.add(`${options.x},${options.y}`);
+                }
+            }
+        };
+
+        globalThis.canvas = {
+            grid: mockGrid,
+            interface: { grid: mockGrid },
+            templates: { deactivate: () => {} },
+            regions: { deactivate: () => {} }
+        };
+
+        // Test BaseCanvasAdapter
+        const base = new BaseCanvasAdapter();
+        const hlBase = base.addHighlightLayer("test-base");
+        assert.ok(hlBase);
+        assert.equal(base.getHighlightLayer("test-base"), hlBase);
+        base.highlightPosition("test-base", { x: 10, y: 20 });
+        assert.ok(hlBase.positions.has("10,20"));
+        base.clearHighlightLayer("test-base");
+        assert.equal(hlBase.positions.size, 0);
+        base.destroyHighlightLayer("test-base");
+        assert.equal(base.getHighlightLayer("test-base"), null);
+
+        // Test CanvasV14Adapter
+        const v14 = new CanvasV14Adapter();
+        const hlV14 = v14.addHighlightLayer("test-v14");
+        assert.ok(hlV14);
+        assert.equal(v14.getHighlightLayer("test-v14"), hlV14);
+        v14.highlightPosition("test-v14", { x: 50, y: 60 });
+        assert.ok(hlV14.positions.has("50,60"));
+        v14.clearHighlightLayer("test-v14");
+        assert.equal(hlV14.positions.size, 0);
+        v14.destroyHighlightLayer("test-v14");
+        assert.equal(v14.getHighlightLayer("test-v14"), null);
+
+        // Test barrel re-exports
+        const hlBarrel = addHighlightLayer("test-barrel");
+        assert.ok(hlBarrel);
+        assert.equal(getHighlightLayer("test-barrel"), hlBarrel);
+        highlightPosition("test-barrel", { x: 30, y: 40 });
+        assert.ok(hlBarrel.positions.has("30,40"));
+        clearHighlightLayer("test-barrel");
+        assert.equal(hlBarrel.positions.size, 0);
+        destroyHighlightLayer("test-barrel");
+        assert.equal(getHighlightLayer("test-barrel"), null);
+    } finally {
+        globalThis.canvas = origCanvas;
+    }
+});
+
+test('Canvas adapter grid geometry methods provide uniform coordinate operations', () => {
+    const adapter = new BaseCanvasAdapter();
+
+    const center = adapter.getCenterPoint({ x: 100, y: 100 });
+    assert.ok(Number.isFinite(center.x) && Number.isFinite(center.y));
+
+    const topLeft = adapter.getTopLeftPoint({ x: 100, y: 100 });
+    assert.ok(Number.isFinite(topLeft.x) && Number.isFinite(topLeft.y));
+
+    const snapped = adapter.getSnappedPoint({ x: 123, y: 456 }, { mode: 1 });
+    assert.ok(Number.isFinite(snapped.x) && Number.isFinite(snapped.y));
+
+    const offsetRange = adapter.getOffsetRange({ x: 0, y: 0, width: 200, height: 200 });
+    assert.ok(Array.isArray(offsetRange));
+
+    const dist = adapter.measureDistance({ x: 0, y: 0 }, { x: 300, y: 400 });
+    assert.ok(typeof dist === "number" && dist > 0);
+
+    const snappedCoords = adapter.snapCoordinates(123, 456, 1);
+    assert.ok(Number.isFinite(snappedCoords.x) && Number.isFinite(snappedCoords.y));
+});
+
+test('Foundry adapter encapsulates randomID, fromUuidSync, lineSegmentIntersection, parseColor, and PreciseText', () => {
+    const adapter = crosshairAdapter;
+
+    // randomID
+    const rand16 = adapter.randomID(16);
+    assert.equal(typeof rand16, 'string');
+    assert.equal(rand16.length, 16);
+    assert.equal(randomID(8).length, 8);
+
+    // fromUuidSync
+    const origFromUuid = globalThis.foundry.utils.fromUuidSync;
+    try {
+        globalThis.foundry.utils.fromUuidSync = (uuid) => ({ uuid, name: 'ResolvedItem' });
+        const res = adapter.fromUuidSync('Item.abc123');
+        assert.equal(res?.name, 'ResolvedItem');
+        assert.equal(fromUuidSync('Item.abc123')?.name, 'ResolvedItem');
+    } finally {
+        globalThis.foundry.utils.fromUuidSync = origFromUuid;
+    }
+
+    // lineSegmentIntersection
+    const a = { x: 0, y: 0 };
+    const b = { x: 10, y: 10 };
+    const c = { x: 0, y: 10 };
+    const d = { x: 10, y: 0 };
+    const intersect = adapter.lineSegmentIntersection(a, b, c, d);
+    assert.ok(intersect);
+    assert.equal(intersect.x, 5);
+    assert.equal(intersect.y, 5);
+    const barrelIntersect = lineSegmentIntersection(a, b, c, d);
+    assert.deepEqual(barrelIntersect, intersect);
+
+    // parseColor
+    const parsedHex = adapter.parseColor('#ff0000');
+    assert.ok(parsedHex !== null && parsedHex !== undefined);
+    const parsedNum = adapter.parseColor(0x00ff00);
+    assert.ok(parsedNum !== null && parsedNum !== undefined);
+    const parsedNamed = adapter.parseColor('invalidColor', 0x123456);
+    assert.ok(parsedNamed !== null);
+    assert.ok(parseColor('#0000ff') !== null);
+
+    // PreciseText
+    assert.equal(typeof adapter.PreciseText, 'undefined');
+    const origPreciseText = globalThis.PreciseText;
+    try {
+        globalThis.PreciseText = class MockPreciseText {};
+        assert.equal(adapter.PreciseText, globalThis.PreciseText);
+    } finally {
+        if (origPreciseText) globalThis.PreciseText = origPreciseText;
+        else delete globalThis.PreciseText;
+    }
 });

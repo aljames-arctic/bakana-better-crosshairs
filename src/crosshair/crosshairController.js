@@ -62,15 +62,15 @@ export class CrosshairController {
 
         // Attach position tracking listeners according to updateTrigger
         if (this.updateTrigger === "ticker") {
-            if (canvas?.app?.ticker) {
+            if (crosshairAdapter.app?.ticker) {
                 try {
-                    canvas.app.ticker.add(this._onTickerBound);
+                    crosshairAdapter.app.ticker.add(this._onTickerBound);
                 } catch (e) {}
             }
         } else if (this.updateTrigger === "event") {
-            if (canvas?.stage) {
+            if (crosshairAdapter.stage) {
                 try {
-                    canvas.stage.on("pointermove", this._onPointerMoveBound);
+                    crosshairAdapter.stage.on("pointermove", this._onPointerMoveBound);
                 } catch (e) {}
             }
         }
@@ -142,15 +142,15 @@ export class CrosshairController {
         if (this.isDestroyed) return;
         this.isDestroyed = true;
 
-        if (canvas?.stage && this._onPointerMoveBound) {
+        if (crosshairAdapter.stage && this._onPointerMoveBound) {
             try {
-                canvas.stage.off("pointermove", this._onPointerMoveBound);
+                crosshairAdapter.stage.off("pointermove", this._onPointerMoveBound);
             } catch (e) {}
         }
 
-        if (canvas?.app?.ticker && this._onTickerBound) {
+        if (crosshairAdapter.app?.ticker && this._onTickerBound) {
             try {
-                canvas.app.ticker.remove(this._onTickerBound);
+                crosshairAdapter.app.ticker.remove(this._onTickerBound);
             } catch (e) {}
         }
 
@@ -247,7 +247,7 @@ export async function attachCrosshairToToken(sourceToken, shape, size, getCursor
         ? getCursorPositionFn
         : (options.isRemote && options.senderUserId
             ? () => getPeerCursorPosition(options.senderUserId)
-            : () => (canvas?.mousePosition ?? null));
+            : () => (crosshairAdapter.mousePosition ?? null));
 
     let resolvedCancelFn = null;
     if (typeof cancelFn === "function") {

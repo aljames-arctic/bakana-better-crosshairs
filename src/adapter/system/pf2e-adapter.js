@@ -1,5 +1,6 @@
 import { BaseSystemAdapter } from "./base-system-adapter.js";
 import { log } from "../../lib/logger.js";
+import { crosshairAdapter } from "../foundry/index.js";
 
 /**
  * System Adapter encapsulating Pathfinder 2e (pf2e) item context resolution and template placement behaviors.
@@ -72,16 +73,12 @@ export class Pf2eSystemAdapter extends BaseSystemAdapter {
             }
         }
 
-        const uuidResolver = typeof fromUuidSync === "function"
-            ? fromUuidSync
-            : (typeof foundry?.utils?.fromUuidSync === "function" ? foundry.utils.fromUuidSync : null);
-
-        if (!itemObj && originRef && uuidResolver) {
+        if (!itemObj && originRef) {
             try {
                 if (typeof originRef === "string") {
-                    itemObj = uuidResolver(originRef);
+                    itemObj = crosshairAdapter.fromUuidSync(originRef);
                 } else if (typeof originRef === "object" && originRef !== null && typeof originRef.uuid === "string") {
-                    itemObj = uuidResolver(originRef.uuid);
+                    itemObj = crosshairAdapter.fromUuidSync(originRef.uuid);
                 }
             } catch (e) {
                 log.warn("Pf2eSystemAdapter.extractCallingContext | Could not resolve item from UUID origin:", originRef, e);
@@ -111,12 +108,13 @@ export class Pf2eSystemAdapter extends BaseSystemAdapter {
     handleProgrammaticPlacement(scene, doc, placeable, coords = {}, options = {}) {
         if (!doc || !scene) return;
         const docName = doc.documentName ?? "MeasuredTemplate";
-        const { crosshairAdapter, pendingPlacements, placementKey } = options;
+        const { crosshairAdapter: optAdapter, pendingPlacements, placementKey } = options;
+        const activeAdapter = optAdapter ?? crosshairAdapter;
 
         setTimeout(async () => {
             const stillPending = pendingPlacements?.get(placementKey);
             if (stillPending && stillPending.resolved && !stillPending.cancelled && stillPending.coords) {
-                const createData = foundry.utils.deepClone(doc.toObject());
+                const createData = activeAdapter.deepClone(doc.toObject());
                 delete createData._id;
 
                 const shapesList = createData.shapes?.contents ?? (Array.isArray(createData.shapes) ? createData.shapes : []);

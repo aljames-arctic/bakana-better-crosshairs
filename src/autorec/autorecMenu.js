@@ -1,6 +1,7 @@
 import { MODULE_ID } from "../lib/constants.js";
 import { DEFAULT_AUTOREC_ENTRY, autorecManager, computeRegistrationKey } from "./autorecManager.js";
 import { systemAdapter } from "../adapter/system/index.js";
+import { deepClone } from "../adapter/index.js";
 import { promptJsonFileImport } from "./autorecExchange.js";
 import { localize, notify, getUserColor } from "../lib/utils.js";
 import { log } from "../lib/logger.js";
@@ -396,7 +397,7 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
         if (!detailEl) return;
 
         const existingEntry = autorecManager.registeredHandlers.get(regKey) ?? autorecManager.get(regKey) ?? {};
-        const config = foundry.utils.deepClone(typeof existingEntry === "object" ? existingEntry : {});
+        const config = deepClone(typeof existingEntry === "object" ? existingEntry : {});
         let modified = false;
 
         detailEl.querySelectorAll("[data-field]").forEach(inputEl => {

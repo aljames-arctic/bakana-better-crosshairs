@@ -57,6 +57,11 @@ export const Region = foundry?.canvas?.placeables?.Region;
 export const Ray = foundry?.canvas?.geometry?.Ray;
 
 /**
+ * Reference to Foundry's canvas PreciseText container or PIXI.Text.
+ */
+export const PreciseText = foundry?.canvas?.containers?.PreciseText ?? globalThis.PreciseText ?? (typeof PIXI !== "undefined" ? PIXI?.Text : undefined);
+
+/**
  * Reference to Foundry's mergeObject utility.
  */
 export const mergeObject = (original, other, options) => crosshairAdapter.mergeObject(original, other, options);
@@ -74,6 +79,13 @@ export const deepClone = (obj) => crosshairAdapter.deepClone(obj);
 export const addHighlightLayer = (id) => crosshairAdapter.addHighlightLayer(id);
 
 /**
+ * Retrieves the specified grid highlight layer across Foundry canvas versions.
+ * @param {string} id - The identifier of the highlight layer to get.
+ * @returns {Object|null}
+ */
+export const getHighlightLayer = (id) => crosshairAdapter.getHighlightLayer(id);
+
+/**
  * Clears the specified grid highlight layer across Foundry canvas versions.
  * @param {string} id - The identifier of the highlight layer to clear.
  * @returns {void}
@@ -88,6 +100,104 @@ export const clearHighlightLayer = (id) => crosshairAdapter.clearHighlightLayer(
 export const destroyHighlightLayer = (id) => crosshairAdapter.destroyHighlightLayer(id);
 
 /**
+ * Highlights a grid position on the canvas across Foundry versions.
+ * @param {string} id - Identifier of the highlight layer
+ * @param {Object} [options={}] - Highlight parameters
+ * @returns {void}
+ */
+export const highlightPosition = (id, options) => crosshairAdapter.highlightPosition(id, options);
+
+/**
+ * Safely clears region layer highlights across versions.
+ * @returns {void}
+ */
+export const clearRegionsHighlight = () => crosshairAdapter.clearRegionsHighlight();
+
+/**
+ * Deactivates templates and regions placeable layers if active.
+ * @returns {void}
+ */
+export const deactivatePlaceablesLayers = () => crosshairAdapter.deactivatePlaceablesLayers();
+
+/**
+ * Get the center point of a grid space enclosing the given coordinates across Foundry versions.
+ * @param {{x?: number, y?: number, i?: number, j?: number}} coords - Coordinates object
+ * @returns {{x: number, y: number}}
+ */
+export const getCenterPoint = (coords) => crosshairAdapter.getCenterPoint(coords);
+
+/**
+ * Get the top-left point of a grid space enclosing the given coordinates across Foundry versions.
+ * @param {{x?: number, y?: number, i?: number, j?: number}} coords - Coordinates object
+ * @returns {{x: number, y: number}}
+ */
+export const getTopLeftPoint = (coords) => crosshairAdapter.getTopLeftPoint(coords);
+
+/**
+ * Get snapped point coordinates on the grid.
+ * @param {{x: number, y: number}} point - Target point
+ * @param {Object} [options={}] - Snapping options ({ mode })
+ * @returns {{x: number, y: number}|null}
+ */
+export const getSnappedPoint = (point, options) => crosshairAdapter.getSnappedPoint(point, options);
+
+/**
+ * Compute integer grid space coordinate offset range [i0, j0, i1, j1] enclosing a bounding rectangle across Foundry versions.
+ * @param {Object} bounds - Bounding rectangle
+ * @returns {number[]|null}
+ */
+export const getOffsetRange = (bounds) => crosshairAdapter.getOffsetRange(bounds);
+
+/**
+ * Measures grid distance between two coordinate points across Foundry versions.
+ * @param {{x: number, y: number}} origin - Origin point
+ * @param {{x: number, y: number}} target - Target point
+ * @returns {number}
+ */
+export const measureDistance = (origin, target) => crosshairAdapter.measureDistance(origin, target);
+
+/**
+ * Snap coordinate values to grid space.
+ * @param {number} x - Target X coordinate
+ * @param {number} y - Target Y coordinate
+ * @param {string|number|boolean} [mode="all"] - Snap mode
+ * @returns {{x: number, y: number}}
+ */
+export const snapCoordinates = (x, y, mode) => crosshairAdapter.snapCoordinates(x, y, mode);
+
+/**
+ * Synchronously retrieves a document by UUID across Foundry VTT versions.
+ * @param {string} uuid - The document UUID to resolve
+ * @returns {Document|null}
+ */
+export const fromUuidSync = (uuid) => crosshairAdapter.fromUuidSync(uuid);
+
+/**
+ * Generates a random alphanumeric identifier across Foundry VTT versions.
+ * @param {number} [length=16] - Length of random string
+ * @returns {string}
+ */
+export const randomID = (length) => crosshairAdapter.randomID(length);
+
+/**
+ * Finds intersection point between two 2D line segments across Foundry versions.
+ * @param {{x: number, y: number}} a - Segment 1 start
+ * @param {{x: number, y: number}} b - Segment 1 end
+ * @param {{x: number, y: number}} c - Segment 2 start
+ * @param {{x: number, y: number}} d - Segment 2 end
+ * @returns {{x: number, y: number}|null}
+ */
+export const lineSegmentIntersection = (a, b, c, d) => crosshairAdapter.lineSegmentIntersection(a, b, c, d);
+
+/**
+ * Converts color string (hex or named) or number into numeric color value.
+ * @param {string|number|null|undefined} col - Input color
+ * @param {number} [fallback=0] - Fallback numeric color
+ * @returns {number}
+ */
+export const parseColor = (col, fallback) => crosshairAdapter.parseColor(col, fallback);
+
+/**
  * Safely saves text or JSON string data to a file across Foundry VTT API versions.
  * @param {string|Object} data - String payload or object to save
  * @param {string} [type="application/json"] - MIME type (e.g. "text/json")
@@ -95,4 +205,5 @@ export const destroyHighlightLayer = (id) => crosshairAdapter.destroyHighlightLa
  * @returns {boolean} True if native Foundry save helper handled the request
  */
 export const saveDataToFile = (data, type, filename) => crosshairAdapter.saveDataToFile(data, type, filename);
+
 

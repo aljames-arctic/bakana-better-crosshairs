@@ -1,4 +1,5 @@
 import { log } from "../lib/logger.js";
+import { crosshairAdapter } from "../adapter/index.js";
 
 /**
  * Encapsulates live canvas grid distance measurement text beneath an active crosshair reticle.
@@ -19,27 +20,8 @@ export class CrosshairRangeOverlay {
      * @returns {string} Formatted distance label string (e.g. "30 ft")
      */
     measureDistance(origin, target) {
-        let distance = 0;
-        try {
-            if (canvas?.grid && typeof canvas.grid.measurePath === "function") {
-                const measured = canvas.grid.measurePath([origin, target]);
-                distance = measured?.distance ?? 0;
-            } else if (canvas?.grid && typeof canvas.grid.measureDistance === "function") {
-                distance = Math.round(canvas.grid.measureDistance(origin, target) * 10) / 10;
-            } else if (canvas?.dimensions) {
-                const distPx = Math.hypot(target.x - origin.x, target.y - origin.y);
-                const gridDist = canvas.dimensions.distance ?? 5;
-                const gridSize = canvas.dimensions.size ?? 100;
-                distance = Math.round((distPx / gridSize) * gridDist);
-            }
-        } catch (e) {
-            const distPx = Math.hypot(target.x - origin.x, target.y - origin.y);
-            const gridDist = canvas?.dimensions?.distance ?? 5;
-            const gridSize = canvas?.dimensions?.size ?? 100;
-            distance = Math.round((distPx / gridSize) * gridDist);
-        }
-
-        const units = canvas?.grid?.units ?? canvas?.dimensions?.units ?? "ft";
+        const distance = crosshairAdapter.measureDistance(origin, target);
+        const units = crosshairAdapter.gridUnits;
         return `${distance} ${units}`;
     }
 
@@ -61,7 +43,7 @@ export class CrosshairRangeOverlay {
         const labelStr = this.measureDistance(origin, target);
 
         if (!this.textElement) {
-            const TextClass = foundry?.canvas?.containers?.PreciseText ?? PreciseText ?? PIXI?.Text;
+            const TextClass = crosshairAdapter.PreciseText;
             if (!TextClass) return;
             const style = CONFIG?.canvasTextStyle
                 ? CONFIG.canvasTextStyle.clone()
@@ -79,7 +61,7 @@ export class CrosshairRangeOverlay {
                 if (this.textElement.anchor && typeof this.textElement.anchor.set === "function") {
                     this.textElement.anchor.set(0.5, 1);
                 }
-                const parentContainer = shape.sequencerCrosshair.parent ?? canvas?.controls ?? canvas?.stage ?? shape.sequencerCrosshair;
+                const parentContainer = shape.sequencerCrosshair.parent ?? crosshairAdapter.controls ?? crosshairAdapter.stage ?? shape.sequencerCrosshair;
                 if (typeof parentContainer.addChild === "function") {
                     parentContainer.addChild(this.textElement);
                 }
@@ -88,7 +70,7 @@ export class CrosshairRangeOverlay {
                 return;
             }
         } else {
-            const targetParent = shape.sequencerCrosshair.parent ?? canvas?.controls ?? canvas?.stage ?? shape.sequencerCrosshair;
+            const targetParent = shape.sequencerCrosshair.parent ?? crosshairAdapter.controls ?? crosshairAdapter.stage ?? shape.sequencerCrosshair;
             if (this.textElement.parent !== targetParent && typeof targetParent.addChild === "function") {
                 try { targetParent.addChild(this.textElement); } catch (e) {}
             }

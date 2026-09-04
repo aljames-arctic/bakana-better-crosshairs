@@ -249,7 +249,7 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         if (!previewDoc || !coords) return;
         const targetDoc = previewDoc.document ?? previewDoc;
         const isRect = targetDoc.t === "rect" || coords.type === "square" || coords.type === "rect" || coords.originalType === "square" || coords.t === "rect";
-        const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
+        const pxPerFoot = this.pixelsPerDistance;
         let distFoot = coords.distance ?? coords.radius;
         const widthFoot = coords.width ?? distFoot;
 
@@ -348,7 +348,7 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             flags: styling.flags
         };
 
-        const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
+        const pxPerFoot = this.pixelsPerDistance;
         const rawDist = coords.distance ?? coords.radius;
         let distFoot = rawDist ?? config.distance ?? config.radius;
         const widthFoot = coords.width ?? config.width ?? distFoot;
@@ -370,12 +370,11 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
                 targetY = Math.round(targetY - (wPx / 2) * Math.cos(rad));
             }
 
+            updateData.t = "rect";
             if (targetX !== undefined) updateData.x = targetX;
             if (targetY !== undefined) updateData.y = targetY;
-
-            updateData.t = "rect";
-            const w = widthFoot ?? 20;
-            const h = distFoot ?? w;
+            const w = coords.width ?? config.width ?? distFoot ?? 20;
+            const h = distFoot ?? config.distance ?? config.radius ?? w;
             const diagDist = Math.round(Math.hypot(w, h) * 100) / 100;
             const diagAngle = Math.atan2(h, w) * (180 / Math.PI);
             updateData.distance = diagDist;
@@ -392,6 +391,7 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             else if (coords.radius !== undefined) updateData.distance = coords.radius;
             if (coords.angle !== undefined) updateData.angle = coords.angle;
             else if (config.angle !== undefined) updateData.angle = config.angle;
+            if (coords.width !== undefined) updateData.width = coords.width;
         }
 
         if (styling.placedFillColor !== undefined && styling.placedFillColor !== null) updateData.fillColor = styling.placedFillColor;
@@ -406,11 +406,7 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             Object.assign(targetDoc, updateData);
         }
         if (data && typeof data === "object") {
-            if (typeof foundry?.utils?.mergeObject === "function") {
-                foundry.utils.mergeObject(data, updateData);
-            } else {
-                Object.assign(data, updateData);
-            }
+            this.mergeObject(data, updateData);
         }
     }
 
@@ -516,7 +512,7 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         if (tmpl.ray) {
             const ox = targetX ?? tmpl.ray.origin?.x ?? tmpl.x ?? 0;
             const oy = targetY ?? tmpl.ray.origin?.y ?? tmpl.y ?? 0;
-            const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
+            const pxPerFoot = this.pixelsPerDistance;
             const dist = isRect && doc?.distance ? doc.distance * pxPerFoot : (tmpl.ray.distance ?? 1000);
             const newRay = this.createRayFromAngle(ox, oy, rad, dist);
             if (newRay) tmpl.ray = newRay;
@@ -549,26 +545,10 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
     }
 
     _snapPoint(x, y, numMode) {
-        if (typeof canvas.grid.getSnappedPoint === "function") {
-            const snapped = canvas.grid.getSnappedPoint({ x, y }, { mode: numMode });
-            return { x: snapped.x, y: snapped.y };
-        }
-        if (typeof canvas.grid.getSnappedPosition === "function") {
-            const snapped = canvas.grid.getSnappedPosition(x, y, numMode);
-            return { x: snapped.x, y: snapped.y };
-        }
-        return null;
+        return this.getSnappedPoint({ x, y }, { mode: numMode });
     }
 
     _getGridCenterPoint(x, y) {
-        if (typeof canvas.grid.getCenterPoint === "function") {
-            const pt = canvas.grid.getCenterPoint({ x, y });
-            return { x: pt.x, y: pt.y };
-        }
-        if (typeof canvas.grid.getCenter === "function") {
-            const [cx, cy] = canvas.grid.getCenter(x, y);
-            return { x: cx, y: cy };
-        }
-        return null;
+        return this.getCenterPoint({ x, y });
     }
 }

@@ -71,7 +71,7 @@ export class PersistedAnimationManager {
         const detected = crosshairAdapter.detectProperties(doc);
         const shapeType = detected.type ?? "circle";
         const { factor, gridUnits } = crosshairAdapter.getTemplatePixelFactor();
-        const pxPerFoot = (canvas?.dimensions?.size ?? 100) / (canvas?.dimensions?.distance ?? 5);
+        const pxPerFoot = crosshairAdapter.pixelsPerDistance;
 
         let effectFile = "";
         let widthPx = 100;

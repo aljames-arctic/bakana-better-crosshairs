@@ -46,9 +46,10 @@ export class PendingPlacementSession {
             pendingItem.coords = coords;
             pendingItem.resolved = true;
 
-            if (pendingItem.deferredCreateData && typeof canvas !== "undefined" && canvas.scene) {
+            const scene = this.adapter.scene ?? (typeof canvas !== "undefined" ? canvas.scene : null);
+            if (pendingItem.deferredCreateData && scene) {
                 await this.adapter.createDeferredDocument(
-                    canvas.scene,
+                    scene,
                     pendingItem.deferredCreateData,
                     coords,
                     pendingItem.documentName,
@@ -57,8 +58,8 @@ export class PendingPlacementSession {
                 if (this.placeable && typeof this.adapter.dismissPreview === "function") {
                     this.adapter.dismissPreview(this.placeable);
                 }
-            } else if (this.doc && typeof canvas !== "undefined" && canvas.scene) {
-                systemAdapter.handleProgrammaticPlacement(canvas.scene, this.doc, this.placeable, coords, {
+            } else if (this.doc && scene) {
+                systemAdapter.handleProgrammaticPlacement(scene, this.doc, this.placeable, coords, {
                     crosshairAdapter: this.adapter,
                     pendingPlacements: this.adapter.pendingPlacements,
                     placementKey: this.placementKey,

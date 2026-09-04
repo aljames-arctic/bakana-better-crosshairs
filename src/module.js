@@ -5,7 +5,16 @@ import { autorecManager } from './autorec/autorecManager.js';
 import { ModuleAutorecManager } from './autorec/moduleAutorecManager.js';
 import { remoteCrosshairManager, getPeerCursorPosition, getGamemasterCursorPosition, diagnoseUserCursor } from './crosshair/remoteCrosshairManager.js';
 import { socketlib, handleSocketMessage } from './integration/socketlib.js';
-import { systemAdapter, initializeSystemAdapter, crosshairAdapter, initializeFoundryAdapter, initializeHooks } from './adapter/index.js';
+import {
+    systemAdapter,
+    initializeSystemAdapter,
+    crosshairAdapter,
+    initializeFoundryAdapter,
+    canvasAdapter,
+    initializeCanvasAdapter,
+    initializeHooks,
+    mergeObject
+} from './adapter/index.js';
 import { attachWheelRotation, detachWheelRotation, resolveCrosshairPlacement, getTokenEdgePoint, snapCoordinates } from './crosshair/util.js';
 import { localize } from './lib/utils.js';
 import { registerModuleSettings } from './settings.js';
@@ -21,7 +30,7 @@ export function setupApiCalls(exportedFunctions) {
     if (!exportedFunctions || typeof exportedFunctions !== "object") return;
     const mod = game?.modules?.get(MODULE_ID);
     if (mod) {
-        mod.api = foundry.utils.mergeObject(mod.api ?? {}, exportedFunctions);
+        mod.api = mergeObject(mod.api ?? {}, exportedFunctions);
     }
 }
 
@@ -34,6 +43,7 @@ export function setupModule() {
     registerModuleSettings();
     initializeSystemAdapter();
     initializeFoundryAdapter();
+    initializeCanvasAdapter();
     initializeHooks();
     loadTemplates([
         `modules/${MODULE_ID}/src/autorec/configFieldsPartial.html`,
@@ -66,6 +76,7 @@ export function setupModule() {
         diagnoseUserCursor,
         systemAdapter,
         crosshairAdapter,
+        canvasAdapter,
         log,
     };
 

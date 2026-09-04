@@ -1,5 +1,6 @@
 import { BaseSystemAdapter } from "./base-system-adapter.js";
 import { log } from "../../lib/logger.js";
+import { crosshairAdapter } from "../foundry/index.js";
 
 /**
  * System Adapter for DnD5e.
@@ -33,12 +34,8 @@ export class Dnd5eSystemAdapter extends BaseSystemAdapter {
         let itemObj = baseContext?.item ?? null;
         let activityObj = baseContext?.activity ?? null;
 
-        const uuidResolver = typeof fromUuidSync === "function"
-            ? fromUuidSync
-            : (typeof foundry?.utils?.fromUuidSync === "function" ? foundry.utils.fromUuidSync : null);
-
-        if (!itemObj && doc?.flags?.dnd5e?.origin && uuidResolver) {
-            try { itemObj = uuidResolver(doc.flags.dnd5e.origin); } catch (e) {}
+        if (!itemObj && doc?.flags?.dnd5e?.origin) {
+            try { itemObj = crosshairAdapter.fromUuidSync(doc.flags.dnd5e.origin); } catch (e) {}
         }
 
         if (itemObj && (itemObj.item || (itemObj.parent && itemObj.parent.documentName === "Item"))) {

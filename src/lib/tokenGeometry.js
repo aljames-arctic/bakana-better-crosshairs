@@ -1,3 +1,5 @@
+import { crosshairAdapter } from "../adapter/index.js";
+
 /**
  * Unified geometric utilities for token bounding boxes, ray-casting perimeter intersections,
  * and 8-way sticky corner calculations.
@@ -19,7 +21,7 @@ export class TokenGeometry {
      * Calculate angle in radians and degrees from origin to target.
      * @param {{x: number, y: number}} origin - Origin point
      * @param {{x: number, y: number}} target - Target point
-     * @returns {{rad: number, deg: number}} Calculated angles
+     * @returns {{rad: number, deg: number}} Calculated angle
      */
     static calculateAngle(origin, target) {
         const dx = target.x - origin.x;
@@ -35,7 +37,7 @@ export class TokenGeometry {
      * @returns {{x: number, y: number, w: number, h: number, center: {x: number, y: number}}} Bounding box data
      */
     static getBounds(token) {
-        const size = canvas?.grid?.size ?? 100;
+        const size = crosshairAdapter.gridSize;
         const tx = token?.x ?? token?.document?.x ?? 0;
         const ty = token?.y ?? token?.document?.y ?? 0;
         const tokenWidth = token?.document?.width ?? token?.width ?? 1;
@@ -77,18 +79,16 @@ export class TokenGeometry {
         const points = [tx, ty, tx + w, ty, tx + w, ty + h, tx, ty + h];
 
         let intersection = null;
-        if (typeof foundry?.utils?.lineSegmentIntersection === "function") {
-            for (let i = 0; i < points.length; i += 2) {
-                const p1 = { x: points[i], y: points[i + 1] };
-                const p2Idx = (i + 2) >= points.length ? 0 : (i + 2);
-                const p2 = { x: points[p2Idx], y: points[p2Idx + 1] };
-                intersection = foundry.utils.lineSegmentIntersection(centerPoint, farPoint, p1, p2);
-                if (intersection) break;
-            }
+        for (let i = 0; i < points.length; i += 2) {
+            const p1 = { x: points[i], y: points[i + 1] };
+            const p2Idx = (i + 2) >= points.length ? 0 : (i + 2);
+            const p2 = { x: points[p2Idx], y: points[p2Idx + 1] };
+            intersection = crosshairAdapter.lineSegmentIntersection(centerPoint, farPoint, p1, p2);
+            if (intersection) break;
         }
 
         if (!intersection) {
-            const RayClass = foundry?.canvas?.geometry?.Ray;
+            const RayClass = crosshairAdapter.Ray;
             if (RayClass) {
                 const ray = new RayClass(centerPoint, farPoint);
                 if (typeof ray.intersectSegment === "function") {

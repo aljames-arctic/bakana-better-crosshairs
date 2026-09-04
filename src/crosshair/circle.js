@@ -60,8 +60,8 @@ export class CircleCrosshairShape extends BaseCrosshairShape {
      */
     _getGraphicDimensions() {
         const radius = Math.round(this.config.radius ?? 20);
-        const gridDist = canvas?.dimensions?.distance ?? 5;
-        const gridSize = canvas?.dimensions?.size ?? 100;
+        const gridDist = crosshairAdapter.gridDistance;
+        const gridSize = crosshairAdapter.gridSize;
         const diameterPixels = ((radius * 2) / gridDist) * gridSize;
         const { factor, gridUnits } = crosshairAdapter.getTemplatePixelFactor();
         log.debug("CircleCrosshairShape._getGraphicDimensions | Sizing circle graphic.", { radius, diameterPixels, factor, gridUnits });

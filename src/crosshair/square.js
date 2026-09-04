@@ -78,8 +78,8 @@ export class SquareCrosshairShape extends BaseCrosshairShape {
         }
         const width = rawWidth > 0 ? rawWidth : distance;
 
-        const gridDist = canvas?.dimensions?.distance ?? 5;
-        const gridSize = canvas?.dimensions?.size ?? 100;
+        const gridDist = crosshairAdapter.gridDistance;
+        const gridSize = crosshairAdapter.gridSize;
         const lengthPixels = (distance / gridDist) * gridSize;
         const widthPixels = (width / gridDist) * gridSize;
         const { factor, gridUnits } = crosshairAdapter.getTemplatePixelFactor();

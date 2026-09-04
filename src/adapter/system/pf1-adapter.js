@@ -1,5 +1,6 @@
 import { BaseSystemAdapter } from "./base-system-adapter.js";
 import { log } from "../../lib/logger.js";
+import { crosshairAdapter } from "../foundry/index.js";
 
 /**
  * System Adapter encapsulating Pathfinder 1st Edition (pf1 / pf) item context resolution and template placement behaviors.
@@ -36,18 +37,14 @@ export class Pf1SystemAdapter extends BaseSystemAdapter {
         const pf1Flags = doc?.flags?.[this.systemId] ?? doc?.flags?.pf1 ?? doc?.flags?.pf ?? {};
         const originRef = pf1Flags.origin ?? pf1Flags.item ?? pf1Flags.itemId ?? null;
 
-        const uuidResolver = typeof fromUuidSync === "function"
-            ? fromUuidSync
-            : (typeof foundry?.utils?.fromUuidSync === "function" ? foundry.utils.fromUuidSync : null);
-
-        if (!itemObj && originRef && uuidResolver) {
+        if (!itemObj && originRef) {
             try {
                 if (typeof originRef === "string") {
                     if (originRef.includes(".")) {
-                        itemObj = uuidResolver(originRef);
+                        itemObj = crosshairAdapter.fromUuidSync(originRef);
                     }
                 } else if (typeof originRef === "object" && typeof originRef.uuid === "string") {
-                    itemObj = uuidResolver(originRef.uuid);
+                    itemObj = crosshairAdapter.fromUuidSync(originRef.uuid);
                 }
             } catch (e) {
                 log.warn("Pf1SystemAdapter.extractCallingContext | Could not resolve item from UUID origin:", originRef, e);

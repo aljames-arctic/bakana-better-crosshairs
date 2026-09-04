@@ -54,8 +54,9 @@ export function getGamemasterCursorPosition(identifier = "Gamemaster") {
         if (act) return act;
     }
 
-    // 3. Inspect canvas.controls._cursors or canvas.controls.cursors (Foundry ControlsLayer internal cursor Map/dictionary)
-    const cursorSources = [canvas?.controls?._cursors, canvas?.controls?.cursors].filter(Boolean);
+    // 3. Inspect canvas controls cursors
+    const controls = crosshairAdapter.controls;
+    const cursorSources = [controls?._cursors, controls?.cursors].filter(Boolean);
     for (const _cursors of cursorSources) {
         if (_cursors && !Array.isArray(_cursors) && typeof _cursors === "object") {
             let cursor = null;
@@ -72,9 +73,9 @@ export function getGamemasterCursorPosition(identifier = "Gamemaster") {
         }
     }
 
-    // 4. Inspect canvas.controls.cursors PIXI children
-    if (canvas?.controls?.cursors?.children && Array.isArray(canvas.controls.cursors.children)) {
-        const children = canvas.controls.cursors.children;
+    // 4. Inspect controls cursors PIXI children
+    if (controls?.cursors?.children && Array.isArray(controls.cursors.children)) {
+        const children = controls.cursors.children;
         const cursor = children.find(c =>
             c?.user?.name === identifier ||
             (userId && c?.user?.id === userId) ||
@@ -120,7 +121,7 @@ export function diagnoseUserCursor(identifier = "Gamemaster") {
 
     const userId = user?.id;
 
-    const controls = canvas?.controls;
+    const controls = crosshairAdapter.controls;
     const cursorsContainer = controls?.cursors;
     const internalCursors = controls?._cursors;
 
@@ -294,7 +295,7 @@ export class RemoteCrosshairVisual {
         }
 
         if (hasIcon) {
-            const gridSize = canvas?.grid?.size ?? canvas?.dimensions?.size ?? 100;
+            const gridSize = crosshairAdapter.gridSize;
             const iconSize = Math.max(gridSize * 0.5, 36);
             seq.effect()
                 .name(`${this.effectName}-icon`)

@@ -83,7 +83,7 @@ export class BaseCrosshairShape {
             if (document?.item?.img) return document.item.img;
             const origin = document?.flags?.dnd5e?.origin ?? document?.flags?.["midi-qol"]?.origin;
             if (origin) {
-                const fromUuid = foundry.utils.fromUuidSync?.(origin);
+                const fromUuid = crosshairAdapter.fromUuidSync(origin);
                 if (fromUuid?.img) return fromUuid.img;
             }
             return null;
@@ -302,7 +302,7 @@ export class BaseCrosshairShape {
         }
 
         if (hasIcon) {
-            const gridSize = canvas?.grid?.size ?? canvas?.dimensions?.size ?? 100;
+            const gridSize = crosshairAdapter.gridSize;
             const iconSize = Math.max(gridSize * 0.5, 36);
 
             const iconEffect = seq.effect()
@@ -688,7 +688,7 @@ export class BaseCrosshairShape {
             this.refreshTemplateHighlights();
         } else {
             const hId = this.placeable?._bbcHighlightId ?? this.placeable?.highlightId;
-            const hl = canvas?.interface?.grid?.getHighlightLayer?.(hId);
+            const hl = crosshairAdapter.getHighlightLayer(hId);
             if (hl && (!hl.visible || !hl.renderable)) {
                 hl.visible = true;
                 hl.renderable = true;
@@ -827,7 +827,7 @@ export class BaseCrosshairShape {
             } else {
                 posX = this.x;
                 posY = this.y;
-                const mousePos = canvas?.mousePosition;
+                const mousePos = crosshairAdapter.mousePosition;
                 if (mousePos && Number.isFinite(mousePos.x) && Number.isFinite(mousePos.y)) {
                     const dx = mousePos.x - posX;
                     const dy = mousePos.y - posY;
