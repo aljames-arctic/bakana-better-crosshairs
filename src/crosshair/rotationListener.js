@@ -163,7 +163,7 @@ export class CrosshairRotationListener {
             }
             if (!isRect) {
                 try {
-                    crosshair.rotation = crosshair.document ? 0 : rad;
+                    crosshair.rotation = rad;
                 } catch (e) { log.debug("rotateCrosshairInstance | Exception setting crosshair.rotation:", e); }
             } else {
                 try { crosshair.rotation = 0; } catch (e) { log.debug("rotateCrosshairInstance | Exception resetting crosshair.rotation:", e); }
@@ -264,13 +264,13 @@ export class CrosshairRotationListener {
                 const delta = event.deltaY < 0 ? -step : step;
                 config.currentDirection = TokenGeometry.normalizeAngle(config.currentDirection + delta);
 
+                const rad = config.currentDirection * (Math.PI / 180);
                 if (isShapeInstance) {
                     shape.rotate(config.currentDirection);
                 } else {
-                    const rad = config.currentDirection * (Math.PI / 180);
                     alignCrosshairAndEffects(crosshair, config, rad);
-                    this.refreshAllActiveHighlights(config.currentDirection, rad, crosshair, event);
                 }
+                this.refreshAllActiveHighlights(config.currentDirection, rad, crosshair, event);
             };
             window?.addEventListener?.("wheel", this.activeWheelHandler, { capture: true, passive: false });
         } else {

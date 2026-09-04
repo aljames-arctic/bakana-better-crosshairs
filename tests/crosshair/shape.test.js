@@ -953,7 +953,7 @@ test('BaseCrosshairShape.create passes initial direction to Sequencer builder wh
     }
 });
 
-test('Detached ray rotation updates Sequencer crosshair document direction, ray, and zeros container rotation', async () => {
+test('Detached ray rotation updates Sequencer crosshair document direction, ray, and rotates container rotation to rad', async () => {
     const { RayCrosshairShape } = await import('../../src/crosshair/ray.js');
     const mockDocument = {
         x: 100,
@@ -996,7 +996,7 @@ test('Detached ray rotation updates Sequencer crosshair document direction, ray,
     assert.equal(shape.direction, 90, 'Shape direction must update to 90');
     assert.equal(mockSeqCrosshair.direction, 90, 'Sequencer crosshair direction must update to 90');
     assert.equal(mockSeqDocument.direction, 90, 'Sequencer crosshair document.direction must update to 90');
-    assert.equal(mockSeqCrosshair.rotation, 0, 'Sequencer crosshair container rotation must be 0 when document is present');
+    assert.ok(Math.abs(mockSeqCrosshair.rotation - (90 * Math.PI / 180)) < 1e-6, 'Sequencer crosshair container rotation must rotate to rad on wheel');
     assert.ok(mockSeqCrosshair.ray, 'Sequencer crosshair ray must be present');
     assert.equal(refreshed, true, 'Sequencer crosshair refresh() must be triggered');
     assert.equal(mockDocument.direction, 90, 'Preview document direction must update to 90');
@@ -1066,19 +1066,20 @@ test('rotateCrosshairInstance synchronizes crosshair.document.direction, ray, an
 
     assert.equal(mockSeqCrosshair.direction, 135, 'Crosshair direction must update to 135');
     assert.equal(mockSeqDocument.direction, 135, 'Crosshair document direction must update to 135');
-    assert.equal(mockSeqCrosshair.rotation, 0, 'Crosshair rotation must be 0 when document is present');
+    assert.ok(Math.abs(mockSeqCrosshair.rotation - (135 * Math.PI / 180)) < 1e-6, 'Crosshair rotation must rotate to rad on wheel');
     assert.ok(mockSeqCrosshair.ray, 'Crosshair ray must be updated');
     assert.equal(refreshed, true, 'refresh() must be called for detached ray');
 });
 
-test('BaseCrosshairShape suppresses geometric border and fill alpha when graphic animation is active and enablePreviewPlacement is false', async () => {
+test('BaseCrosshairShape defaults border and fill alpha to DEFAULT_AUTOREC_ENTRY values', async () => {
+    const { DEFAULT_AUTOREC_ENTRY } = await import('../../src/autorec/autorecManager.js');
     const { RayCrosshairShape } = await import('../../src/crosshair/ray.js');
     const mockDocument = { x: 0, y: 0, direction: 0 };
     const mockPlaceable = { x: 0, y: 0, document: mockDocument };
     const shape = new RayCrosshairShape(mockPlaceable, { distance: 30, width: 5 });
 
-    assert.equal(shape.borderAlpha, 0, 'borderAlpha must be 0 when graphic is active and preview placement is not enabled');
-    assert.equal(shape.fillAlpha, 0, 'fillAlpha must be 0 when graphic is active and preview placement is not enabled');
+    assert.equal(shape.borderAlpha, DEFAULT_AUTOREC_ENTRY.borderAlpha);
+    assert.equal(shape.fillAlpha, DEFAULT_AUTOREC_ENTRY.fillAlpha);
 
     let passedBorderOpts = null;
     let passedFillOpts = null;
@@ -1100,8 +1101,8 @@ test('BaseCrosshairShape suppresses geometric border and fill alpha when graphic
         };
 
         await shape.create();
-        assert.equal(passedBorderOpts?.alpha, 0, 'Sequencer borderColor alpha must be 0');
-        assert.equal(passedFillOpts?.alpha, 0, 'Sequencer fillColor alpha must be 0');
+        assert.equal(passedBorderOpts?.alpha, DEFAULT_AUTOREC_ENTRY.borderAlpha, 'Sequencer borderColor alpha must default to DEFAULT_AUTOREC_ENTRY.borderAlpha');
+        assert.equal(passedFillOpts?.alpha, DEFAULT_AUTOREC_ENTRY.fillAlpha, 'Sequencer fillColor alpha must default to DEFAULT_AUTOREC_ENTRY.fillAlpha');
     } finally {
         globalThis.Sequence = origSeq;
     }

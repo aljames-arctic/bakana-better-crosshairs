@@ -688,6 +688,11 @@ export class BaseFoundryVTTAdapter {
                 obj.template.visible = false;
                 obj.template.renderable = false;
                 obj.template.alpha = 0;
+                if (!obj.template._bbcHidden) {
+                    obj.template._bbcHidden = true;
+                    try { Object.defineProperty(obj.template, "visible", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
+                    try { Object.defineProperty(obj.template, "renderable", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
+                }
             }
             if (obj.ruler) {
                 obj.ruler.visible = false;
@@ -701,16 +706,31 @@ export class BaseFoundryVTTAdapter {
                 obj.mesh.visible = false;
                 obj.mesh.renderable = false;
                 obj.mesh.alpha = 0;
+                if (!obj.mesh._bbcHidden) {
+                    obj.mesh._bbcHidden = true;
+                    try { Object.defineProperty(obj.mesh, "visible", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
+                    try { Object.defineProperty(obj.mesh, "renderable", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
+                }
             }
             if (obj.shape) {
                 obj.shape.visible = false;
                 obj.shape.renderable = false;
                 obj.shape.alpha = 0;
+                if (!obj.shape._bbcHidden) {
+                    obj.shape._bbcHidden = true;
+                    try { Object.defineProperty(obj.shape, "visible", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
+                    try { Object.defineProperty(obj.shape, "renderable", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
+                }
             }
             if (obj.border) {
                 obj.border.visible = false;
                 obj.border.renderable = false;
                 obj.border.alpha = 0;
+                if (!obj.border._bbcHidden) {
+                    obj.border._bbcHidden = true;
+                    try { Object.defineProperty(obj.border, "visible", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
+                    try { Object.defineProperty(obj.border, "renderable", { get: () => false, set: () => {}, configurable: true }); } catch (e) {}
+                }
             }
             if (obj.children) {
                 for (const child of obj.children) {
