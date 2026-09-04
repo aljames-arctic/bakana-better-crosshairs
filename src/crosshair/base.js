@@ -67,6 +67,11 @@ export class BaseCrosshairShape {
         this.type = (rawType === "square") ? "rect" : rawType;
         this.stickToToken = shouldStickToToken(config, this.type);
         this.context = config.context ?? null;
+        const hasGraphic = Boolean(this.getGraphicFile());
+        const enablePreviewPlacement = Boolean(config.enablePreviewPlacement);
+        this.enablePreviewPlacement = enablePreviewPlacement;
+        const suppressPreview = hasGraphic && !enablePreviewPlacement;
+
         const hasExplicitBorderColor = config.borderColor !== undefined && config.borderColor !== null;
         const borderPlayerColor = config.borderPlayerColor !== undefined
             ? Boolean(config.borderPlayerColor)
@@ -75,7 +80,9 @@ export class BaseCrosshairShape {
         this.borderColor = borderPlayerColor
             ? getUserColor("#ffffff")
             : (config.borderColor ?? DEFAULT_AUTOREC_ENTRY.borderColor);
-        this.borderAlpha = config.borderAlpha ?? DEFAULT_AUTOREC_ENTRY.borderAlpha;
+        this.borderAlpha = suppressPreview
+            ? 0
+            : (config.borderAlpha ?? DEFAULT_AUTOREC_ENTRY.borderAlpha);
         const hasExplicitFillColor = config.fillColor !== undefined && config.fillColor !== null;
         const fillPlayerColor = config.fillPlayerColor !== undefined
             ? Boolean(config.fillPlayerColor)
@@ -84,7 +91,9 @@ export class BaseCrosshairShape {
         this.fillColor = fillPlayerColor
             ? getUserColor("#000000")
             : (config.fillColor ?? DEFAULT_AUTOREC_ENTRY.fillColor);
-        this.fillAlpha = config.fillAlpha ?? DEFAULT_AUTOREC_ENTRY.fillAlpha;
+        this.fillAlpha = suppressPreview
+            ? 0
+            : (config.fillAlpha ?? DEFAULT_AUTOREC_ENTRY.fillAlpha);
         this.showLine = config.showLine !== false;
         this._rawLineFile = config.lineFile ?? "eskie.crosshair.line.generic_01.white";
         this.showItemIcon = config.showItemIcon !== false;
@@ -367,11 +376,15 @@ export class BaseCrosshairShape {
      * @returns {Promise<Array>} A promise resolving to an array `[Sequence, targets]`
      */
     async create() {
+        const hasGraphic = Boolean(this.getGraphicFile());
+        const previewBorderAlpha = (hasGraphic && !this.enablePreviewPlacement) ? 0 : this.borderAlpha;
+        const previewFillAlpha = (hasGraphic && !this.enablePreviewPlacement) ? 0 : this.fillAlpha;
+
         const crosshairSeq = new Sequence()
             .crosshair("position")
                 .type(this.type)
-                .borderColor(this.borderColor, { alpha: this.borderAlpha })
-                .fillColor(this.fillColor, { alpha: this.fillAlpha });
+                .borderColor(this.borderColor, { alpha: previewBorderAlpha })
+                .fillColor(this.fillColor, { alpha: previewFillAlpha });
 
         if (Number.isFinite(this.direction)) {
             crosshairSeq.direction?.(this.direction);

@@ -1106,15 +1106,14 @@ test('rotateCrosshairInstance synchronizes crosshair.document.direction, ray, an
     assert.equal(refreshed, true, 'refresh() must be called for detached ray');
 });
 
-test('BaseCrosshairShape defaults border and fill alpha to DEFAULT_AUTOREC_ENTRY values', async () => {
-    const { DEFAULT_AUTOREC_ENTRY } = await import('../../src/autorec/autorecManager.js');
+test('BaseCrosshairShape suppresses geometric border and fill alpha when graphic animation is active and enablePreviewPlacement is false', async () => {
     const { RayCrosshairShape } = await import('../../src/crosshair/ray.js');
     const mockDocument = { x: 0, y: 0, direction: 0 };
     const mockPlaceable = { x: 0, y: 0, document: mockDocument };
     const shape = new RayCrosshairShape(mockPlaceable, { distance: 30, width: 5 });
 
-    assert.equal(shape.borderAlpha, DEFAULT_AUTOREC_ENTRY.borderAlpha);
-    assert.equal(shape.fillAlpha, DEFAULT_AUTOREC_ENTRY.fillAlpha);
+    assert.equal(shape.borderAlpha, 0, 'borderAlpha must be 0 when graphic is active and preview placement is not enabled');
+    assert.equal(shape.fillAlpha, 0, 'fillAlpha must be 0 when graphic is active and preview placement is not enabled');
 
     let passedBorderOpts = null;
     let passedFillOpts = null;
@@ -1136,8 +1135,8 @@ test('BaseCrosshairShape defaults border and fill alpha to DEFAULT_AUTOREC_ENTRY
         };
 
         await shape.create();
-        assert.equal(passedBorderOpts?.alpha, DEFAULT_AUTOREC_ENTRY.borderAlpha, 'Sequencer borderColor alpha must default to DEFAULT_AUTOREC_ENTRY.borderAlpha');
-        assert.equal(passedFillOpts?.alpha, DEFAULT_AUTOREC_ENTRY.fillAlpha, 'Sequencer fillColor alpha must default to DEFAULT_AUTOREC_ENTRY.fillAlpha');
+        assert.equal(passedBorderOpts?.alpha, 0, 'Sequencer borderColor alpha must be 0');
+        assert.equal(passedFillOpts?.alpha, 0, 'Sequencer fillColor alpha must be 0');
     } finally {
         globalThis.Sequence = origSeq;
     }
