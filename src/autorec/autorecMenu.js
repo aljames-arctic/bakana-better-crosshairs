@@ -132,7 +132,7 @@ export class AutorecMenuApplication extends BaseCrosshairMenuApplication {
             placedSectionDesc: localize("BBC.autorecMenu.labels.placedSectionDesc", `Configures the fill color, border color, and alpha opacities of the final placed ${docTerm} document on the canvas.`),
             placedFill: localize("BBC.autorecMenu.labels.placedFill", "Placed Fill Styling"),
             placedBorder: localize("BBC.autorecMenu.labels.placedBorder", "Placed Border Styling"),
-            usePlayerColor: localize("BBC.autorecMenu.labels.usePlayerColor", "Use Player Color"),
+            usePlayerColor: localize("BBC.autorecMenu.labels.usePlayerColor", "Player Color"),
             persistEffect: localize("BBC.autorecMenu.labels.persistEffect", "Persistent Animation"),
             defaultPlacementNote: localize("BBC.autorecMenu.labels.defaultPlacementNote", "Using default Foundry / Game System placement colors (Enable Edit Mode to customize)."),
             postSectionDesc: localize("BBC.autorecMenu.labels.postSectionDesc", `Executes custom Javascript code after final ${docTerm} document creation.`),

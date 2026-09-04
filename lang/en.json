@@ -151,7 +151,7 @@
                 "placedSectionDesc": "Configures the fill color, border color, and alpha opacities of the final placed document on the canvas.",
                 "placedFill": "Placed Fill Styling",
                 "placedBorder": "Placed Border Styling",
-                "usePlayerColor": "Use Player Color",
+                "usePlayerColor": "Player Color",
                 "persistEffect": "Persistent Animation",
                 "defaultPlacementNote": "Using default Foundry / Game System placement colors (Enable Edit Mode to customize).",
                 "postSectionDesc": "Executes custom Javascript code after final document creation.",

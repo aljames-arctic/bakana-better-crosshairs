@@ -364,7 +364,7 @@ export class ItemCrosshairConfigApplication extends BaseCrosshairMenuApplication
             fillStyling: localize("BBC.autorecMenu.labels.fillStyling", "Fill Styling (Tile Highlight)"),
             placedFill: localize("BBC.autorecMenu.labels.placedFill", "Placed Fill Color"),
             placedBorder: localize("BBC.autorecMenu.labels.placedBorder", "Placed Border Color"),
-            usePlayerColor: localize("BBC.autorecMenu.labels.usePlayerColor", "Use Player Color"),
+            usePlayerColor: localize("BBC.autorecMenu.labels.usePlayerColor", "Player Color"),
             persistEffect: localize("BBC.autorecMenu.labels.persistEffect", "Persistent Animation"),
             alphaLabel: localize("BBC.autorecMenu.labels.alpha", "Alpha:"),
             workflowDetails: localize("BBC.autorecMenu.sections.workflowDetails", "Workflow Details"),
