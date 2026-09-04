@@ -89,7 +89,7 @@ export class ModuleAutorecManager {
             if (isConflict) {
                 const actLabel = actName !== "" ? actName : (actId !== "" ? actId : "default");
                 const warnMsg = `An overwrite attempt on (${itemName} / ${actLabel} / ${existingModule}) was attempted by ${this.moduleId}.`;
-                globalThis.ui?.notifications?.warn?.(warnMsg);
+                ui?.notifications?.warn?.(warnMsg);
                 log.warn(`ModuleAutorecManager[${this.moduleId}].register | ${warnMsg}`);
                 rejected.push({
                     itemName,

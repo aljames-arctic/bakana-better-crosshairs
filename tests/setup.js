@@ -6,6 +6,21 @@
 globalThis.Token = class Token {};
 globalThis.Item = class Item {};
 globalThis.Actor = class Actor {};
+globalThis.PreciseText = undefined;
+globalThis.PIXI = {
+    Rectangle: class Rectangle {
+        constructor(x = 0, y = 0, width = 0, height = 0) {
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
+            this.left = x;
+            this.top = y;
+            this.right = x + width;
+            this.bottom = y + height;
+        }
+    }
+};
 globalThis.window = {
     addEventListener() {},
     removeEventListener() {},

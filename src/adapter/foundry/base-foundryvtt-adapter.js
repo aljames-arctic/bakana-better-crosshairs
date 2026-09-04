@@ -37,7 +37,7 @@ export class BaseFoundryVTTAdapter {
      * @type {typeof foundry.canvas.placeables.Token}
      */
     get Token() {
-        return foundry?.canvas?.placeables?.Token ?? globalThis.Token;
+        return foundry?.canvas?.placeables?.Token ?? Token;
     }
 
     /**
@@ -68,7 +68,7 @@ export class BaseFoundryVTTAdapter {
      * Reference to Foundry's canvas PreciseText container or PIXI.Text.
      */
     get PreciseText() {
-        return foundry?.canvas?.containers?.PreciseText ?? globalThis.PreciseText ?? globalThis.PIXI?.Text;
+        return foundry?.canvas?.containers?.PreciseText ?? PreciseText ?? PIXI?.Text;
     }
 
     /**

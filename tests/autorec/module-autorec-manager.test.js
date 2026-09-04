@@ -237,6 +237,7 @@ test('Cross-module overwrite attempts on items/activities are rejected with noti
     const moduleBeta = autorecManager('module-beta');
 
     let capturedWarnMessage = null;
+    const origUi = globalThis.ui;
     globalThis.ui = {
         notifications: {
             warn(msg) {
@@ -296,7 +297,7 @@ test('Cross-module overwrite attempts on items/activities are rejected with noti
 
     // Clean up
     await moduleAlpha.unregister(['Fireball | Cast Spell'], { local: true });
-    delete globalThis.ui;
+    globalThis.ui = origUi;
 });
 
 test('Package import (.import) does NOT throw overwrite warning notification when user reviews/modifies entries', async () => {
@@ -309,6 +310,7 @@ test('Package import (.import) does NOT throw overwrite warning notification whe
     ], { persist: false });
 
     let capturedWarnMessage = null;
+    const origUi = globalThis.ui;
     globalThis.ui = {
         notifications: {
             warn(msg) {
@@ -340,5 +342,5 @@ test('Package import (.import) does NOT throw overwrite warning notification whe
     assert.equal(imported.sourceModule, 'pack-b');
 
     await importerModule.unregister(['Shield of Faith'], { local: true });
-    delete globalThis.ui;
+    globalThis.ui = origUi;
 });

@@ -11,7 +11,7 @@ import { localize } from './utils.js';
  * @returns {string} The best-fit path in the Sequencer database.
  */
 function bestFit(modulePrefix, ...categories) {
-    if (!globalThis.Sequencer?.Database) {
+    if (!Sequencer?.Database) {
         return `${modulePrefix}.${categories.join('.')}`;
     }
     let diverged = false;
@@ -133,7 +133,7 @@ export function closest(path) {
 export function absolutePath(configPath) {
     if (typeof configPath !== 'string' || !configPath.trim()) return undefined;
     const resolvedConfig = closest(configPath);
-    if (!resolvedConfig || !globalThis.Sequencer?.Database) return resolvedConfig;
+    if (!resolvedConfig || !Sequencer?.Database) return resolvedConfig;
     try {
         const entry = Sequencer.Database.getEntry(resolvedConfig, { softFail: true });
         if (entry?.file) return entry.file;

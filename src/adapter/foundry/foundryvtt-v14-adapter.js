@@ -1289,8 +1289,8 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         const w = maxX - minX;
         const h = maxY - minY;
 
-        if (globalThis.PIXI?.Rectangle) {
-            return new globalThis.PIXI.Rectangle(minX, minY, w, h);
+        if (PIXI?.Rectangle) {
+            return new PIXI.Rectangle(minX, minY, w, h);
         }
 
         return {
@@ -1433,8 +1433,8 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 const y0 = Math.min(bounds.y, pb.y);
                 const x1 = Math.max(bounds.x + bounds.width, pb.x + pb.width);
                 const y1 = Math.max(bounds.y + bounds.height, pb.y + pb.height);
-                bounds = globalThis.PIXI?.Rectangle
-                    ? new globalThis.PIXI.Rectangle(x0, y0, x1 - x0, y1 - y0)
+                bounds = PIXI?.Rectangle
+                    ? new PIXI.Rectangle(x0, y0, x1 - x0, y1 - y0)
                     : {
                         x: x0,
                         y: y0,

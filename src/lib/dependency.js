@@ -20,18 +20,17 @@ function _isAscending(min, version, max) {
 }
 
 /**
- * Retrieves the dependency entity from game modules or global scope.
+ * Retrieves the dependency entity from game modules or Foundry game instance.
  * @param {object} dependency - The dependency object to look up.
  * @param {string} dependency.id - The identifier of the dependency.
- * @returns {object|undefined} The module, global entity, or game object if found.
+ * @returns {object|undefined} The module or game object if found.
  * @private
  */
 function _getEntity(dependency) {
     const depId = dependency?.id;
     if (!depId) return undefined;
     if (depId === "foundry") return game;
-    const mod = game?.modules?.get(depId);
-    return mod ?? globalThis[depId];
+    return game?.modules?.get(depId);
 }
 
 /**
