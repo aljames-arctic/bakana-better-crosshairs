@@ -2,6 +2,7 @@ import { BaseFoundryVTTAdapter } from "./base-foundryvtt-adapter.js";
 import { systemAdapter } from "../system/index.js";
 import { log } from "../../lib/logger.js";
 import { localize } from "../../lib/utils.js";
+import { activePlacementTracker } from "../../crosshair/util.js";
 
 /**
  * Adapter subclass encapsulating Foundry VTT v13 MeasuredTemplate placement behavior.
@@ -138,12 +139,15 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
     }
 
     /**
-     * Detect shape type and geometric dimensions from a MeasuredTemplate document.
+     * Detect shape type and geometric dimensions from a MeasuredTemplate document in V13.
      * @param {Document} doc - MeasuredTemplate document
-     * @returns {{type: string, distance: number, radius: number, width: number, angle: number, x: number, y: number}} Detected shape properties and dimensions
+     * @returns {{type: string, distance: number, radius: number, width: number, angle: number, direction: number, rotation: number, x: number, y: number, elevation: number}} Detected shape properties and dimensions
      */
     detectProperties(doc) {
         const targetDoc = doc?.document ?? doc;
+        if (!targetDoc) {
+            return { type: "circle", t: "circle", distance: 0, radius: 0, width: 5, angle: 360, direction: 0, rotation: 0, x: 0, y: 0, elevation: 0 };
+        }
         const shapeMap = {
             circle: "circle",
             cone: "cone",
@@ -151,7 +155,7 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             rect: "square"
         };
         let distance = targetDoc.distance ?? 0;
-        const width = targetDoc.width ?? 0;
+        const width = targetDoc.width ?? 5;
         if (targetDoc.t === "rect" && width > 0 && distance > width) {
             const isSquareDiagonal = distance <= width * 1.6;
             distance = isSquareDiagonal ? width : Math.round(Math.sqrt(Math.max(0, distance * distance - width * width)));
@@ -169,10 +173,12 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             distance,
             radius: distance,
             width,
-            angle: targetDoc.angle ?? 0,
+            angle: targetDoc.angle ?? (targetDoc.t === "cone" ? 53.13 : 360),
             direction: rawDir,
+            rotation: rawDir,
             x: targetDoc.x ?? 0,
-            y: targetDoc.y ?? 0
+            y: targetDoc.y ?? 0,
+            elevation: targetDoc.elevation ?? 0
         };
     }
 
@@ -182,7 +188,7 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
      * @param {number} y - Destination y-coordinate
      * @param {number} direction - Direction angle in degrees
      * @param {Object} [config={}] - Optional sequence placement configuration
-     * @returns {{x: number, y: number, direction: number, distance: number|undefined, width: number|undefined}} Formatted placement coordinates payload
+     * @returns {{x: number, y: number, direction: number, rotation: number, distance: number|undefined, radius: number|undefined, width: number|undefined, sticky: boolean, type: string, originalType: string|undefined, t: string}} Formatted placement coordinates payload
      */
     formatPlacementCoordinates(x, y, direction, config = {}) {
         const shapeTypeMap = {
@@ -197,8 +203,9 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         const isSquareOrRect = resolvedT === "rect";
         const stickVal = config.stickToToken ?? config.sticky;
         const isSticky = Boolean(stickVal && stickVal !== "none" && stickVal !== "false" && config.token);
+        const primaryDim = config.distance ?? config.radius;
 
-        let finalDirection = direction ?? 0;
+        let finalDirection = Number.isFinite(direction) ? (((direction % 360) + 360) % 360) : 0;
         if (isSquareOrRect) {
             const rawDist = config.distance ?? config.radius;
             let distFoot = rawDist;
@@ -213,10 +220,12 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         }
 
         return {
-            x,
-            y,
+            x: Math.round(x),
+            y: Math.round(y),
             direction: finalDirection,
-            distance: config.distance,
+            rotation: finalDirection,
+            distance: config.distance ?? primaryDim,
+            radius: config.radius ?? primaryDim,
             width: config.width,
             angle: config.angle,
             sticky: isSticky,
@@ -250,12 +259,13 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
     /**
      * Update live canvas preview shape coordinates during mouse drag.
      * @param {Document} previewDoc - Preview MeasuredTemplate document
-     * @param {{x?: number, y?: number, direction?: number, distance?: number, width?: number, type?: string, originalType?: string, t?: string}} coords - Destination preview coordinates
+     * @param {{x?: number, y?: number, direction?: number, distance?: number, width?: number, angle?: number, type?: string, originalType?: string, t?: string, sticky?: boolean, token?: Token}} coords - Destination preview coordinates
      * @returns {void}
      */
     updatePreviewShape(previewDoc, coords) {
         if (!previewDoc || !coords) return;
         const targetDoc = previewDoc.document ?? previewDoc;
+        const tmpl = previewDoc._object ?? (previewDoc.document ? previewDoc : null);
         const isRect = targetDoc.t === "rect" || coords.type === "square" || coords.type === "rect" || coords.originalType === "square" || coords.t === "rect";
         const pxPerFoot = this.pixelsPerDistance;
         let distFoot = coords.distance ?? coords.radius;
@@ -293,35 +303,50 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
                 width: w,
                 direction: diagAngle
             };
-            if (targetX !== undefined) updateObj.x = targetX;
-            if (targetY !== undefined) updateObj.y = targetY;
+            if (targetX !== undefined) {
+                targetDoc.x = targetX;
+                updateObj.x = targetX;
+            }
+            if (targetY !== undefined) {
+                targetDoc.y = targetY;
+                updateObj.y = targetY;
+            }
 
             if (targetDoc.updateSource) {
                 try { targetDoc.updateSource(updateObj); } catch (e) { Object.assign(targetDoc, updateObj); }
             } else {
                 Object.assign(targetDoc, updateObj);
             }
+
+            if (tmpl) {
+                try { tmpl.position?.set?.(targetDoc.x, targetDoc.y); } catch (e) {}
+                try { tmpl.x = targetDoc.x; tmpl.y = targetDoc.y; } catch (e) {}
+                tmpl.direction = diagAngle;
+                this._safeSetRenderFlags(tmpl, { refreshPosition: true, refreshShape: true });
+                tmpl.applyRenderFlags?.();
+            }
         } else {
             const updateObj = {};
             if (coords.x !== undefined) {
-                targetDoc.x = coords.x;
-                updateObj.x = coords.x;
+                targetDoc.x = Math.round(coords.x);
+                updateObj.x = Math.round(coords.x);
             }
             if (coords.y !== undefined) {
-                targetDoc.y = coords.y;
-                updateObj.y = coords.y;
+                targetDoc.y = Math.round(coords.y);
+                updateObj.y = Math.round(coords.y);
             }
             if (coords.direction !== undefined) {
-                targetDoc.direction = coords.direction;
-                updateObj.direction = coords.direction;
+                const normDir = ((coords.direction % 360) + 360) % 360;
+                targetDoc.direction = normDir;
+                updateObj.direction = normDir;
             }
             if (coords.t !== undefined) {
                 targetDoc.t = coords.t;
                 updateObj.t = coords.t;
             }
             if (coords.distance !== undefined) {
-                targetDoc.distance = coords.distance;
-                updateObj.distance = coords.distance;
+                targetDoc.distance = Math.max(0, coords.distance);
+                updateObj.distance = Math.max(0, coords.distance);
             }
             if (coords.angle !== undefined) {
                 targetDoc.angle = coords.angle;
@@ -337,14 +362,23 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             } else {
                 Object.assign(targetDoc, updateObj);
             }
+
+            if (tmpl) {
+                try { tmpl.position?.set?.(targetDoc.x, targetDoc.y); } catch (e) {}
+                try { tmpl.x = targetDoc.x; tmpl.y = targetDoc.y; } catch (e) {}
+                if (coords.direction !== undefined) tmpl.direction = targetDoc.direction;
+                this._safeSetRenderFlags(tmpl, { refreshPosition: true, refreshShape: true });
+                tmpl.applyRenderFlags?.();
+            }
         }
     }
 
     /**
-     * Apply resolved placement coordinates and workflow flags onto a MeasuredTemplate document.
+     * Apply resolved placement coordinates and workflow flags onto a MeasuredTemplate document in V13.
      * @param {Document} doc - MeasuredTemplate document
      * @param {Object} [coords={}] - Resolved placement coordinates
      * @param {Object} [config={}] - Workflow placement configuration
+     * @param {Object|null} [data=null] - Document update payload
      * @returns {void}
      */
     applyDocumentPlacement(doc, coords = {}, config = {}, data = null) {
@@ -379,8 +413,8 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             }
 
             updateData.t = "rect";
-            if (targetX !== undefined) updateData.x = targetX;
-            if (targetY !== undefined) updateData.y = targetY;
+            if (targetX !== undefined) updateData.x = Math.round(targetX);
+            if (targetY !== undefined) updateData.y = Math.round(targetY);
             const w = coords.width ?? config.width ?? distFoot ?? 20;
             const h = distFoot ?? config.distance ?? config.radius ?? w;
             const diagDist = Math.round(Math.hypot(w, h) * 100) / 100;
@@ -389,10 +423,10 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             updateData.width = w;
             updateData.direction = diagAngle;
         } else {
-            if (coords.x !== undefined) updateData.x = coords.x;
-            if (coords.y !== undefined) updateData.y = coords.y;
-            if (coords.direction !== undefined) updateData.direction = coords.direction;
-            else if (coords.rotation !== undefined) updateData.direction = coords.rotation;
+            if (coords.x !== undefined) updateData.x = Math.round(coords.x);
+            if (coords.y !== undefined) updateData.y = Math.round(coords.y);
+            if (coords.direction !== undefined) updateData.direction = ((coords.direction % 360) + 360) % 360;
+            else if (coords.rotation !== undefined) updateData.direction = ((coords.rotation % 360) + 360) % 360;
             if (coords.t !== undefined) updateData.t = coords.t;
             else if (config.t !== undefined) updateData.t = config.t;
             if (coords.distance !== undefined) updateData.distance = coords.distance;
@@ -420,18 +454,24 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
 
     /**
      * Resume deferred MeasuredTemplate creation in V13 when an interactive Sequencer placement resolves.
-     * @param {Scene} scene - Target Canvas Scene
-     * @param {Object} deferredData - Initial raw document creation data (`doc.toObject()`)
-     * @param {Object} coords - Resolved placement coordinates from Sequencer (`{ x, y, direction, distance, ... }`)
-     * @returns {Promise<void>} Resolves when deferred document creation completes
+     * @param {Object} data - Initial raw document creation data (`doc.toObject()`)
+     * @param {string} [documentName] - Explicit document type name
+     * @returns {string} Always "MeasuredTemplate" in V13
      */
     _getDeferredDocumentName(data, documentName) {
         return "MeasuredTemplate";
     }
 
+    /**
+     * Protected helper to apply resolved placement coordinates onto deferred creation data in V13.
+     * @param {Object} data - Target document data payload
+     * @param {Object} coords - Placement coordinates
+     * @param {string} docName - Document type name
+     * @protected
+     */
     _applyDeferredCoordinates(data, coords, docName) {
-        if (coords.x !== undefined) data.x = coords.x;
-        if (coords.y !== undefined) data.y = coords.y;
+        if (coords.x !== undefined) data.x = Math.round(coords.x);
+        if (coords.y !== undefined) data.y = Math.round(coords.y);
         const isRect = data.t === "rect" || coords.type === "square" || coords.type === "rect" || coords.originalType === "square" || coords.t === "rect";
         if (isRect) {
             data.t = "rect";
@@ -448,8 +488,8 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             data.width = w;
             data.direction = Math.atan2(h, w) * (180 / Math.PI);
         } else {
-            if (coords.direction !== undefined) data.direction = coords.direction;
-            else if (coords.rotation !== undefined) data.direction = coords.rotation;
+            if (coords.direction !== undefined) data.direction = ((coords.direction % 360) + 360) % 360;
+            else if (coords.rotation !== undefined) data.direction = ((coords.rotation % 360) + 360) % 360;
             if (coords.distance !== undefined) data.distance = coords.distance;
             else if (coords.radius !== undefined) data.distance = coords.radius;
             if (coords.t !== undefined) data.t = coords.t;
@@ -459,101 +499,296 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
     }
 
     /**
-     * Refresh the rendering and grid highlights of a preview MeasuredTemplate.
+     * Refresh the rendering and grid highlights of a preview MeasuredTemplate in V13.
      * Prevents the native template borders/shapes from flashing visible on rendering cycles.
      * @param {PlaceableObject} tmpl - The preview MeasuredTemplate
      * @param {number} direction - The current direction in degrees
      * @returns {void}
      */
     refreshTemplateHighlights(tmpl, direction) {
-        if (!tmpl) return;
+        if (!tmpl || tmpl._bbcRefreshingHighlights) return;
+        tmpl._bbcRefreshingHighlights = true;
 
-        const doc = tmpl.document;
-        const isRect = doc?.t === "rect" || tmpl.t === "rect";
-        let effectiveDirection = direction;
+        try {
+            const doc = tmpl.document;
+            const isRect = doc?.t === "rect" || tmpl.t === "rect";
+            const normDir = Number.isFinite(direction) ? (((direction % 360) + 360) % 360) : (doc?.direction ?? tmpl?.direction ?? 0);
+            let effectiveDirection = normDir;
 
-        if (isRect) {
             const w = doc?.width ?? 20;
             let distFoot = doc?.distance ?? w;
-            if (w > 0 && distFoot > w) {
+            if (isRect && w > 0 && distFoot > w) {
                 const isSquareDiagonal = distFoot <= w * 1.6;
                 distFoot = isSquareDiagonal ? w : Math.round(Math.sqrt(Math.max(0, distFoot * distFoot - w * w)));
             }
             const h = distFoot ?? w;
-            effectiveDirection = Math.atan2(h, w) * (180 / Math.PI);
-            if (doc) {
-                doc.distance = Math.round(Math.hypot(w, h) * 100) / 100;
-                doc.width = w;
-            }
-        }
 
-        const rad = effectiveDirection * (Math.PI / 180);
-        tmpl.direction = effectiveDirection;
-
-        const targetX = doc?.x ?? tmpl.x;
-        const targetY = doc?.y ?? tmpl.y;
-
-        if (doc) {
-            doc.direction = effectiveDirection;
-            doc.rotation = effectiveDirection;
-            const updateData = { direction: effectiveDirection, rotation: effectiveDirection };
             if (isRect) {
-                updateData.distance = doc.distance;
-                updateData.width = doc.width;
+                effectiveDirection = Math.atan2(h, w) * (180 / Math.PI);
+                if (doc) {
+                    doc.distance = Math.round(Math.hypot(w, h) * 100) / 100;
+                    doc.width = w;
+                }
             }
-            if (targetX !== undefined) updateData.x = targetX;
-            if (targetY !== undefined) updateData.y = targetY;
-            if (doc?.updateSource) {
-                doc.updateSource(updateData);
-            } else {
-                Object.assign(doc, updateData);
+
+            const rad = effectiveDirection * (Math.PI / 180);
+            tmpl.direction = effectiveDirection;
+
+            const shape = tmpl.crosshair?.shapeInstance ?? activePlacementTracker.crosshair?.shapeInstance;
+            let targetX = shape?.x ?? doc?.x ?? tmpl.x;
+            let targetY = shape?.y ?? doc?.y ?? tmpl.y;
+
+            const isAttached = Boolean(shape?.stickToToken && shape?.token);
+            if (isAttached && shape.token) {
+                if (shape.type === "circle") {
+                    const center = shape.token.center ?? { x: shape.token.x ?? 0, y: shape.token.y ?? 0 };
+                    targetX = center.x;
+                    targetY = center.y;
+                } else {
+                    const mousePos = (this.mousePosition && Number.isFinite(this.mousePosition.x))
+                        ? this.mousePosition
+                        : { x: shape.cursorX ?? shape.x, y: shape.cursorY ?? shape.y };
+                    const anchored = this.resolveAnchorPlacement(shape.token, mousePos);
+                    targetX = anchored.x;
+                    targetY = anchored.y;
+                }
             }
-            if (doc.shape?.clear) doc.shape.clear();
-        }
-        if (targetX !== undefined) {
-            try { tmpl.x = targetX; } catch (e) {}
-        }
-        if (targetY !== undefined) {
-            try { tmpl.y = targetY; } catch (e) {}
-        }
-        tmpl.rotation = rad;
 
-        const ox = targetX ?? tmpl.ray?.origin?.x ?? tmpl.x ?? 0;
-        const oy = targetY ?? tmpl.ray?.origin?.y ?? tmpl.y ?? 0;
-        const pxPerFoot = this.pixelsPerDistance;
-        const dist = isRect && doc?.distance ? doc.distance * pxPerFoot : (tmpl.ray?.distance ?? ((doc?.distance ?? 30) * pxPerFoot));
-        const newRay = this.createRayFromAngle(ox, oy, rad, dist);
-        if (newRay) tmpl.ray = newRay;
-
-        try {
-            delete tmpl._shape;
-            tmpl._shape = null;
-            if (tmpl._computeShape) {
-                tmpl.shape = tmpl._computeShape();
+            if (doc) {
+                doc.direction = effectiveDirection;
+                doc.rotation = effectiveDirection;
+                if (targetX !== undefined) doc.x = targetX;
+                if (targetY !== undefined) doc.y = targetY;
+                const updateData = { direction: effectiveDirection, rotation: effectiveDirection };
+                if (isRect) {
+                    updateData.distance = doc.distance;
+                    updateData.width = doc.width;
+                }
+                if (targetX !== undefined) updateData.x = targetX;
+                if (targetY !== undefined) updateData.y = targetY;
+                if (doc.updateSource) {
+                    try { doc.updateSource(updateData); } catch (e) { Object.assign(doc, updateData); }
+                } else {
+                    Object.assign(doc, updateData);
+                }
+                if (doc.shape?.clear) doc.shape.clear();
             }
-        } catch (e) {}
+            if (targetX !== undefined) {
+                try { tmpl.x = targetX; } catch (e) {}
+                try { tmpl.position?.set?.(targetX, targetY); } catch (e) {}
+            }
+            if (targetY !== undefined) {
+                try { tmpl.y = targetY; } catch (e) {}
+            }
+            tmpl.rotation = rad;
 
-        try { tmpl._refreshPosition?.(); } catch (e) {}
-        try { tmpl._refreshShape?.(); } catch (e) {}
-        try { tmpl._refreshTemplate?.(); } catch (e) {}
-        try { tmpl.ruler?._refreshRulerText?.(); } catch (e) {}
+            const ox = targetX ?? tmpl.ray?.origin?.x ?? tmpl.x ?? 0;
+            const oy = targetY ?? tmpl.ray?.origin?.y ?? tmpl.y ?? 0;
+            const pxPerFoot = this.pixelsPerDistance;
+            const dist = isRect && doc?.distance ? doc.distance * pxPerFoot : (tmpl.ray?.distance ?? ((doc?.distance ?? 30) * pxPerFoot));
+            const newRay = this.createRayFromAngle(ox, oy, rad, dist);
+            if (newRay) tmpl.ray = newRay;
 
-        this._safeSetRenderFlags(tmpl, {
-            refreshTemplate: true,
-            refreshShape: true,
-            refreshGrid: true,
-            refreshState: true,
-            refresh: true
-        });
-        tmpl.applyRenderFlags?.();
-        tmpl.highlightGrid?.();
-        const hId = tmpl.highlightId ?? tmpl.objectId ?? `Template.${doc?.id ?? "preview"}`;
-        tmpl._bbcHighlightId = hId;
-        const hl = this.getHighlightLayer(hId);
-        if (hl) {
-            hl.visible = true;
-            hl.renderable = true;
+            try {
+                delete tmpl._shape;
+                tmpl._shape = null;
+                if (tmpl._computeShape) {
+                    tmpl.shape = tmpl._computeShape();
+                }
+            } catch (e) {}
+
+            try { tmpl._refreshPosition?.(); } catch (e) {}
+            try { tmpl._refreshShape?.(); } catch (e) {}
+            try { tmpl._refreshTemplate?.(); } catch (e) {}
+            try { tmpl.ruler?._refreshRulerText?.(); } catch (e) {}
+
+            const hId = tmpl.highlightId ?? tmpl.objectId ?? `Template.${doc?.id ?? "preview"}`;
+            tmpl._bbcHighlightId = hId;
+            this.addHighlightLayer(hId);
+
+            this._safeSetRenderFlags(tmpl, {
+                refreshTemplate: true,
+                refreshShape: true,
+                refreshGrid: true,
+                refreshState: true,
+                refresh: true
+            });
+            tmpl.applyRenderFlags?.();
+            tmpl.highlightGrid?.();
+
+            const hl = this.getHighlightLayer(hId);
+            if (hl) {
+                hl.visible = true;
+                hl.renderable = true;
+            }
+        } finally {
+            tmpl._bbcRefreshingHighlights = false;
         }
+    }
+
+    /**
+     * Wrap the preview placeable's highlightGrid and _highlightGrid methods in V13 to synchronize
+     * coordinates, rotation, and geometry with the active crosshair shape instance before calculating grid highlights.
+     * Ensures document.x, document.y, and shape match the active token anchor point or free cursor before V13 grid tile testing.
+     * @override
+     * @param {PlaceableObject} placeable - Preview placeable
+     * @returns {void}
+     */
+    _wrapHighlightGrid(placeable) {
+        if (!placeable || placeable._bbcHighlightGridWrapped) return;
+        placeable._bbcHighlightGridWrapped = true;
+
+        const self = this;
+        const wrapMethod = (fnName) => {
+            if (placeable[fnName]) {
+                const orig = placeable[fnName];
+                placeable[fnName] = function (...args) {
+                    if (this._bbcWrappingMethod) {
+                        return orig.apply(this, args);
+                    }
+                    this._bbcWrappingMethod = true;
+                    try {
+                        const shape = this.crosshair?.shapeInstance ?? activePlacementTracker.crosshair?.shapeInstance;
+                        const isRect = this.document?.t === "rect" || this.t === "rect";
+
+                        const shapeDir = shape?.direction
+                            ?? this.crosshair?.direction
+                            ?? activePlacementTracker.crosshair?.direction
+                            ?? activePlacementTracker.config?.currentDirection
+                            ?? activePlacementTracker.config?.direction;
+                        const normDir = Number.isFinite(shapeDir) ? (((shapeDir % 360) + 360) % 360) : undefined;
+
+                        if (shape) {
+                            let targetX = shape.x;
+                            let targetY = shape.y;
+                            let effectiveDir = normDir ?? this.direction ?? this.document?.direction ?? 0;
+
+                            const isAttached = Boolean(shape.stickToToken && shape.token);
+                            if (isAttached && shape.token) {
+                                if (shape.type === "circle") {
+                                    const center = shape.token.center ?? { x: shape.token.x ?? 0, y: shape.token.y ?? 0 };
+                                    targetX = center.x;
+                                    targetY = center.y;
+                                    effectiveDir = 0;
+                                } else {
+                                    const mousePos = (self.mousePosition && Number.isFinite(self.mousePosition.x))
+                                        ? self.mousePosition
+                                        : { x: shape.cursorX ?? shape.x, y: shape.cursorY ?? shape.y };
+                                    const anchored = self.resolveAnchorPlacement(shape.token, mousePos);
+                                    targetX = anchored.x;
+                                    targetY = anchored.y;
+                                    effectiveDir = anchored.direction;
+                                }
+                            }
+
+                            if (isRect) {
+                                const w = this.document?.width ?? shape.config?.width ?? 20;
+                                let distFoot = this.document?.distance ?? shape.config?.distance ?? w;
+                                if (w > 0 && distFoot > w) {
+                                    const isSquareDiagonal = distFoot <= w * 1.6;
+                                    distFoot = isSquareDiagonal ? w : Math.round(Math.sqrt(Math.max(0, distFoot * distFoot - w * w)));
+                                }
+                                const h = distFoot ?? w;
+                                effectiveDir = Math.atan2(h, w) * (180 / Math.PI);
+                                if (this.document) {
+                                    this.document.distance = Math.round(Math.hypot(w, h) * 100) / 100;
+                                    this.document.width = w;
+                                }
+                            }
+
+                            if (this.document) {
+                                const updateData = {};
+                                if (targetX !== undefined) {
+                                    this.document.x = targetX;
+                                    updateData.x = targetX;
+                                }
+                                if (targetY !== undefined) {
+                                    this.document.y = targetY;
+                                    updateData.y = targetY;
+                                }
+                                if (effectiveDir !== undefined) {
+                                    this.document.direction = effectiveDir;
+                                    this.document.rotation = effectiveDir;
+                                    updateData.direction = effectiveDir;
+                                    updateData.rotation = effectiveDir;
+                                }
+                                if (isRect) {
+                                    updateData.distance = this.document.distance;
+                                    updateData.width = this.document.width;
+                                }
+                                if (this.document.updateSource) {
+                                    try { this.document.updateSource(updateData); } catch (e) { Object.assign(this.document, updateData); }
+                                } else {
+                                    Object.assign(this.document, updateData);
+                                }
+                            }
+                            if (targetX !== undefined) {
+                                try { this.x = targetX; } catch (e) {}
+                                try { this.position?.set?.(targetX, targetY); } catch (e) {}
+                            }
+                            if (targetY !== undefined) {
+                                try { this.y = targetY; } catch (e) {}
+                            }
+                            if (effectiveDir !== undefined) {
+                                try { this.direction = effectiveDir; } catch (e) {}
+                            }
+
+                            if (this.ray) {
+                                const rad = ((effectiveDir ?? 0) * Math.PI) / 180;
+                                const ox = targetX ?? this.x ?? 0;
+                                const oy = targetY ?? this.y ?? 0;
+                                const pxPerFoot = self.pixelsPerDistance;
+                                const dist = isRect && this.document?.distance
+                                    ? this.document.distance * pxPerFoot
+                                    : (this.ray.distance ?? 1000);
+                                const newRay = self.createRayFromAngle(ox, oy, rad, dist);
+                                if (newRay) this.ray = newRay;
+                            }
+
+                            try {
+                                delete this._shape;
+                                this._shape = null;
+                                if (this._computeShape) {
+                                    this.shape = this._computeShape();
+                                }
+                            } catch (e) {}
+
+                            try { this._refreshPosition?.(); } catch (e) {}
+                            try { this._refreshShape?.(); } catch (e) {}
+                            try { this._refreshTemplate?.(); } catch (e) {}
+                        }
+
+                        const hId = this.highlightId ?? this.objectId ?? (this.document?.id ? `Template.${this.document.id}` : "Template.preview");
+                        this._bbcHighlightId = hId;
+                        self.addHighlightLayer(hId);
+                        const hl = self.getHighlightLayer(hId);
+                        if (hl) {
+                            hl.visible = true;
+                            hl.renderable = true;
+                        }
+
+                        return orig.apply(this, args);
+                    } finally {
+                        this._bbcWrappingMethod = false;
+                    }
+                };
+            }
+        };
+
+        wrapMethod("highlightGrid");
+        wrapMethod("_highlightGrid");
+        wrapMethod("_refreshGrid");
+    }
+
+    /**
+     * Handle document post-creation hook for V13 (createMeasuredTemplate).
+     * @param {Document} doc - MeasuredTemplate document that was created
+     * @param {Object} _options - Document creation options
+     * @param {string} userId - ID of the user creating the document
+     * @returns {Promise<void>} Resolves when post-placement execution completes
+     */
+    async handleCreateDocument(doc, _options, userId) {
+        await super.handleCreateDocument(doc, _options, userId);
     }
 
     _snapPoint(x, y, numMode) {
@@ -564,3 +799,4 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         return this.getCenterPoint({ x, y });
     }
 }
+

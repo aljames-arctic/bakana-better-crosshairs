@@ -129,6 +129,32 @@ export class BaseCrosshairShape {
         this.cursorY = Number(config.cursorY ?? this.y);
         this.direction = config.direction ?? 0;
 
+        if (this.stickToToken && this.token) {
+            if (this.type === "circle") {
+                const center = this.token.center ?? { x: this.token.x ?? 0, y: this.token.y ?? 0 };
+                this.x = center.x;
+                this.y = center.y;
+                this.direction = 0;
+            } else {
+                const anchored = crosshairAdapter.resolveAnchorPlacement(this.token, { x: this.cursorX, y: this.cursorY });
+                this.x = anchored.x;
+                this.y = anchored.y;
+                if (anchored.direction !== undefined) {
+                    this.direction = anchored.direction;
+                }
+            }
+            if (doc) {
+                doc.x = this.x;
+                doc.y = this.y;
+                doc.direction = this.direction;
+            }
+            if (placeable) {
+                try { placeable.x = this.x; } catch (e) {}
+                try { placeable.y = this.y; } catch (e) {}
+                try { placeable.direction = this.direction; } catch (e) {}
+            }
+        }
+
         // Normalize boolean flags on config for clean direct boolean evaluation
         config.token = this.token;
         config.stickToToken = Boolean(this.stickToToken);
@@ -473,6 +499,35 @@ export class BaseCrosshairShape {
         }
         if ((this.type === "rect" || this.type === "square") && !this.stickToToken && !this.token && crosshair?.pivot?.set) {
             crosshair.pivot.set(0, 0);
+        }
+        if (this.stickToToken && this.token) {
+            if (this.type === "circle") {
+                const center = this.token.center ?? { x: this.token.x ?? 0, y: this.token.y ?? 0 };
+                this.x = center.x;
+                this.y = center.y;
+                this.direction = 0;
+            } else {
+                const mousePos = (crosshairAdapter.mousePosition && Number.isFinite(crosshairAdapter.mousePosition.x))
+                    ? crosshairAdapter.mousePosition
+                    : { x: this.cursorX, y: this.cursorY };
+                const anchored = crosshairAdapter.resolveAnchorPlacement(this.token, mousePos);
+                this.x = anchored.x;
+                this.y = anchored.y;
+                if (anchored.direction !== undefined) {
+                    this.direction = anchored.direction;
+                }
+            }
+            if (this.doc) {
+                this.doc.x = this.x;
+                this.doc.y = this.y;
+                this.doc.direction = this.direction;
+            }
+            if (this.placeable) {
+                try { this.placeable.x = this.x; } catch (e) {}
+                try { this.placeable.y = this.y; } catch (e) {}
+                try { this.placeable.direction = this.direction; } catch (e) {}
+            }
+            this.refreshTemplateHighlights();
         }
         if (!this.config?.isRemote) {
             attachWheelRotation(this, this.config);
@@ -894,12 +949,12 @@ export class BaseCrosshairShape {
                 posX = this.x;
                 posY = this.y;
                 const mousePos = crosshairAdapter.mousePosition;
-                if (mousePos && Number.isFinite(mousePos.x) && Number.isFinite(mousePos.y)) {
+                if (mousePos && Number.isFinite(mousePos.x) && Number.isFinite(mousePos.y) && (mousePos.x !== posX || mousePos.y !== posY)) {
                     const dx = mousePos.x - posX;
                     const dy = mousePos.y - posY;
                     dir = (Math.atan2(dy, dx) * (180 / Math.PI) + 360) % 360;
                 } else {
-                    dir = this.direction;
+                    dir = this.config?.currentDirection ?? this.direction;
                 }
             }
         } else if (this.sequencerCrosshair && Number.isFinite(this.sequencerCrosshair.x) && Number.isFinite(this.sequencerCrosshair.y)) {

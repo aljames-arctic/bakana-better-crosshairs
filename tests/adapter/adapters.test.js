@@ -3769,3 +3769,163 @@ test('Foundry adapter encapsulates randomID, fromUuidSync, lineSegmentIntersecti
         else delete globalThis.PreciseText;
     }
 });
+
+test('FoundryVTTV13Adapter._wrapHighlightGrid synchronizes document.x, document.y, and direction with token anchor before highlightGrid runs', () => {
+    const adapterV13 = new FoundryVTTV13Adapter();
+    let highlightGridRan = false;
+
+    const mockToken = {
+        id: 'tok-highlight-test',
+        x: 100,
+        y: 100,
+        w: 100,
+        h: 100,
+        center: { x: 150, y: 150 }
+    };
+
+    const mockDoc = {
+        x: 500, // Stale initial mouse position
+        y: 500,
+        direction: 0,
+        distance: 30,
+        angle: 53.13,
+        t: 'cone',
+        updateSource(data) { Object.assign(this, data); }
+    };
+
+    const mockPlaceable = {
+        document: mockDoc,
+        x: 500,
+        y: 500,
+        direction: 0,
+        crosshair: null,
+        highlightGrid() {
+            highlightGridRan = true;
+        }
+    };
+
+    const shape = {
+        type: 'cone',
+        stickToToken: true,
+        token: mockToken,
+        cursorX: 50,
+        cursorY: 150,
+        x: 100,
+        y: 150,
+        direction: 180,
+        config: { stickToToken: true }
+    };
+    mockPlaceable.crosshair = { shapeInstance: shape };
+
+    adapterV13._wrapHighlightGrid(mockPlaceable);
+    mockPlaceable.highlightGrid();
+
+    assert.ok(highlightGridRan, 'highlightGrid must run');
+    assert.equal(mockDoc.x, 100, 'document.x must be synchronized to token edge (100) before highlightGrid runs, not stale mouse (500)');
+    assert.equal(mockDoc.y, 150, 'document.y must be synchronized to token edge (150)');
+    assert.equal(mockDoc.direction, 180, 'document.direction must be synchronized to anchor direction (180)');
+});
+
+test('FoundryVTTV13Adapter attached cone placement and highlight flow matches token edge anchor', async () => {
+    game.version = '13.0.0';
+    initializeFoundryAdapter();
+
+    const { ConeCrosshairShape } = await import('../../src/crosshair/cone.js');
+
+    const mockToken = {
+        id: 'tok-cone-v13',
+        x: 200,
+        y: 200,
+        w: 100,
+        h: 100,
+        center: { x: 250, y: 250 }
+    };
+
+    const mockDocument = {
+        t: 'cone',
+        x: 600, // initial click
+        y: 600,
+        distance: 30,
+        angle: 53.13,
+        direction: 0,
+        updateSource(data) { Object.assign(this, data); }
+    };
+
+    const mockPlaceable = {
+        document: mockDocument,
+        x: 600,
+        y: 600,
+        direction: 0,
+        highlightGrid() {}
+    };
+
+    const config = {
+        type: 'cone',
+        stickToToken: true,
+        token: mockToken,
+        distance: 30,
+        angle: 53.13
+    };
+
+    const coneShape = new ConeCrosshairShape(mockPlaceable, config);
+    // Move mouse to west (50, 250) -> token west edge is (200, 250)
+    coneShape.move(50, 250);
+
+    assert.equal(coneShape.x, 200, 'cone shape origin must be on token west edge');
+    assert.equal(coneShape.y, 250);
+    assert.equal(coneShape.direction, 180);
+
+    const placement = coneShape.getPlacementUpdates();
+    assert.equal(placement.x, 200, 'placement X must be token edge (200), not mouse position (50 or 600)');
+    assert.equal(placement.y, 250);
+    assert.equal(placement.direction, 180);
+    assert.equal(placement.t, 'cone');
+});
+
+test('FoundryVTTV13Adapter.refreshTemplateHighlights invalidates shape and render flags during wheel rotation without mouse move', () => {
+    const adapterV13 = new FoundryVTTV13Adapter();
+
+    let renderFlagsApplied = false;
+    let shapeComputed = false;
+    const renderFlagsSet = {};
+
+    const mockDoc = {
+        t: 'cone',
+        x: 300,
+        y: 300,
+        distance: 30,
+        angle: 53.13,
+        direction: 0,
+        updateSource(data) { Object.assign(this, data); }
+    };
+
+    const mockPlaceable = {
+        document: mockDoc,
+        x: 300,
+        y: 300,
+        direction: 0,
+        rotation: 0,
+        _shape: { some: 'cachedShape' },
+        _computeShape() {
+            shapeComputed = true;
+            return { recomputed: true };
+        },
+        renderFlags: {
+            set(flags) { Object.assign(renderFlagsSet, flags); }
+        },
+        applyRenderFlags() {
+            renderFlagsApplied = true;
+        },
+        highlightGrid() {}
+    };
+
+    adapterV13.refreshTemplateHighlights(mockPlaceable, 90);
+
+    assert.equal(mockPlaceable.direction, 90);
+    assert.equal(mockDoc.direction, 90);
+    assert.ok(shapeComputed, '_computeShape must be invoked to recalculate PIXI geometry');
+    assert.ok(renderFlagsApplied, 'applyRenderFlags must be called synchronously');
+    assert.ok(renderFlagsSet.refreshShape, 'refreshShape render flag must be set');
+    assert.ok(renderFlagsSet.refreshGrid, 'refreshGrid render flag must be set');
+});
+
