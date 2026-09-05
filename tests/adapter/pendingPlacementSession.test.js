@@ -106,3 +106,46 @@ test('PendingPlacementSession cancels placement and cleans up activePlacementTra
     assert.equal(activePlacementTracker.placeable, null);
     assert.equal(activePlacementTracker.crosshair, null);
 });
+
+test('PendingPlacementSession resolves and creates document via fallback timeout when preCreate never fired', async () => {
+    let createdDocData = null;
+    let dismissedPlaceable = null;
+    const mockAdapter = {
+        pendingPlacements: new Map(),
+        createDeferredDocument: async (scene, data, coords, docName, config) => {
+            createdDocData = { scene, data, coords, docName, config };
+        },
+        dismissPreview: (p) => {
+            dismissedPlaceable = p;
+        }
+    };
+
+    const placementKey = 'RayOfFrost_fallback_test';
+    const pendingData = {
+        itemName: 'RayOfFrost',
+        resolved: false,
+        cancelled: false,
+        deferredCreateData: null,
+        documentName: 'MeasuredTemplate',
+        config: { distance: 60 }
+    };
+    mockAdapter.pendingPlacements.set(placementKey, pendingData);
+
+    const mockPlaceable = { id: 'placeable-ray' };
+    const mockDoc = { id: 'doc-ray', documentName: 'MeasuredTemplate', t: 'ray', toObject: () => ({ t: 'ray', distance: 60 }) };
+
+    globalThis.canvas = { scene: { id: 'scene-1' } };
+
+    const session = new PendingPlacementSession(mockAdapter, placementKey, pendingData, mockDoc, mockPlaceable);
+    await session.resolve({ x: 500, y: 500, direction: 340 });
+
+    // Wait 60ms for the fallback timeout to execute
+    await new Promise(r => setTimeout(r, 60));
+
+    assert.ok(createdDocData, 'Document must be created by fallback timeout when native preCreate is bypassed');
+    assert.equal(createdDocData.coords.direction, 340);
+    assert.equal(createdDocData.coords.x, 500);
+    assert.equal(dismissedPlaceable, mockPlaceable);
+    assert.equal(mockAdapter.pendingPlacements.has(placementKey), false);
+});
+

@@ -960,7 +960,7 @@ export class BaseCrosshairShape {
         } else if (this.sequencerCrosshair && Number.isFinite(this.sequencerCrosshair.x) && Number.isFinite(this.sequencerCrosshair.y)) {
             posX = this.sequencerCrosshair.x;
             posY = this.sequencerCrosshair.y;
-            if (Number.isFinite(this.sequencerCrosshair.direction)) {
+            if (dir === undefined && Number.isFinite(this.sequencerCrosshair.direction)) {
                 dir = this.sequencerCrosshair.direction;
             }
         }

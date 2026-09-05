@@ -65,6 +65,26 @@ export class PendingPlacementSession {
                     placementKey: this.placementKey,
                     config: pendingItem.config
                 });
+
+                // Fallback: If native placement listeners (preCreate) did not fire within 50ms (e.g. zero-distance click without drag),
+                // programmatically create the deferred document from the initial preview document to ensure placement succeeds.
+                setTimeout(async () => {
+                    const stillPending = this.adapter.pendingPlacements.get(this.placementKey);
+                    if (stillPending && stillPending.resolved && !stillPending.cancelled && stillPending.coords) {
+                        this.adapter.pendingPlacements.delete(this.placementKey);
+                        const rawData = this.doc.toObject ? this.doc.toObject() : this.doc;
+                        await this.adapter.createDeferredDocument(
+                            scene,
+                            rawData,
+                            coords,
+                            this.doc.documentName,
+                            stillPending.config
+                        );
+                        if (this.placeable) {
+                            this.adapter.dismissPreview(this.placeable);
+                        }
+                    }
+                }, 50);
             }
         }
     }
