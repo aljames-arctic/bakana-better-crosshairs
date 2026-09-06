@@ -15,6 +15,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
         super();
         this.version = 14;
         this._patchDeprecations();
+        this._patchRefreshState();
     }
 
     /**
@@ -690,6 +691,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
      * @returns {void}
      */
     refreshTemplateHighlights(tmpl, direction) {
+        this._patchRefreshState();
         if (!tmpl || tmpl._bbcRefreshingHighlights) return;
         tmpl._bbcRefreshingHighlights = true;
 
@@ -1006,6 +1008,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
      * @returns {void}
      */
     _wrapHighlightGrid(placeable) {
+        this._patchRefreshState();
         if (!placeable || placeable._bbcHighlightGridWrapped) return;
         placeable._bbcHighlightGridWrapped = true;
 
@@ -1130,7 +1133,75 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
      */
     async handleDrawPreview(placeable) {
         this._patchDeprecations();
+        this._patchRefreshState();
         return super.handleDrawPreview(placeable);
+    }
+
+    /**
+     * Patch _refreshState across MeasuredTemplate, Region, and Sequencer CrosshairsPlaceable in V14+
+     * to prevent unhandled TypeError exceptions when the highlight layer or child visual containers
+     * (mesh, template, border, shape, controlIcon, ruler) are undefined or destroyed during ticker execution.
+     * @protected
+     * @returns {void}
+     */
+    _patchRefreshState() {
+        const classesToPatch = [
+            CONFIG?.MeasuredTemplate?.objectClass,
+            CONFIG?.Region?.objectClass,
+            Sequencer?.CrosshairsPlaceable
+        ].filter(cls => Boolean(cls?.prototype));
+
+        for (const cls of classesToPatch) {
+            if (cls.prototype._bbcRefreshStatePatched) continue;
+            cls.prototype._bbcRefreshStatePatched = true;
+
+            const orig = cls.prototype._refreshState;
+            cls.prototype._refreshState = function (...args) {
+                const gridApi = canvas?.interface?.grid ?? canvas?.grid;
+                if (gridApi?.getHighlightLayer && this.highlightId) {
+                    const hl = gridApi.getHighlightLayer(this.highlightId);
+                    if (!hl && gridApi.addHighlightLayer) {
+                        try { gridApi.addHighlightLayer(this.highlightId); } catch (e) {}
+                    }
+                }
+                const fallbackContainer = {
+                    position: { x: 0, y: 0, set: () => {} },
+                    visible: false,
+                    renderable: false,
+                    alpha: 0,
+                    worldAlpha: 0,
+                    zIndex: 0,
+                    text: "",
+                    destroy: () => {},
+                    render: () => {},
+                    _render: () => {},
+                    renderAdvanced: () => {}
+                };
+                if (!this.mesh && this.mesh !== null) {
+                    try { this.mesh = fallbackContainer; } catch (e) {}
+                }
+                if (!this.template && this.template !== null) {
+                    try { this.template = fallbackContainer; } catch (e) {}
+                }
+                if (!this.border && this.border !== null) {
+                    try { this.border = fallbackContainer; } catch (e) {}
+                }
+                if (!this.shape && this.shape !== null) {
+                    try { this.shape = fallbackContainer; } catch (e) {}
+                }
+                if (!this.controlIcon && this.controlIcon !== null) {
+                    try { this.controlIcon = fallbackContainer; } catch (e) {}
+                }
+                if (!this.ruler && this.ruler !== null) {
+                    try { this.ruler = fallbackContainer; } catch (e) {}
+                }
+                try {
+                    return orig?.apply(this, args);
+                } catch (e) {
+                    log.debug("FoundryVTTV14Adapter._patchRefreshState | Safely caught core highlightLayer or visual container exception during teardown/refresh:", e);
+                }
+            };
+        }
     }
 
     /**
@@ -1141,6 +1212,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
      * @returns {void}
      */
     _patchDeprecations() {
+        this._patchRefreshState();
         try {
             if (console.warn && !console.warn._bbcPatched) {
                 const origWarn = console.warn;

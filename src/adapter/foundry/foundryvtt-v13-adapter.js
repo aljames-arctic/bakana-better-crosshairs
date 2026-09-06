@@ -18,30 +18,69 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
     }
 
     /**
-     * Patch MeasuredTemplate.prototype._refreshState in V13 to prevent unhandled TypeError exceptions
-     * when the highlight layer is undefined or being destroyed during cancellation/dismissal.
+     * Patch _refreshState across MeasuredTemplate, Region, and Sequencer CrosshairsPlaceable in V13
+     * to prevent unhandled TypeError exceptions when the highlight layer or visual containers
+     * are undefined or being destroyed during cancellation/dismissal.
      * @returns {void}
      */
     _patchRefreshState() {
-        const cls = CONFIG?.MeasuredTemplate?.objectClass;
-        if (!cls?.prototype || cls.prototype._bbcRefreshStatePatched) return;
-        cls.prototype._bbcRefreshStatePatched = true;
+        const classesToPatch = [
+            CONFIG?.MeasuredTemplate?.objectClass,
+            CONFIG?.Region?.objectClass,
+            Sequencer?.CrosshairsPlaceable
+        ].filter(cls => Boolean(cls?.prototype));
 
-        const orig = cls.prototype._refreshState;
-        cls.prototype._refreshState = function (...args) {
-            const gridApi = canvas?.interface?.grid ?? canvas?.grid;
-            if (gridApi?.getHighlightLayer && this.highlightId) {
-                const hl = gridApi.getHighlightLayer(this.highlightId);
-                if (!hl && gridApi.addHighlightLayer) {
-                    try { gridApi.addHighlightLayer(this.highlightId); } catch (e) {}
+        for (const cls of classesToPatch) {
+            if (cls.prototype._bbcRefreshStatePatched) continue;
+            cls.prototype._bbcRefreshStatePatched = true;
+
+            const orig = cls.prototype._refreshState;
+            cls.prototype._refreshState = function (...args) {
+                const gridApi = canvas?.interface?.grid ?? canvas?.grid;
+                if (gridApi?.getHighlightLayer && this.highlightId) {
+                    const hl = gridApi.getHighlightLayer(this.highlightId);
+                    if (!hl && gridApi.addHighlightLayer) {
+                        try { gridApi.addHighlightLayer(this.highlightId); } catch (e) {}
+                    }
                 }
-            }
-            try {
-                return orig?.apply(this, args);
-            } catch (e) {
-                log.debug("FoundryVTTV13Adapter._patchRefreshState | Safely caught core highlightLayer exception during teardown:", e);
-            }
-        };
+                const fallbackContainer = {
+                    position: { x: 0, y: 0, set: () => {} },
+                    visible: false,
+                    renderable: false,
+                    alpha: 0,
+                    worldAlpha: 0,
+                    zIndex: 0,
+                    text: "",
+                    destroy: () => {},
+                    render: () => {},
+                    _render: () => {},
+                    renderAdvanced: () => {}
+                };
+                if (!this.mesh && this.mesh !== null) {
+                    try { this.mesh = fallbackContainer; } catch (e) {}
+                }
+                if (!this.template && this.template !== null) {
+                    try { this.template = fallbackContainer; } catch (e) {}
+                }
+                if (!this.border && this.border !== null) {
+                    try { this.border = fallbackContainer; } catch (e) {}
+                }
+                if (!this.shape && this.shape !== null) {
+                    try { this.shape = fallbackContainer; } catch (e) {}
+                }
+                if (!this.controlIcon && this.controlIcon !== null) {
+                    try { this.controlIcon = fallbackContainer; } catch (e) {}
+                }
+                if (!this.ruler && this.ruler !== null) {
+                    try { this.ruler = fallbackContainer; } catch (e) {}
+                }
+                try {
+                    return orig?.apply(this, args);
+                } catch (e) {
+                    log.debug("FoundryVTTV13Adapter._patchRefreshState | Safely caught core highlightLayer or visual container exception during teardown/refresh:", e);
+                }
+            };
+        }
     }
 
     /**

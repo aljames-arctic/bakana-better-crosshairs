@@ -782,6 +782,20 @@ export class BaseFoundryVTTAdapter {
             if (!obj || isSeqCrosshair(obj)) return;
             makeInvisible(obj, isRoot);
 
+            const dummyChildContainer = {
+                position: { x: 0, y: 0, set: () => {} },
+                visible: false,
+                renderable: false,
+                alpha: 0,
+                worldAlpha: 0,
+                zIndex: 0,
+                text: "",
+                destroy: () => {},
+                render: () => {},
+                _render: () => {},
+                renderAdvanced: () => {}
+            };
+
             const watchedProps = ["template", "border", "shape", "mesh", "ruler", "controlIcon"];
             for (const prop of watchedProps) {
                 let currentVal = obj[prop];
@@ -796,7 +810,7 @@ export class BaseFoundryVTTAdapter {
                     obj._bbcWatchedProperties.add(prop);
                     try {
                         Object.defineProperty(obj, prop, {
-                            get: () => currentVal,
+                            get: () => currentVal ?? dummyChildContainer,
                             set: (val) => {
                                 currentVal = val;
                                 if (val) {
@@ -1104,8 +1118,13 @@ export class BaseFoundryVTTAdapter {
             visible: false,
             renderable: false,
             alpha: 0,
+            worldAlpha: 0,
+            zIndex: 0,
             text: "",
-            destroy: () => {}
+            destroy: () => {},
+            render: () => {},
+            _render: () => {},
+            renderAdvanced: () => {}
         };
         try { placeable.controlIcon = dummyContainer; } catch (e) {}
         try { placeable.ruler = dummyContainer; } catch (e) {}

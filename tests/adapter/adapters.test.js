@@ -4058,5 +4058,108 @@ test('BaseFoundryVTTAdapter.dismissPreview cleans up highlights and placeable wi
     }
 });
 
+test('FoundryVTTV14Adapter._patchRefreshState safely protects MeasuredTemplate, Region, and CrosshairsPlaceable when zIndex or highlight layer is undefined', async () => {
+    class MockMeasuredTemplateV14 {
+        constructor() {
+            this.highlightId = 'Template.testV14_1';
+            this.visible = false;
+        }
+
+        _refreshState() {
+            // Emulate core Foundry V14 setting zIndex on highlight layer and visual containers
+            const highlightLayer = globalThis.canvas.interface.grid.getHighlightLayer(this.highlightId);
+            highlightLayer.zIndex = 10;
+            highlightLayer.visible = this.visible;
+            this.mesh.zIndex = 5;
+            this.template.zIndex = 4;
+            this.border.zIndex = 3;
+            this.shape.zIndex = 2;
+            this.controlIcon.zIndex = 1;
+            this.ruler.zIndex = 0;
+        }
+    }
+
+    class MockRegionV14 {
+        constructor() {
+            this.highlightId = 'Region.testV14_2';
+            this.visible = false;
+        }
+
+        _refreshState() {
+            const highlightLayer = globalThis.canvas.interface.grid.getHighlightLayer(this.highlightId);
+            highlightLayer.zIndex = 20;
+            highlightLayer.visible = this.visible;
+            this.shape.zIndex = 2;
+        }
+    }
+
+    class MockCrosshairsPlaceableV14 {
+        constructor() {
+            this.highlightId = 'Template.testCrosshairV14';
+            this.visible = false;
+        }
+
+        _refreshState() {
+            const highlightLayer = globalThis.canvas.interface.grid.getHighlightLayer(this.highlightId);
+            highlightLayer.zIndex = 15;
+            highlightLayer.visible = this.visible;
+            this.mesh.zIndex = 5;
+        }
+    }
+
+    globalThis.CONFIG.MeasuredTemplate = { objectClass: MockMeasuredTemplateV14 };
+    globalThis.CONFIG.Region = { objectClass: MockRegionV14 };
+    globalThis.Sequencer = globalThis.Sequencer ?? {};
+    globalThis.Sequencer.CrosshairsPlaceable = MockCrosshairsPlaceableV14;
+
+    const adapterV14 = new FoundryVTTV14Adapter();
+    adapterV14._patchRefreshState();
+
+    const tmpl = new MockMeasuredTemplateV14();
+    const region = new MockRegionV14();
+    const crosshair = new MockCrosshairsPlaceableV14();
+
+    assert.doesNotThrow(() => {
+        tmpl._refreshState();
+    }, 'V14 MeasuredTemplate._refreshState must not throw when zIndex or highlightLayer is set');
+
+    assert.doesNotThrow(() => {
+        region._refreshState();
+    }, 'V14 Region._refreshState must not throw when zIndex or highlightLayer is set');
+
+    assert.doesNotThrow(() => {
+        crosshair._refreshState();
+    }, 'V14 CrosshairsPlaceable._refreshState must not throw when zIndex or highlightLayer is set');
+});
+
+test('BaseFoundryVTTAdapter.hidePreview provides safe dummy containers with zIndex for undefined watched properties', () => {
+    const mockPlaceable = {
+        visible: true,
+        renderable: true,
+        // mesh, shape, border, template, controlIcon, ruler are all undefined initially
+    };
+
+    crosshairAdapter.hidePreview(mockPlaceable);
+
+    assert.ok(mockPlaceable.mesh, 'mesh property must return dummy child container when undefined');
+    assert.equal(mockPlaceable.mesh.zIndex, 0, 'dummy child container mesh must have zIndex 0');
+    assert.equal(mockPlaceable.template.zIndex, 0, 'dummy child container template must have zIndex 0');
+    assert.equal(mockPlaceable.border.zIndex, 0, 'dummy child container border must have zIndex 0');
+    assert.equal(mockPlaceable.shape.zIndex, 0, 'dummy child container shape must have zIndex 0');
+    assert.equal(mockPlaceable.controlIcon.zIndex, 0, 'dummy child container controlIcon must have zIndex 0');
+    assert.equal(mockPlaceable.ruler.zIndex, 0, 'dummy child container ruler must have zIndex 0');
+
+    // Setting zIndex on dummy containers must not throw
+    assert.doesNotThrow(() => {
+        mockPlaceable.mesh.zIndex = 10;
+        mockPlaceable.template.zIndex = 8;
+        mockPlaceable.border.zIndex = 6;
+        mockPlaceable.shape.zIndex = 4;
+        mockPlaceable.controlIcon.zIndex = 2;
+        mockPlaceable.ruler.zIndex = 1;
+    });
+});
+
+
 
 
