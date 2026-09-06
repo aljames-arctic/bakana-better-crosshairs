@@ -1147,12 +1147,34 @@ export class BaseFoundryVTTAdapter {
 
     /**
      * Determine if a placeable object on the canvas represents an unpersisted interactive preview (`MeasuredTemplate` or `Region`).
+     * Accurately supports Foundry V14 where client preview documents are instantiated with an ephemeral DataModel ID.
      * @param {PlaceableObject} placeable - Canvas placeable object
      * @returns {boolean} True if the placeable is a live preview graphic
      */
     isPreview(placeable) {
         if (!placeable) return false;
-        if (placeable.document?.id) return false;
+        if (placeable._bbcDismissed) return false;
+        if (placeable.isPreview === false) return false;
+
+        // Check if document is already persisted in the active scene collection
+        const doc = placeable.document ?? (placeable.documentName ? placeable : null);
+        const scene = canvas?.scene;
+        if (doc?.id && scene) {
+            const inTemplates = Boolean(scene.templates?.has?.(doc.id));
+            const inRegions = Boolean(scene.regions?.has?.(doc.id));
+            if (inTemplates || inRegions) {
+                return false;
+            }
+        }
+
+        if (placeable.isPreview === true || placeable._preview === true) return true;
+
+        if (placeable.layer?.preview?.children?.includes?.(placeable) ||
+            canvas?.templates?.preview?.children?.includes?.(placeable) ||
+            canvas?.regions?.preview?.children?.includes?.(placeable)) {
+            return true;
+        }
+
         return Boolean(placeable.isPreview ?? true);
     }
 

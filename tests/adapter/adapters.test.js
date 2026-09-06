@@ -504,18 +504,40 @@ test('hidePreview safely hides PIXI containers immediately, overrides render met
 });
 
 test('crosshairAdapter.isPreview reliably recognizes both Region and MeasuredTemplate unpersisted previews', () => {
-    const adapter = new FoundryVTTV14Adapter();
-    const mtPreview = { isPreview: true, document: { id: null } };
-    assert.equal(adapter.isPreview(mtPreview), true);
+    const origScene = globalThis.canvas?.scene;
+    try {
+        if (!globalThis.canvas) globalThis.canvas = {};
+        globalThis.canvas.scene = {
+            templates: new Map([['tmpl_persisted_123', {}]]),
+            regions: new Map([['reg_abc123', {}]])
+        };
 
-    const regionPreview = { document: { id: undefined } };
-    assert.equal(adapter.isPreview(regionPreview), true);
+        const adapter = new FoundryVTTV14Adapter();
+        const mtPreview = { isPreview: true, document: { id: null } };
+        assert.equal(adapter.isPreview(mtPreview), true);
 
-    const persistedRegion = { isPreview: false, document: { id: 'reg_abc123' } };
-    assert.equal(adapter.isPreview(persistedRegion), false);
+        // V14 preview with ephemeral generated document id (not in scene.templates)
+        const v14Preview = { document: { id: 'ephemeral_random_id' } };
+        assert.equal(adapter.isPreview(v14Preview), true);
 
-    const editedPersistedRegion = { isPreview: true, document: { id: 'reg_abc123' } };
-    assert.equal(adapter.isPreview(editedPersistedRegion), false);
+        const regionPreview = { document: { id: undefined } };
+        assert.equal(adapter.isPreview(regionPreview), true);
+
+        const persistedRegion = { isPreview: false, document: { id: 'reg_abc123' } };
+        assert.equal(adapter.isPreview(persistedRegion), false);
+
+        const editedPersistedRegion = { isPreview: true, document: { id: 'reg_abc123' } };
+        assert.equal(adapter.isPreview(editedPersistedRegion), false);
+
+        const persistedTemplate = { document: { id: 'tmpl_persisted_123' } };
+        assert.equal(adapter.isPreview(persistedTemplate), false);
+
+        const dismissedPreview = { _bbcDismissed: true, document: { id: 'ephemeral_123' } };
+        assert.equal(adapter.isPreview(dismissedPreview), false);
+    } finally {
+        if (origScene !== undefined) globalThis.canvas.scene = origScene;
+        else delete globalThis.canvas.scene;
+    }
 });
 
 test('FoundryVTTV14Adapter and Pf2eSystemAdapter handle Collection shapes via .contents and Region behaviors', () => {
