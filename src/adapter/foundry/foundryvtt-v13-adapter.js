@@ -556,10 +556,9 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
 
             if (doc) {
                 doc.direction = effectiveDirection;
-                doc.rotation = effectiveDirection;
                 if (targetX !== undefined) doc.x = targetX;
                 if (targetY !== undefined) doc.y = targetY;
-                const updateData = { direction: effectiveDirection, rotation: effectiveDirection };
+                const updateData = { direction: effectiveDirection };
                 if (isRect) {
                     updateData.distance = doc.distance;
                     updateData.width = doc.width;
@@ -716,9 +715,7 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
                                 }
                                 if (effectiveDir !== undefined) {
                                     this.document.direction = effectiveDir;
-                                    this.document.rotation = effectiveDir;
                                     updateData.direction = effectiveDir;
-                                    updateData.rotation = effectiveDir;
                                 }
                                 if (isRect) {
                                     updateData.distance = this.document.distance;

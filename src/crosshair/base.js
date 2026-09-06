@@ -850,14 +850,13 @@ export class BaseCrosshairShape {
         const doc = this.doc;
         if (doc) {
             doc.direction = newAngleDeg;
-            doc.rotation = newAngleDeg;
             try {
-                doc.updateSource?.({ direction: newAngleDeg, rotation: newAngleDeg });
+                doc.updateSource?.({ direction: newAngleDeg });
             } catch (e) {}
         }
         if (this.placeable) {
-            this.placeable.direction = newAngleDeg;
-            this.placeable.rotation = rad;
+            try { this.placeable.direction = newAngleDeg; } catch (e) {}
+            try { this.placeable.rotation = rad; } catch (e) {}
             const ox = this.placeable.x ?? this.x ?? 0;
             const oy = this.placeable.y ?? this.y ?? 0;
             const pxPerFoot = crosshairAdapter.pixelsPerDistance ?? 100;

@@ -1000,7 +1000,6 @@ test('Detached ray rotation updates Sequencer crosshair document direction, ray,
     assert.ok(mockSeqCrosshair.ray, 'Sequencer crosshair ray must be present');
     assert.equal(refreshed, true, 'Sequencer crosshair refresh() must be triggered');
     assert.equal(mockDocument.direction, 90, 'Preview document direction must update to 90');
-    assert.equal(mockDocument.rotation, 90, 'Preview document rotation must update to 90');
     assert.equal(mockPlaceable.direction, 90, 'Placeable direction must update to 90');
     assert.ok(Math.abs(mockPlaceable.rotation - (90 * Math.PI / 180)) < 1e-6, 'Placeable rotation must update to radians');
     assert.ok(mockPlaceable.ray, 'Placeable ray must be synchronized');
@@ -1015,7 +1014,6 @@ test('FoundryVTTV13Adapter.refreshTemplateHighlights synchronizes rotation, dire
         y: 200,
         distance: 30,
         direction: 0,
-        rotation: 0,
         updateSource(data) { Object.assign(this, data); }
     };
     const mockTmpl = {
@@ -1033,7 +1031,6 @@ test('FoundryVTTV13Adapter.refreshTemplateHighlights synchronizes rotation, dire
     assert.equal(mockTmpl.direction, 60, 'Template direction must update to 60');
     assert.ok(Math.abs(mockTmpl.rotation - (60 * Math.PI / 180)) < 1e-6, 'Template rotation must update to radians');
     assert.equal(mockDoc.direction, 60, 'Document direction must update to 60');
-    assert.equal(mockDoc.rotation, 60, 'Document rotation must update to 60');
     assert.ok(mockTmpl.ray, 'Template ray must be present');
 });
 
@@ -1473,6 +1470,35 @@ test('BaseCrosshairShape.playGraphicEffect attaches visual effect to crosshair c
         globalThis.Sequence = origSequence;
     }
 });
+
+test('REGRESSION: BaseCrosshairShape.rotate() does not throw when doc.rotation has only a getter (Foundry V13 MeasuredTemplateDocument)', async () => {
+    const { BaseCrosshairShape } = await import('../../src/crosshair/base.js');
+
+    let docDirection = 0;
+    const mockDoc = {
+        get direction() { return docDirection; },
+        set direction(val) { docDirection = val; },
+        get rotation() { return docDirection; }, // Getter-only!
+        updateSource(d) { if (d.direction !== undefined) docDirection = d.direction; }
+    };
+
+    const mockPlaceable = {
+        document: mockDoc,
+        x: 100,
+        y: 100,
+        direction: 0,
+        refresh() {}
+    };
+
+    const shape = new BaseCrosshairShape(mockPlaceable, { type: 'ray' });
+    assert.doesNotThrow(() => {
+        shape.rotate(45);
+    }, 'rotate must not throw TypeError when doc.rotation is a getter-only property');
+
+    assert.equal(shape.direction, 45);
+    assert.equal(mockDoc.direction, 45);
+});
+
 
 
 
