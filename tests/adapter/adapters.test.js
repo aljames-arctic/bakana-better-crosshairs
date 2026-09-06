@@ -450,10 +450,9 @@ test('hidePreview safely hides PIXI containers immediately, overrides render met
 
     crosshairAdapter.hidePreview(mockPlaceable);
 
-    assert.equal(mockPlaceable.visible, false);
-    assert.equal(mockPlaceable.renderable, false);
-    assert.equal(mockPlaceable.alpha, 0);
-    assert.equal(mockPlaceable.worldAlpha, 0);
+    assert.equal(mockPlaceable.visible, true, 'root placeable visible must be true so Foundry V13 highlightLayer.visible is not suppressed');
+    assert.equal(mockPlaceable.isVisible, true, 'root placeable isVisible must be true');
+    assert.equal(mockPlaceable.renderable, true);
     assert.equal(mockPlaceable.template.visible, false);
     assert.equal(mockPlaceable.template.alpha, 0);
     assert.equal(mockPlaceable.mesh.visible, false);
@@ -462,13 +461,17 @@ test('hidePreview safely hides PIXI containers immediately, overrides render met
     assert.equal(mockPlaceable.ruler.visible, false);
     assert.equal(mockPlaceable.controlIcon.visible, false);
 
-    // Verify getter locks prevent reassignment
-    mockPlaceable.visible = true;
-    mockPlaceable.alpha = 1;
-    mockPlaceable.worldAlpha = 1;
-    assert.equal(mockPlaceable.visible, false, 'visible getter must lock to false');
-    assert.equal(mockPlaceable.alpha, 0, 'alpha getter must lock to 0');
-    assert.equal(mockPlaceable.worldAlpha, 0, 'worldAlpha getter must lock to 0');
+    // Verify getter locks prevent reassignment to false on root placeable
+    mockPlaceable.visible = false;
+    assert.equal(mockPlaceable.visible, true, 'visible getter on root placeable must lock to true');
+
+    // Verify getter locks on child visual containers prevent reassignment to true
+    mockPlaceable.template.visible = true;
+    mockPlaceable.template.alpha = 1;
+    mockPlaceable.template.worldAlpha = 1;
+    assert.equal(mockPlaceable.template.visible, false, 'visible getter on child container must lock to false');
+    assert.equal(mockPlaceable.template.alpha, 0, 'alpha getter on child container must lock to 0');
+    assert.equal(mockPlaceable.template.worldAlpha, 0, 'worldAlpha getter on child container must lock to 0');
 
     // Verify render override produces zero PIXI draw execution
     let renderCalled = false;
@@ -490,13 +493,13 @@ test('hidePreview safely hides PIXI containers immediately, overrides render met
 
     // Simulate mouse move triggering refresh and _refresh
     mockPlaceable.refresh();
-    assert.equal(mockPlaceable.visible, false);
+    assert.equal(mockPlaceable.visible, true, 'root placeable visible must remain true after refresh');
     assert.equal(mockPlaceable.mesh.visible, false);
 
     if (mockPlaceable._refresh) {
         mockPlaceable._refresh();
     }
-    assert.equal(mockPlaceable.visible, false);
+    assert.equal(mockPlaceable.visible, true, 'root placeable visible must remain true after _refresh');
     assert.equal(mockPlaceable.shape.visible, false);
 });
 

@@ -338,6 +338,8 @@ export class BaseCrosshairShape {
 
             if (isCircleAttached) {
                 mainEffect.attachTo(this.token);
+            } else if (crosshair) {
+                mainEffect.attachTo(crosshair);
             } else {
                 mainEffect.atLocation(initLoc);
             }
@@ -362,6 +364,8 @@ export class BaseCrosshairShape {
 
             if (isCircleAttached) {
                 iconEffect.attachTo(this.token);
+            } else if (crosshair) {
+                iconEffect.attachTo(crosshair);
             } else {
                 iconEffect.atLocation(initLoc);
             }

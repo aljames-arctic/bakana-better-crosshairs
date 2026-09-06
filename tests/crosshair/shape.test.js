@@ -1399,4 +1399,80 @@ test('CrosshairRotationListener activeWheelHandler rotates shape and refreshes h
     assert.equal(listener.activeWheelHandler, null, 'activeWheelHandler must be detached');
 });
 
+test('CrosshairRotationListener.attach registers capture-phase pointerdown listener and triggers cancel on right-click (button 2)', async () => {
+    const { CrosshairRotationListener } = await import('../../src/crosshair/rotationListener.js');
+    const listener = new CrosshairRotationListener();
+
+    let cancelCalled = false;
+    let shapeCancelCalled = false;
+
+    const mockCrosshair = {
+        cancel() { cancelCalled = true; }
+    };
+
+    const mockShape = {
+        sequencerCrosshair: mockCrosshair,
+        rotate: () => {},
+        move: () => {},
+        onCancelCallback() { shapeCancelCalled = true; }
+    };
+
+    listener.attach(mockShape, {});
+
+    assert.ok(listener.activePointerDownHandler, 'activePointerDownHandler must be defined on attach');
+
+    // Left click (button 0) should NOT trigger cancel
+    listener.activePointerDownHandler({ button: 0 });
+    assert.equal(cancelCalled, false, 'Left click must not trigger cancellation');
+    assert.equal(shapeCancelCalled, false);
+
+    // Right click (button 2) MUST trigger cancellation
+    listener.activePointerDownHandler({ button: 2 });
+    assert.equal(cancelCalled, true, 'Right click must trigger crosshair.cancel()');
+    assert.equal(shapeCancelCalled, true, 'Right click must trigger shape.onCancelCallback()');
+
+    listener.detach();
+    assert.equal(listener.activePointerDownHandler, null, 'activePointerDownHandler must be cleared on detach');
+});
+
+test('BaseCrosshairShape.playGraphicEffect attaches visual effect to crosshair container when crosshair is provided', async () => {
+    const { BaseCrosshairShape } = await import('../../src/crosshair/base.js');
+
+    let attachedTarget = null;
+    class MockEffectBuilder {
+        name() { return this; }
+        file() { return this; }
+        attachTo(target) { attachedTarget = target; return this; }
+        atLocation() { return this; }
+        rotate() { return this; }
+        anchor() { return this; }
+        size() { return this; }
+        opacity() { return this; }
+        belowTokens() { return this; }
+        aboveLighting() { return this; }
+        locally() { return this; }
+        persist() { return this; }
+    }
+
+    const origSequence = globalThis.Sequence;
+    globalThis.Sequence = class {
+        wait() { return this; }
+        effect() { return new MockEffectBuilder(); }
+        play() { return Promise.resolve(); }
+    };
+
+    try {
+        const mockCrosshairContainer = { x: 200, y: 300 };
+        const shape = new BaseCrosshairShape(null, { file: 'test.animation.file' });
+        shape._getGraphicFile = () => 'test.animation.file';
+
+        await shape.playGraphicEffect(mockCrosshairContainer);
+
+        assert.equal(attachedTarget, mockCrosshairContainer, 'Effect must be attached to crosshair container so Sequencer moves it with cursor');
+    } finally {
+        globalThis.Sequence = origSequence;
+    }
+});
+
+
 

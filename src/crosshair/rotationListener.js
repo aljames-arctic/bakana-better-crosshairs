@@ -10,6 +10,7 @@ export class CrosshairRotationListener {
     constructor() {
         this.activeWheelHandler = null;
         this.activePointerHandler = null;
+        this.activePointerDownHandler = null;
         this.pendingPointerRaf = null;
     }
 
@@ -118,15 +119,14 @@ export class CrosshairRotationListener {
             crosshairAdapter.regions?.preview?.children,
             crosshairAdapter.regions?.placeables,
             crosshair?.template ? [crosshair.template] : null,
-            crosshair?.shapeInstance?.placeable ? [crosshair.shapeInstance.placeable] : null,
             activePlacementTracker.placeable ? [activePlacementTracker.placeable] : null
         ];
+
         for (const list of previewLists) {
             if (!list) continue;
-            for (const p of list) {
-                if (p && (crosshairAdapter.isPreview(p) || p === crosshair?.template || p === activePlacementTracker.placeable || p === crosshair?.shapeInstance?.placeable)) {
-                    this.refreshTemplateHighlights(p, currentDirection, rad, event);
-                }
+            for (const tmpl of list) {
+                if (!tmpl || !crosshairAdapter.isPreview(tmpl)) continue;
+                this.refreshTemplateHighlights(tmpl, currentDirection, rad, event);
             }
         }
     }
@@ -237,7 +237,11 @@ export class CrosshairRotationListener {
             window?.removeEventListener?.("pointermove", this.activePointerHandler, { capture: true });
             this.activePointerHandler = null;
         }
-        log.debug("CrosshairRotationListener.detach | Mousewheel & pointermove listeners removed.");
+        if (this.activePointerDownHandler) {
+            window?.removeEventListener?.("pointerdown", this.activePointerDownHandler, { capture: true });
+            this.activePointerDownHandler = null;
+        }
+        log.debug("CrosshairRotationListener.detach | Mousewheel, pointermove, & pointerdown listeners removed.");
     }
 
     /**
@@ -314,7 +318,22 @@ export class CrosshairRotationListener {
             });
         };
 
+        this.activePointerDownHandler = (event) => {
+            if (event.button === 2) {
+                log.debug("CrosshairRotationListener.attach | Right click cancel detected in capture phase.");
+                if (typeof crosshair?.cancel === "function") {
+                    try { crosshair.cancel(); } catch (e) {}
+                }
+                if (isShapeInstance && typeof shape.onCancelCallback === "function") {
+                    try { shape.onCancelCallback(); } catch (e) {}
+                } else if (typeof activePlacementTracker.crosshair?.cancel === "function") {
+                    try { activePlacementTracker.crosshair.cancel(); } catch (e) {}
+                }
+            }
+        };
+
         window?.addEventListener?.("pointermove", this.activePointerHandler, { capture: true, passive: true });
+        window?.addEventListener?.("pointerdown", this.activePointerDownHandler, { capture: true });
     }
 }
 
