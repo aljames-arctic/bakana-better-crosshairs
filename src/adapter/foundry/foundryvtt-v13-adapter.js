@@ -602,6 +602,10 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
             try { tmpl._refreshTemplate?.(); } catch (e) {}
             try { tmpl.ruler?._refreshRulerText?.(); } catch (e) {}
 
+            try {
+                Object.defineProperty(tmpl, "isVisible", { get: () => true, configurable: true });
+            } catch (e) {}
+
             const hId = tmpl.highlightId ?? tmpl.objectId ?? `Template.${doc?.id ?? "preview"}`;
             tmpl._bbcHighlightId = hId;
             this.addHighlightLayer(hId);
@@ -613,8 +617,8 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
                 refreshState: true,
                 refresh: true
             });
-            tmpl.applyRenderFlags?.();
-            tmpl.highlightGrid?.();
+            try { tmpl.applyRenderFlags?.(); } catch (e) {}
+            try { tmpl.highlightGrid?.(); } catch (e) {}
 
             const hl = this.getHighlightLayer(hId);
             if (hl) {
@@ -637,6 +641,10 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
     _wrapHighlightGrid(placeable) {
         if (!placeable || placeable._bbcHighlightGridWrapped) return;
         placeable._bbcHighlightGridWrapped = true;
+
+        try {
+            Object.defineProperty(placeable, "isVisible", { get: () => true, configurable: true });
+        } catch (e) {}
 
         const self = this;
         const wrapMethod = (fnName) => {

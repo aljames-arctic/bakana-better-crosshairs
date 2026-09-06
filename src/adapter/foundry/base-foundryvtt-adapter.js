@@ -449,6 +449,57 @@ export class BaseFoundryVTTAdapter {
     }
 
     /**
+     * Compute integer grid space coordinate offset range [i0, j0, i1, j1] enclosing a bounding rectangle.
+     * Fits against scene dimensions and falls back to manual grid dimension rounding.
+     * @param {Object} bounds - Bounding rectangle
+     * @returns {number[]} [i0, j0, i1, j1] Grid offset range
+     * @protected
+     */
+    _getGridOffsetRange(bounds) {
+        if (!canvas?.grid || !bounds) return [0, 0, 0, 0];
+
+        let targetBounds = bounds;
+        if (this.dimensionsRect && targetBounds.fit) {
+            try { targetBounds = targetBounds.fit(this.dimensionsRect); } catch (e) {}
+        }
+
+        const paddedBounds = targetBounds.pad
+            ? targetBounds.pad(1)
+            : {
+                x: targetBounds.x - 1,
+                y: targetBounds.y - 1,
+                width: targetBounds.width + 2,
+                height: targetBounds.height + 2,
+                left: (targetBounds.left ?? targetBounds.x) - 1,
+                top: (targetBounds.top ?? targetBounds.y) - 1,
+                right: (targetBounds.right ?? (targetBounds.x + targetBounds.width)) + 1,
+                bottom: (targetBounds.bottom ?? (targetBounds.y + targetBounds.height)) + 1
+            };
+
+        if (paddedBounds.left === undefined) paddedBounds.left = paddedBounds.x;
+        if (paddedBounds.top === undefined) paddedBounds.top = paddedBounds.y;
+        if (paddedBounds.right === undefined) paddedBounds.right = paddedBounds.x + paddedBounds.width;
+        if (paddedBounds.bottom === undefined) paddedBounds.bottom = paddedBounds.y + paddedBounds.height;
+
+        let i0 = 0, j0 = 0, i1 = 0, j1 = 0;
+        const res = this.getOffsetRange(paddedBounds);
+        if (res?.length >= 4) {
+            [i0, j0, i1, j1] = res;
+        }
+
+        if (!Number.isFinite(i0) || !Number.isFinite(j0) || !Number.isFinite(i1) || !Number.isFinite(j1)) {
+            const gx = this.gridSizeX;
+            const gy = this.gridSizeY;
+            i0 = Math.floor(paddedBounds.x / gx);
+            j0 = Math.floor(paddedBounds.y / gy);
+            i1 = Math.ceil((paddedBounds.x + paddedBounds.width) / gx);
+            j1 = Math.ceil((paddedBounds.y + paddedBounds.height) / gy);
+        }
+
+        return [i0, j0, i1, j1];
+    }
+
+    /**
      * Measures grid distance between two coordinate points across Foundry versions.
      * @param {{x: number, y: number}} origin - Origin point
      * @param {{x: number, y: number}} target - Target point

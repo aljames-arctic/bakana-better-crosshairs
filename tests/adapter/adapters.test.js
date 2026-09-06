@@ -3929,3 +3929,44 @@ test('FoundryVTTV13Adapter.refreshTemplateHighlights invalidates shape and rende
     assert.ok(renderFlagsSet.refreshGrid, 'refreshGrid render flag must be set');
 });
 
+test('FoundryVTTV13Adapter ensures isVisible returns true on preview MeasuredTemplates during highlighting even when visible is false', () => {
+    const adapterV13 = new FoundryVTTV13Adapter();
+
+    const mockPlaceable = {
+        visible: false,
+        document: {
+            t: 'circle',
+            x: 100,
+            y: 100,
+            distance: 20,
+            updateSource(data) { Object.assign(this, data); }
+        },
+        x: 100,
+        y: 100,
+        direction: 0,
+        highlightGrid() {}
+    };
+
+    adapterV13._wrapHighlightGrid(mockPlaceable);
+    assert.equal(mockPlaceable.isVisible, true, 'isVisible must return true on wrapped placeable to unblock native Foundry V13 highlightGrid');
+
+    const anotherPlaceable = {
+        visible: false,
+        document: {
+            t: 'circle',
+            x: 200,
+            y: 200,
+            distance: 15,
+            updateSource(data) { Object.assign(this, data); }
+        },
+        x: 200,
+        y: 200,
+        direction: 0,
+        highlightGrid() {}
+    };
+
+    adapterV13.refreshTemplateHighlights(anotherPlaceable, 0);
+    assert.equal(anotherPlaceable.isVisible, true, 'isVisible must return true after refreshTemplateHighlights runs');
+});
+
+
