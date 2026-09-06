@@ -278,8 +278,8 @@ export class CrosshairRotationListener {
                     shape.rotate(config.currentDirection);
                 } else {
                     alignCrosshairAndEffects(crosshair, config, rad);
+                    this.refreshAllActiveHighlights(config.currentDirection, rad, crosshair, event);
                 }
-                this.refreshAllActiveHighlights(config.currentDirection, rad, crosshair, event);
             };
             window?.addEventListener?.("wheel", this.activeWheelHandler, { capture: true, passive: false });
         } else {
@@ -297,10 +297,6 @@ export class CrosshairRotationListener {
                 }
                 if (isShapeInstance) {
                     if (pt) {
-                        if (isAttached && shape.token) {
-                            const anchored = crosshairAdapter.resolveAnchorPlacement(shape.token, pt);
-                            shape.rotate(anchored.direction, true);
-                        }
                         shape.move(pt.x, pt.y);
                     }
                 } else {

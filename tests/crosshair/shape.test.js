@@ -1432,15 +1432,16 @@ test('CrosshairRotationListener.attach registers capture-phase pointerdown liste
     assert.equal(listener.activePointerDownHandler, null, 'activePointerDownHandler must be cleared on detach');
 });
 
-test('BaseCrosshairShape.playGraphicEffect attaches visual effect to crosshair container when crosshair is provided', async () => {
+test('BaseCrosshairShape.playGraphicEffect places effect at initial location via atLocation for standalone crosshair', async () => {
     const { BaseCrosshairShape } = await import('../../src/crosshair/base.js');
 
     let attachedTarget = null;
+    let locationTarget = null;
     class MockEffectBuilder {
         name() { return this; }
         file() { return this; }
         attachTo(target) { attachedTarget = target; return this; }
-        atLocation() { return this; }
+        atLocation(target) { locationTarget = target; return this; }
         rotate() { return this; }
         anchor() { return this; }
         size() { return this; }
@@ -1460,12 +1461,13 @@ test('BaseCrosshairShape.playGraphicEffect attaches visual effect to crosshair c
 
     try {
         const mockCrosshairContainer = { x: 200, y: 300 };
-        const shape = new BaseCrosshairShape(null, { file: 'test.animation.file' });
+        const shape = new BaseCrosshairShape(null, { file: 'test.animation.file', x: 200, y: 300 });
         shape._getGraphicFile = () => 'test.animation.file';
 
         await shape.playGraphicEffect(mockCrosshairContainer);
 
-        assert.equal(attachedTarget, mockCrosshairContainer, 'Effect must be attached to crosshair container so Sequencer moves it with cursor');
+        assert.equal(attachedTarget, null, 'Standalone effects must not attachTo crosshair container to prevent double transforms and rotation speed duplication');
+        assert.deepEqual(locationTarget, { x: 200, y: 300 }, 'Effect must be placed at initial location');
     } finally {
         globalThis.Sequence = origSequence;
     }
@@ -1498,6 +1500,87 @@ test('REGRESSION: BaseCrosshairShape.rotate() does not throw when doc.rotation h
     assert.equal(shape.direction, 45);
     assert.equal(mockDoc.direction, 45);
 });
+
+test('REGRESSION: BaseCrosshairShape.rotate rotates Sequencer effect at 1:1 speed matching template direction', async () => {
+    const { BaseCrosshairShape } = await import('../../src/crosshair/base.js');
+
+    let updatedEffectRotation = null;
+    const mockEffect = {
+        name: 'Ray Crosshair',
+        container: { position: { set() {} }, rotation: 0 },
+        update(data) {
+            if (data.rotation !== undefined) updatedEffectRotation = data.rotation;
+        }
+    };
+
+    const origGetEffects = globalThis.Sequencer.EffectManager.getEffects;
+    try {
+        globalThis.Sequencer.EffectManager.getEffects = (query) => {
+            if (query.name === 'Ray Crosshair') return [mockEffect];
+            return [];
+        };
+
+        const mockPlaceable = {
+            document: { direction: 0, updateSource(d) { Object.assign(this, d); } },
+            x: 100,
+            y: 100,
+            direction: 0,
+            refresh() {}
+        };
+
+        const shape = new BaseCrosshairShape(mockPlaceable, { id: 'Ray Crosshair', type: 'ray' });
+        shape.rotate(90);
+
+        assert.equal(shape.direction, 90, 'Shape direction must be 90 degrees');
+        assert.equal(updatedEffectRotation, 90, 'Sequencer effect rotation must be 90 degrees (1:1 with template direction)');
+    } finally {
+        globalThis.Sequencer.EffectManager.getEffects = origGetEffects;
+    }
+});
+
+test('REGRESSION: Attached ray shape.move calculates anchor point and updates direction in a single fluid pass', async () => {
+    const { BaseCrosshairShape } = await import('../../src/crosshair/base.js');
+
+    const mockToken = {
+        x: 100,
+        y: 100,
+        w: 100,
+        h: 100,
+        center: { x: 150, y: 150 },
+        document: { x: 100, y: 100, width: 1, height: 1 }
+    };
+
+    const mockDoc = {
+        x: 150,
+        y: 150,
+        direction: 0,
+        updateSource(d) { Object.assign(this, d); }
+    };
+
+    const mockPlaceable = {
+        document: mockDoc,
+        x: 150,
+        y: 150,
+        direction: 0,
+        refresh() {}
+    };
+
+    const shape = new BaseCrosshairShape(mockPlaceable, {
+        id: 'Ray Crosshair',
+        type: 'ray',
+        token: mockToken,
+        stickToToken: true
+    });
+
+    // Move cursor to the right (x=300, y=150)
+    shape.move(300, 150);
+
+    // Right edge of a 100x100 token at (100, 100) is x=200, y=150, facing 0 degrees
+    assert.equal(shape.x, 200, 'Shape X must be anchored to right edge of token');
+    assert.equal(shape.y, 150, 'Shape Y must be anchored to right edge of token');
+    assert.equal(shape.direction, 0, 'Shape direction must point directly right (0 deg)');
+});
+
 
 
 
