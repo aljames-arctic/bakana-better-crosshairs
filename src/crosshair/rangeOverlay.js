@@ -72,14 +72,16 @@ export class CrosshairRangeOverlay {
             }
         }
 
-        this.textElement.text = labelStr;
-        this.textElement.visible = true;
-        if (this.textElement.parent !== shape.sequencerCrosshair) {
-            this.textElement.position?.set?.(target.x, target.y - 25);
-            try { this.textElement.rotation = 0; } catch (e) {}
-        } else {
-            this.textElement.position?.set?.(0, -25);
-            try { this.textElement.rotation = -(shape.sequencerCrosshair.rotation ?? 0); } catch (e) {}
+        if (this.textElement) {
+            this.textElement.text = labelStr;
+            this.textElement.visible = true;
+            if (this.textElement.parent !== shape.sequencerCrosshair) {
+                this.textElement.position?.set?.(target.x, target.y - 25);
+                try { this.textElement.rotation = 0; } catch (e) {}
+            } else {
+                this.textElement.position?.set?.(0, -25);
+                try { this.textElement.rotation = -(shape.sequencerCrosshair.rotation ?? 0); } catch (e) {}
+            }
         }
     }
 

@@ -321,13 +321,11 @@ export class CrosshairRotationListener {
         this.activePointerDownHandler = (event) => {
             if (event.button === 2) {
                 log.debug("CrosshairRotationListener.attach | Right click cancel detected in capture phase.");
-                if (typeof crosshair?.cancel === "function") {
-                    try { crosshair.cancel(); } catch (e) {}
-                }
-                if (isShapeInstance && typeof shape.onCancelCallback === "function") {
-                    try { shape.onCancelCallback(); } catch (e) {}
-                } else if (typeof activePlacementTracker.crosshair?.cancel === "function") {
-                    try { activePlacementTracker.crosshair.cancel(); } catch (e) {}
+                try { crosshair?.cancel?.(); } catch (e) {}
+                if (isShapeInstance) {
+                    try { shape?.onCancelCallback?.(); } catch (e) {}
+                } else {
+                    try { activePlacementTracker.crosshair?.cancel?.(); } catch (e) {}
                 }
             }
         };

@@ -14,6 +14,34 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
     constructor() {
         super();
         this.version = 13;
+        this._patchRefreshState();
+    }
+
+    /**
+     * Patch MeasuredTemplate.prototype._refreshState in V13 to prevent unhandled TypeError exceptions
+     * when the highlight layer is undefined or being destroyed during cancellation/dismissal.
+     * @returns {void}
+     */
+    _patchRefreshState() {
+        const cls = CONFIG?.MeasuredTemplate?.objectClass;
+        if (!cls?.prototype || cls.prototype._bbcRefreshStatePatched) return;
+        cls.prototype._bbcRefreshStatePatched = true;
+
+        const orig = cls.prototype._refreshState;
+        cls.prototype._refreshState = function (...args) {
+            const gridApi = canvas?.interface?.grid ?? canvas?.grid;
+            if (gridApi?.getHighlightLayer && this.highlightId) {
+                const hl = gridApi.getHighlightLayer(this.highlightId);
+                if (!hl && gridApi.addHighlightLayer) {
+                    try { gridApi.addHighlightLayer(this.highlightId); } catch (e) {}
+                }
+            }
+            try {
+                return orig?.apply(this, args);
+            } catch (e) {
+                log.debug("FoundryVTTV13Adapter._patchRefreshState | Safely caught core highlightLayer exception during teardown:", e);
+            }
+        };
     }
 
     /**
@@ -506,6 +534,7 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
      * @returns {void}
      */
     refreshTemplateHighlights(tmpl, direction) {
+        this._patchRefreshState();
         if (!tmpl || tmpl._bbcRefreshingHighlights) return;
         tmpl._bbcRefreshingHighlights = true;
 
@@ -638,6 +667,7 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
      * @returns {void}
      */
     _wrapHighlightGrid(placeable) {
+        this._patchRefreshState();
         if (!placeable || placeable._bbcHighlightGridWrapped) return;
         placeable._bbcHighlightGridWrapped = true;
 
@@ -783,6 +813,17 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         wrapMethod("highlightGrid");
         wrapMethod("_highlightGrid");
         wrapMethod("_refreshGrid");
+    }
+
+    /**
+     * Intercept preview drawing for MeasuredTemplate in V13.
+     * @override
+     * @param {PlaceableObject} placeable - Preview placeable
+     * @returns {Promise<void>}
+     */
+    async handleDrawPreview(placeable) {
+        this._patchRefreshState();
+        return super.handleDrawPreview(placeable);
     }
 
     /**

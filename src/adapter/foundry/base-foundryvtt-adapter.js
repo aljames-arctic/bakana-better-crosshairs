@@ -67,7 +67,8 @@ export class BaseFoundryVTTAdapter {
      * Reference to Foundry's canvas PreciseText container or PIXI.Text.
      */
     get PreciseText() {
-        return foundry?.canvas?.containers?.PreciseText ?? PreciseText ?? PIXI?.Text;
+        const globalPreciseText = typeof PreciseText !== "undefined" ? PreciseText : undefined;
+        return foundry?.canvas?.containers?.PreciseText ?? globalPreciseText ?? PIXI?.Text;
     }
 
     /**
@@ -1051,15 +1052,12 @@ export class BaseFoundryVTTAdapter {
         for (const hId of candidateIds) {
             if (hId !== primaryHId) {
                 this.clearHighlightLayer(hId);
-                this.destroyHighlightLayer(hId);
             }
         }
 
         const fallbackRegionId = Boolean(pId) ? `Region.${pId}` : "Region.preview";
         const finalId = primaryHId ?? (isRegion ? fallbackRegionId : (placeable.id ?? "preview"));
         this.clearHighlightLayer(finalId);
-        this.destroyHighlightLayer(finalId);
-
         this.clearRegionsHighlight();
 
         try { placeable.renderFlags?.clear?.(); } catch (e) {}
@@ -1093,6 +1091,13 @@ export class BaseFoundryVTTAdapter {
         try {
             placeable.destroy?.({ children: true });
         } catch (e) {}
+
+        for (const hId of candidateIds) {
+            if (hId !== primaryHId) {
+                this.destroyHighlightLayer(hId);
+            }
+        }
+        this.destroyHighlightLayer(finalId);
 
         const dummyContainer = {
             position: { x: 0, y: 0, set: () => {} },

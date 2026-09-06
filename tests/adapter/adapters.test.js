@@ -3972,4 +3972,91 @@ test('FoundryVTTV13Adapter ensures isVisible returns true on preview MeasuredTem
     assert.equal(anotherPlaceable.isVisible, true, 'isVisible must return true after refreshTemplateHighlights runs');
 });
 
+test('FoundryVTTV13Adapter._patchRefreshState safely protects MeasuredTemplate._refreshState when highlight layer is undefined', async () => {
+    class MockMeasuredTemplate {
+        constructor() {
+            this.highlightId = 'Template.test12345';
+            this.visible = false;
+        }
+
+        _refreshState() {
+            // Emulate core Foundry V13 MeasuredTemplate._refreshState
+            const highlightLayer = globalThis.canvas.interface.grid.getHighlightLayer(this.highlightId);
+            highlightLayer.visible = this.visible;
+        }
+    }
+
+    globalThis.CONFIG.MeasuredTemplate = {
+        objectClass: MockMeasuredTemplate
+    };
+
+    const adapterV13 = new FoundryVTTV13Adapter();
+    adapterV13._patchRefreshState();
+
+    const tmpl = new MockMeasuredTemplate();
+
+    // With canvas.interface.grid.getHighlightLayer returning undefined initially, _refreshState should not throw
+    assert.doesNotThrow(() => {
+        tmpl._refreshState();
+    }, 'Patched _refreshState must not throw Uncaught TypeError: Cannot set properties of undefined (setting visible)');
+});
+
+test('CrosshairRangeOverlay.update does not throw when textElement creation fails or is null', async () => {
+    const { CrosshairRangeOverlay } = await import('../../src/crosshair/rangeOverlay.js');
+    const mockShape = {
+        stickToToken: false,
+        token: { center: { x: 100, y: 100 } },
+        config: { showRange: true },
+        sequencerCrosshair: { x: 200, y: 200, parent: {} },
+        x: 200,
+        y: 200
+    };
+
+    const overlay = new CrosshairRangeOverlay(mockShape);
+    // When textElement is null, update should safely execute without throwing
+    assert.doesNotThrow(() => {
+        overlay.update();
+    });
+});
+
+test('BaseFoundryVTTAdapter.dismissPreview cleans up highlights and placeable without throwing when placeable triggers _refreshState', () => {
+    let clearedHighlight = null;
+    let destroyedHighlight = null;
+    let destroyedPlaceable = false;
+
+    const mockPlaceable = {
+        id: 'previewTmpl123',
+        highlightId: 'Template.previewTmpl123',
+        visible: true,
+        destroy() {
+            destroyedPlaceable = true;
+            // Simulate core placeable triggering _refreshState or accessing highlight layer on destroy
+            this._refreshState?.();
+        },
+        _refreshState() {
+            const hl = globalThis.canvas.interface.grid.getHighlightLayer(this.highlightId);
+            if (hl) hl.visible = this.visible;
+        }
+    };
+
+    const origClear = globalThis.canvas.interface.grid.clearHighlightLayer;
+    const origDestroy = globalThis.canvas.interface.grid.destroyHighlightLayer;
+    try {
+        globalThis.canvas.interface.grid.clearHighlightLayer = (id) => { clearedHighlight = id; };
+        globalThis.canvas.interface.grid.destroyHighlightLayer = (id) => { destroyedHighlight = id; };
+
+        assert.doesNotThrow(() => {
+            crosshairAdapter.dismissPreview(mockPlaceable);
+        });
+
+        assert.equal(destroyedPlaceable, true, 'Placeable must be destroyed');
+        assert.ok(clearedHighlight !== null, 'Highlight layer must be cleared');
+        assert.ok(destroyedHighlight !== null, 'Highlight layer must be destroyed');
+    } finally {
+        globalThis.canvas.interface.grid.clearHighlightLayer = origClear;
+        globalThis.canvas.interface.grid.destroyHighlightLayer = origDestroy;
+    }
+});
+
+
 
