@@ -39,7 +39,7 @@ export class PersistedAnimationManager {
             return;
         }
 
-        if (!Sequencer || !Sequence) {
+        if (!game?.modules?.get("sequencer")?.active) {
             log.debug("PersistedAnimationManager | Sequencer is not active, skipping persistent effect.");
             return;
         }
@@ -48,20 +48,22 @@ export class PersistedAnimationManager {
         this.endPersistedAnimation(docId);
 
         // Clean up any remaining interactive preview crosshair effects on canvas
-        if (Sequencer?.EffectManager?.endEffects) {
+        if (game?.modules?.get("sequencer")?.active) {
             try {
-                const previewIds = [
-                    "Crosshair",
-                    "Cone Crosshair",
-                    "Ray Crosshair",
-                    "Square Crosshair",
-                    "Circle Crosshair",
-                    bbcFlags.itemName,
-                    bbcFlags.id
-                ].filter(Boolean);
-                for (const name of new Set(previewIds)) {
-                    Sequencer.EffectManager.endEffects({ name });
-                    Sequencer.EffectManager.endEffects({ name: `${name}-line` });
+                if (Sequencer?.EffectManager?.endEffects) {
+                    const previewIds = [
+                        "Crosshair",
+                        "Cone Crosshair",
+                        "Ray Crosshair",
+                        "Square Crosshair",
+                        "Circle Crosshair",
+                        bbcFlags.itemName,
+                        bbcFlags.id
+                    ].filter(Boolean);
+                    for (const name of new Set(previewIds)) {
+                        Sequencer.EffectManager.endEffects({ name });
+                        Sequencer.EffectManager.endEffects({ name: `${name}-line` });
+                    }
                 }
             } catch (e) {
                 log.debug("PersistedAnimationManager.syncPersistedAnimation | Error ending preview effects:", e);
@@ -156,9 +158,11 @@ export class PersistedAnimationManager {
         if (!id) return;
         const effectName = this.getEffectName(id);
 
-        if (Sequencer?.EffectManager?.endEffects) {
+        if (game?.modules?.get("sequencer")?.active) {
             try {
-                Sequencer.EffectManager.endEffects({ name: effectName });
+                if (Sequencer?.EffectManager?.endEffects) {
+                    Sequencer.EffectManager.endEffects({ name: effectName });
+                }
             } catch (e) {
                 log.debug("PersistedAnimationManager.endPersistedAnimation | Error ending effect:", e);
             }

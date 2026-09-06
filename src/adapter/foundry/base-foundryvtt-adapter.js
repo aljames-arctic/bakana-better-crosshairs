@@ -1134,12 +1134,14 @@ export class BaseFoundryVTTAdapter {
         try { placeable.border = dummyContainer; } catch (e) {}
         try { if (!placeable.position) placeable.position = dummyContainer.position; } catch (e) {}
 
-        if (Sequencer?.EffectManager?.endEffects) {
+        if (game?.modules?.get("sequencer")?.active) {
             try {
-                const previewIds = ["Crosshair", "Cone Crosshair", "Ray Crosshair", "Square Crosshair", "Circle Crosshair"];
-                for (const name of previewIds) {
-                    Sequencer.EffectManager.endEffects({ name });
-                    Sequencer.EffectManager.endEffects({ name: `${name}-line` });
+                if (Sequencer?.EffectManager?.endEffects) {
+                    const previewIds = ["Crosshair", "Cone Crosshair", "Ray Crosshair", "Square Crosshair", "Circle Crosshair"];
+                    for (const name of previewIds) {
+                        Sequencer.EffectManager.endEffects({ name });
+                        Sequencer.EffectManager.endEffects({ name: `${name}-line` });
+                    }
                 }
             } catch (e) {}
         }

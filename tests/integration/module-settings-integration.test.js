@@ -88,7 +88,7 @@ test('setupModule initializes adapters, hooks, settings, and populates module.ap
 
     const mockModule = { id: MODULE_ID, active: true, version: '6.0.0', api: {} };
     const origGet = game.modules.get;
-    game.modules.get = (id) => (id === MODULE_ID ? mockModule : origGet(id));
+    game.modules.get = (id) => (id === MODULE_ID ? mockModule : origGet?.call(game.modules, id));
 
     setupModule();
 

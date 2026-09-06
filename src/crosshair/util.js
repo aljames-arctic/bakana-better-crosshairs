@@ -164,56 +164,58 @@ export function alignCrosshairAndEffects(crosshair, config = {}, rad = 0) {
 
     log.debug(`[Bakana Sequencer Effect Alignment] Config ID: "${effectId}" | Type: "${shapeType}" | Target Pos: (${targetX}, ${targetY}) | Rad: ${rad.toFixed(4)} | Deg: ${deg.toFixed(2)}°`);
 
-    if (Sequencer?.EffectManager) {
+    if (game?.modules?.get("sequencer")?.active) {
         try {
-            const mainEffects = Sequencer.EffectManager.getEffects({ name: effectId }) ?? [];
-            const iconEffects = Sequencer.EffectManager.getEffects({ name: `${effectId}-icon` }) ?? [];
-            const effects = [...mainEffects, ...iconEffects];
-            for (const eff of effects) {
-                const isIcon = eff.name === `${effectId}-icon`;
-                const effRad = isIcon ? 0 : rad;
-                const effDeg = isIcon ? 0 : deg;
+            if (Sequencer?.EffectManager) {
+                const mainEffects = Sequencer.EffectManager.getEffects({ name: effectId }) ?? [];
+                const iconEffects = Sequencer.EffectManager.getEffects({ name: `${effectId}-icon` }) ?? [];
+                const effects = [...mainEffects, ...iconEffects];
+                for (const eff of effects) {
+                    const isIcon = eff.name === `${effectId}-icon`;
+                    const effRad = isIcon ? 0 : rad;
+                    const effDeg = isIcon ? 0 : deg;
 
-                eff.x = targetX;
-                eff.y = targetY;
-                if (eff.worldPosition) {
-                    eff.worldPosition.x = targetX;
-                    eff.worldPosition.y = targetY;
-                }
-                if (eff.position) {
-                    eff.position.x = targetX;
-                    eff.position.y = targetY;
-                }
-                eff.rotation = effRad;
-
-                if (eff.container) {
-                    if (eff.container.position?.set) {
-                        eff.container.position.set(targetX, targetY);
-                    } else {
-                        eff.container.x = targetX;
-                        eff.container.y = targetY;
+                    eff.x = targetX;
+                    eff.y = targetY;
+                    if (eff.worldPosition) {
+                        eff.worldPosition.x = targetX;
+                        eff.worldPosition.y = targetY;
                     }
-                    eff.container.rotation = effRad;
-                }
+                    if (eff.position) {
+                        eff.position.x = targetX;
+                        eff.position.y = targetY;
+                    }
+                    eff.rotation = effRad;
 
-                if (eff.spriteContainer?.rotation !== undefined) {
-                    eff.spriteContainer.rotation = 0;
-                }
+                    if (eff.container) {
+                        if (eff.container.position?.set) {
+                            eff.container.position.set(targetX, targetY);
+                        } else {
+                            eff.container.x = targetX;
+                            eff.container.y = targetY;
+                        }
+                        eff.container.rotation = effRad;
+                    }
 
-                if (eff.rotation !== undefined) eff.rotation = effRad;
-                try {
-                    eff.update?.({
-                        position: { x: targetX, y: targetY },
-                        rotation: effDeg
-                    });
-                } catch (e) {
-                    log.debug("alignCrosshairAndEffects | Exception updating Sequencer effect rotation:", e);
-                }
+                    if (eff.spriteContainer?.rotation !== undefined) {
+                        eff.spriteContainer.rotation = 0;
+                    }
 
-                if (isRect && eff.container && !isIcon) {
-                    eff.container.pivot?.set?.(0, 0);
-                    eff.sprite?.position?.set?.(0, 0);
-                    eff.spriteContainer?.position?.set?.(0, 0);
+                    if (eff.rotation !== undefined) eff.rotation = effRad;
+                    try {
+                        eff.update?.({
+                            position: { x: targetX, y: targetY },
+                            rotation: effDeg
+                        });
+                    } catch (e) {
+                        log.debug("alignCrosshairAndEffects | Exception updating Sequencer effect rotation:", e);
+                    }
+
+                    if (isRect && eff.container && !isIcon) {
+                        eff.container.pivot?.set?.(0, 0);
+                        eff.sprite?.position?.set?.(0, 0);
+                        eff.spriteContainer?.position?.set?.(0, 0);
+                    }
                 }
             }
         } catch (e) {

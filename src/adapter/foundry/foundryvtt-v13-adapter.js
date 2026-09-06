@@ -26,9 +26,16 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
     _patchRefreshState() {
         const classesToPatch = [
             CONFIG?.MeasuredTemplate?.objectClass,
-            CONFIG?.Region?.objectClass,
-            Sequencer?.CrosshairsPlaceable
+            CONFIG?.Region?.objectClass
         ].filter(cls => Boolean(cls?.prototype));
+
+        if (game?.modules?.get("sequencer")?.active) {
+            try {
+                if (Sequencer?.CrosshairsPlaceable) {
+                    classesToPatch.push(Sequencer.CrosshairsPlaceable);
+                }
+            } catch (e) {}
+        }
 
         for (const cls of classesToPatch) {
             if (cls.prototype._bbcRefreshStatePatched) continue;
