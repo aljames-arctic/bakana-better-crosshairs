@@ -1,4 +1,4 @@
-import { systemAdapter } from "../system/index.js";
+import { systemAdapter, BaseSystemAdapter } from "../system/index.js";
 import { log, notify } from "../../lib/logger.js";
 import { TokenGeometry } from "../../lib/tokenGeometry.js";
 import { MODULE_ID } from "../../lib/constants.js";
@@ -1263,6 +1263,10 @@ export class BaseFoundryVTTAdapter {
      * @returns {Array<{event: string, handler: Function, category: string, targetName: string}>} Array of generated hook descriptor objects
      */
     generatePlacementHooks(callbacks, sysAdapter = systemAdapter) {
+        const targetSysAdapter = sysAdapter ?? systemAdapter;
+        if (targetSysAdapter && !(targetSysAdapter instanceof BaseSystemAdapter)) {
+            throw new Error(`generatePlacementHooks requires a valid BaseSystemAdapter instance, received: ${targetSysAdapter}`);
+        }
         throw new Error("Subclasses of BaseFoundryVTTAdapter must implement generatePlacementHooks(callbacks, sysAdapter).");
     }
 
@@ -1275,7 +1279,11 @@ export class BaseFoundryVTTAdapter {
      * @returns {Array<{event: string, handler: Function, category: string, targetName: string}>} Array of registered hook descriptor objects
      */
     registerPlacementHooks(callbacks, sysAdapter = systemAdapter) {
-        const hooks = this.generatePlacementHooks(callbacks, sysAdapter);
+        const targetSysAdapter = sysAdapter ?? systemAdapter;
+        if (targetSysAdapter && !(targetSysAdapter instanceof BaseSystemAdapter)) {
+            throw new Error(`registerPlacementHooks requires a valid BaseSystemAdapter instance, received: ${targetSysAdapter}`);
+        }
+        const hooks = this.generatePlacementHooks(callbacks, targetSysAdapter);
         for (const hook of hooks) {
             if (hook?.event && hook?.handler) {
                 Hooks.on(hook.event, hook.handler);

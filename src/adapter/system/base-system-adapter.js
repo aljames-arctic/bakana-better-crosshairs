@@ -33,14 +33,12 @@ export class BaseSystemAdapter {
     }
 
     /**
-     * Modify or refine the generated list of placement hook descriptors for the active game system.
-     * Allows the system adapter layer to modify elements of hook generation (such as adding, replacing, or filtering hooks).
-     * @param {Array<{event: string, handler: Function, category: string, targetName: string}>} hooks - Array of generated hook descriptor objects
+     * Optional lifecycle hook enabling system adapters to customize or extend placement hooks.
+     * @param {Array<{event: string, handler: Function, category: string, targetName: string}>} hooks - Default hooks from Foundry adapter
      * @param {Object} callbacks - Placement hook callbacks (`{ onDrawPreview, onPreCreate, onCreate }`)
-     * @param {Object|null} [foundryAdapter=null] - Active Foundry VTT generation adapter instance
      * @returns {Array<{event: string, handler: Function, category: string, targetName: string}>} Modified or filtered array of hook descriptor objects
      */
-    modifyPlacementHooks(hooks, callbacks, foundryAdapter = null) {
+    modifyPlacementHooks(hooks, callbacks) {
         return hooks;
     }
 

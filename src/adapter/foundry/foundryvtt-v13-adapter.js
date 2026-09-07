@@ -1,5 +1,5 @@
 import { BaseFoundryVTTAdapter } from "./base-foundryvtt-adapter.js";
-import { systemAdapter } from "../system/index.js";
+import { systemAdapter, BaseSystemAdapter } from "../system/index.js";
 import { log } from "../../lib/logger.js";
 import { localize } from "../../lib/utils.js";
 import { activePlacementTracker } from "../../crosshair/util.js";
@@ -155,6 +155,9 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
      */
     generatePlacementHooks(callbacks = {}, sysAdapter = systemAdapter) {
         const targetSysAdapter = sysAdapter ?? systemAdapter;
+        if (targetSysAdapter && !(targetSysAdapter instanceof BaseSystemAdapter)) {
+            throw new Error(`generatePlacementHooks requires a valid BaseSystemAdapter instance, received: ${targetSysAdapter}`);
+        }
         const onDrawPreview = callbacks?.onDrawPreview ?? ((placeable) => this.handleDrawPreview(placeable));
         const onPreCreate = callbacks?.onPreCreate ?? ((doc, _data, _options, userId) => this.handlePreCreate(doc, _data, _options, userId));
         const onCreate = callbacks?.onCreate ?? ((doc, _options, userId) => this.handleCreateDocument(doc, _options, userId));
@@ -203,7 +206,7 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
         const generatedHooks = [...drawHooks, ...documentHooks];
 
         if (targetSysAdapter?.modifyPlacementHooks) {
-            const modifiedHooks = targetSysAdapter.modifyPlacementHooks(generatedHooks, callbacks, this);
+            const modifiedHooks = targetSysAdapter.modifyPlacementHooks(generatedHooks, callbacks);
             log.debug("FoundryVTTV13Adapter.generatePlacementHooks | Modified placement hooks from system adapter:", modifiedHooks);
             return modifiedHooks;
         }
