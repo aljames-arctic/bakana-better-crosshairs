@@ -107,8 +107,8 @@ export class CrosshairController {
 
         if (isAttached) {
             if (this.shape.type === "circle") {
-                const token = crosshairAdapter.toToken(this.shape.token) ?? this.shape.token;
-                const center = token.center ?? { x: token.x ?? 0, y: token.y ?? 0 };
+                const token = crosshairAdapter.toToken(this.shape.token);
+                const center = token?.center ?? { x: token?.x ?? 0, y: token?.y ?? 0 };
                 this.shape.move(center.x, center.y);
                 this.shape.rotate(0);
             } else {

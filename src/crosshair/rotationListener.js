@@ -40,8 +40,8 @@ export class CrosshairRotationListener {
 
             const visual = tmpl.crosshair ?? activePlacementTracker.crosshair;
             if (isSticky && cfg.token && shapeType === "circle") {
-                const token = crosshairAdapter.toToken(cfg.token) ?? cfg.token;
-                const center = token.center ?? { x: token.x ?? 0, y: token.y ?? 0 };
+                const token = crosshairAdapter.toToken(cfg.token);
+                const center = token?.center ?? { x: token?.x ?? 0, y: token?.y ?? 0 };
                 targetX = center.x;
                 targetY = center.y;
             } else if (isSticky && cfg.token && visual && Number.isFinite(visual.x) && Number.isFinite(visual.y)) {

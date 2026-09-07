@@ -298,8 +298,8 @@ export function resolveCrosshairPlacement(crosshair, config = {}, ...extraArgs) 
 
     if (isAnchored && config.token) {
         if (shapeType === "circle") {
-            const token = crosshairAdapter.toToken(config.token) ?? config.token;
-            const center = token.center ?? { x: token.x ?? 0, y: token.y ?? 0 };
+            const token = crosshairAdapter.toToken(config.token);
+            const center = token?.center ?? { x: token?.x ?? 0, y: token?.y ?? 0 };
             x = center.x;
             y = center.y;
             direction = 0;
@@ -354,7 +354,7 @@ export function snapCoordinates(x, y, mode = "all") {
  * @returns {object} Edge point coordinates and angle `{ x, y, direction }`
  */
 export function getTokenEdgePoint(tok, targetX, targetY, sticky = false) {
-    const token = crosshairAdapter.toToken(tok) ?? (tok?.object ?? tok);
+    const token = crosshairAdapter.toToken(tok);
     return TokenGeometry.getTokenEdgePoint(token, targetX, targetY, sticky);
 }
 
