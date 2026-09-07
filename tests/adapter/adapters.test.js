@@ -29,12 +29,15 @@ test('crosshairAdapter.initialize and initializeFoundryAdapter select proper Fou
     globalThis.game.version = "13.335";
     const adapterV13 = crosshairAdapter.initialize();
     assert.ok(adapterV13 instanceof FoundryVTTV13Adapter);
+    assert.ok(adapterV13 instanceof BaseFoundryVTTAdapter);
     assert.equal(adapterV13.documentTerm, 'template');
     assert.equal(crosshairAdapter, adapterV13);
 
     globalThis.game.version = "14.300";
     const adapterV14 = crosshairAdapter.initialize();
     assert.ok(adapterV14 instanceof FoundryVTTV14Adapter);
+    assert.ok(adapterV14 instanceof FoundryVTTV13Adapter);
+    assert.ok(adapterV14 instanceof BaseFoundryVTTAdapter);
     assert.equal(adapterV14.documentTerm, 'region');
     assert.equal(crosshairAdapter, adapterV14);
 });
