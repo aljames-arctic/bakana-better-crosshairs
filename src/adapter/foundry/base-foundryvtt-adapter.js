@@ -44,7 +44,7 @@ export class BaseFoundryVTTAdapter {
      * @type {typeof foundry.canvas.placeables.MeasuredTemplate}
      */
     get MeasuredTemplate() {
-        return foundry.canvas?.placeables?.MeasuredTemplate;
+        return foundry.canvas.placeables.MeasuredTemplate;
     }
 
     /**
@@ -52,7 +52,7 @@ export class BaseFoundryVTTAdapter {
      * @type {typeof foundry.canvas.placeables.Region}
      */
     get Region() {
-        return foundry.canvas?.placeables?.Region;
+        return foundry.canvas.placeables.Region;
     }
 
     /**
@@ -60,7 +60,7 @@ export class BaseFoundryVTTAdapter {
      * @type {typeof foundry.canvas.geometry.Ray}
      */
     get Ray() {
-        return foundry.canvas?.geometry?.Ray;
+        return foundry.canvas.geometry.Ray;
     }
 
     /**
