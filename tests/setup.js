@@ -6,7 +6,6 @@
 globalThis.Token = class Token {};
 globalThis.Item = class Item {};
 globalThis.Actor = class Actor {};
-globalThis.PreciseText = undefined;
 globalThis.PIXI = {
     Rectangle: class Rectangle {
         constructor(x = 0, y = 0, width = 0, height = 0) {
@@ -113,6 +112,9 @@ globalThis.foundry = {
                     return new Ray({ x, y }, { x: x + Math.cos(rad) * dist, y: y + Math.sin(rad) * dist });
                 }
             }
+        },
+        containers: {
+            PreciseText: class PreciseText {}
         },
         placeables: {
             Token: {

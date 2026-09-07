@@ -3799,15 +3799,7 @@ test('Foundry adapter encapsulates randomID, fromUuidSync, lineSegmentIntersecti
     assert.ok(parsedNamed !== null);
 
     // PreciseText
-    assert.equal(typeof adapter.PreciseText, 'undefined');
-    const origPreciseText = globalThis.PreciseText;
-    try {
-        globalThis.PreciseText = class MockPreciseText {};
-        assert.equal(adapter.PreciseText, globalThis.PreciseText);
-    } finally {
-        if (origPreciseText) globalThis.PreciseText = origPreciseText;
-        else delete globalThis.PreciseText;
-    }
+    assert.equal(adapter.PreciseText, foundry.canvas.containers.PreciseText);
 });
 
 test('FoundryVTTV13Adapter._wrapHighlightGrid synchronizes document.x, document.y, and direction with token anchor before highlightGrid runs', () => {

@@ -65,10 +65,10 @@ export class BaseFoundryVTTAdapter {
 
     /**
      * Reference to Foundry's canvas PreciseText container or PIXI.Text.
+     * @type {typeof foundry.canvas.containers.PreciseText}
      */
     get PreciseText() {
-        const globalPreciseText = typeof PreciseText !== "undefined" ? PreciseText : undefined;
-        return foundry.canvas?.containers?.PreciseText ?? globalPreciseText ?? PIXI?.Text;
+        return foundry.canvas?.containers?.PreciseText ?? PIXI?.Text;
     }
 
     /**
