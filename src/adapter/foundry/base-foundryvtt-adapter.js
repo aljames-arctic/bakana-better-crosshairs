@@ -36,7 +36,7 @@ export class BaseFoundryVTTAdapter {
      * @type {typeof foundry.canvas.placeables.Token}
      */
     get Token() {
-        return foundry.canvas?.placeables?.Token?.implementation ?? foundry.canvas?.placeables?.Token ?? Token;
+        return foundry.canvas?.placeables?.Token?.implementation ?? foundry.canvas?.placeables?.Token;
     }
 
     /**
@@ -205,7 +205,7 @@ export class BaseFoundryVTTAdapter {
      * @returns {Object} Merged object
      */
     mergeObject(original, other = {}, options = {}) {
-        return foundry?.utils?.mergeObject ? foundry.utils.mergeObject(original, other, options) : Object.assign(original, other);
+        return foundry.utils.mergeObject(original, other, options);
     }
 
     /**
@@ -214,18 +214,18 @@ export class BaseFoundryVTTAdapter {
      * @returns {*} Cloned object
      */
     deepClone(obj) {
-        return foundry?.utils?.deepClone ? foundry.utils.deepClone(obj) : JSON.parse(JSON.stringify(obj));
+        return foundry.utils.deepClone(obj);
     }
 
     /**
-     * Synchronously resolves a document from a UUID across Foundry versions.
+     * Synchronously resolves a document from a UUID in Foundry V13+ baseline.
      * @param {string} uuid - The document UUID
      * @returns {Document|null} The resolved document or null
      */
     fromUuidSync(uuid) {
         if (!uuid || typeof uuid !== "string") return null;
         try {
-            return foundry.utils?.fromUuidSync ? (foundry.utils.fromUuidSync(uuid) ?? null) : null;
+            return foundry.utils.fromUuidSync(uuid) ?? null;
         } catch (_) {
             return null;
         }
@@ -237,10 +237,7 @@ export class BaseFoundryVTTAdapter {
      * @returns {string} Generated identifier
      */
     randomID(length = 16) {
-        if (foundry?.utils?.randomID) return foundry.utils.randomID(length);
-        let id = "";
-        while (id.length < length) id += Math.random().toString(36).substring(2);
-        return id.substring(0, length);
+        return foundry.utils.randomID(length);
     }
 
     /**
@@ -252,7 +249,7 @@ export class BaseFoundryVTTAdapter {
      * @returns {Point|null} Intersection point or null
      */
     lineSegmentIntersection(a, b, c, d) {
-        return foundry?.utils?.lineSegmentIntersection ? foundry.utils.lineSegmentIntersection(a, b, c, d) : null;
+        return foundry.utils.lineSegmentIntersection(a, b, c, d);
     }
 
     /**
@@ -260,7 +257,7 @@ export class BaseFoundryVTTAdapter {
      * @type {typeof foundry.utils.Color}
      */
     get Color() {
-        return foundry?.utils?.Color;
+        return foundry.utils.Color;
     }
 
     /**
