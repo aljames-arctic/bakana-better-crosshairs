@@ -75,6 +75,9 @@ globalThis.foundry = {
         }
     },
     applications: {
+        handlebars: {
+            loadTemplates: (templates) => Promise.resolve(templates)
+        },
         api: {
             HandlebarsApplicationMixin: (cls) => cls,
             ApplicationV2: class ApplicationV2 {

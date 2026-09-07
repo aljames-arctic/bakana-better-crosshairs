@@ -42,6 +42,12 @@ test('crosshairAdapter.initialize and initializeFoundryAdapter select proper Fou
     assert.equal(crosshairAdapter, adapterV14);
 });
 
+test('crosshairAdapter.loadTemplates delegates to foundry.applications.handlebars.loadTemplates', async () => {
+    const templates = ['modules/bakana-better-crosshairs/test.html'];
+    const result = await crosshairAdapter.loadTemplates(templates);
+    assert.deepEqual(result, templates);
+});
+
 test('systemAdapter.initialize and initializeSystemAdapter select proper System adapter based on game.system.id', () => {
     globalThis.game.system.id = "dnd5e";
     let sysAdapter = systemAdapter.initialize();
