@@ -1,4 +1,4 @@
-import { BaseFoundryVTTAdapter } from "./base-foundryvtt-adapter.js";
+import { FoundryVTTV13Adapter } from "./foundryvtt-v13-adapter.js";
 import { systemAdapter } from "../system/index.js";
 import { log } from "../../lib/logger.js";
 import { localize } from "../../lib/utils.js";
@@ -7,7 +7,7 @@ import { activePlacementTracker } from "../../crosshair/util.js";
 /**
  * Adapter subclass encapsulating Foundry VTT v14+ Region placement behavior.
  */
-export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
+export class FoundryVTTV14Adapter extends FoundryVTTV13Adapter {
     /**
      * Initialize the Foundry VTT v14+ adapter instance and set its version identifier.
      */
@@ -153,37 +153,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
 
         const docName = targetDoc.documentName ?? (targetDoc.t ? "MeasuredTemplate" : "Region");
         if (docName === "MeasuredTemplate") {
-            const shapeMap = {
-                circle: "circle",
-                cone: "cone",
-                ray: "ray",
-                rect: "square"
-            };
-            let distance = targetDoc.distance ?? 0;
-            const width = targetDoc.width ?? 5;
-            if (targetDoc.t === "rect" && width > 0 && distance > width) {
-                const isSquareDiagonal = distance <= width * 1.6;
-                distance = isSquareDiagonal ? width : Math.round(Math.sqrt(Math.max(0, distance * distance - width * width)));
-            }
-            let rawDir = targetDoc.direction ?? 0;
-            if (targetDoc.t === "rect") {
-                const w = width > 0 ? width : distance;
-                const h = distance > 0 ? distance : w;
-                const diagAngle = Math.atan2(h, w) * (180 / Math.PI);
-                rawDir = (rawDir - diagAngle + 360) % 360;
-            }
-            const result = {
-                type: shapeMap[targetDoc.t] ?? "circle",
-                distance,
-                radius: distance,
-                width,
-                angle: targetDoc.angle ?? 53.13,
-                direction: rawDir,
-                rotation: rawDir,
-                x: targetDoc.x ?? 0,
-                y: targetDoc.y ?? 0
-            };
-            return result;
+            return super.detectProperties(doc);
         }
 
         const shapesList = this._getShapesArray(targetDoc);
@@ -297,6 +267,16 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
     getTemplatePixelFactor() {
         const gridSize = this.gridSize;
         return { factor: 1 / gridSize, gridUnits: true };
+    }
+
+    /**
+     * Check whether Foundry V14 supports rotating a specific shape type.
+     * All shape types (including rectangles/squares) can be rotated in V14.
+     * @param {string} shapeType - The shape type identifier
+     * @returns {boolean} Always true in V14
+     */
+    supportsShapeRotation(shapeType) {
+        return true;
     }
 
     /**
@@ -657,30 +637,7 @@ export class FoundryVTTV14Adapter extends BaseFoundryVTTAdapter {
                 data.shapes = [newShape];
             }
         } else {
-            if (coords.x !== undefined) data.x = coords.x;
-            if (coords.y !== undefined) data.y = coords.y;
-            const isRect = data.t === "rect" || coords.type === "square" || coords.type === "rect" || coords.originalType === "square" || coords.t === "rect";
-            if (isRect) {
-                data.t = "rect";
-                const rawDist = coords.distance ?? coords.radius;
-                let distFoot = rawDist;
-                const widthFoot = coords.width ?? distFoot;
-                if (widthFoot > 0 && distFoot > widthFoot) {
-                    const isSquareDiagonal = distFoot <= widthFoot * 1.6;
-                    distFoot = isSquareDiagonal ? widthFoot : Math.round(Math.sqrt(Math.max(0, distFoot * distFoot - widthFoot * widthFoot)));
-                }
-                const w = widthFoot ?? 20;
-                const h = distFoot ?? w;
-                data.distance = Math.round(Math.hypot(w, h) * 100) / 100;
-                data.width = w;
-                data.direction = Math.atan2(h, w) * (180 / Math.PI);
-            } else {
-                if (coords.direction !== undefined) data.direction = coords.direction;
-                else if (coords.rotation !== undefined) data.direction = coords.rotation;
-                if (coords.distance !== undefined) data.distance = coords.distance;
-                else if (coords.radius !== undefined) data.distance = coords.radius;
-                if (coords.width !== undefined) data.width = coords.width;
-            }
+            return super._applyDeferredCoordinates(data, coords, docName);
         }
     }
 
