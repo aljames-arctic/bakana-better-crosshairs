@@ -18,14 +18,20 @@ export let crosshairAdapter = new BaseFoundryVTTAdapter();
  * @returns {BaseFoundryVTTAdapter|FoundryVTTV13Adapter|FoundryVTTV14Adapter} The initialized Foundry VTT adapter instance.
  */
 export function initializeFoundryAdapter() {
-    const ver = game?.version;
-
-    if (ver && version.clamp(ver, "14")) {
+    const generation = game?.release?.generation;
+    if (generation >= 14) {
         crosshairAdapter = new FoundryVTTV14Adapter();
-    } else if (ver && version.clamp(ver, "13", "14")) {
+    } else if (generation === 13) {
         crosshairAdapter = new FoundryVTTV13Adapter();
     } else {
-        crosshairAdapter = new BaseFoundryVTTAdapter();
+        const ver = game?.version;
+        if (ver && version.clamp(ver, "14")) {
+            crosshairAdapter = new FoundryVTTV14Adapter();
+        } else if (ver && version.clamp(ver, "13", "14")) {
+            crosshairAdapter = new FoundryVTTV13Adapter();
+        } else {
+            crosshairAdapter = new BaseFoundryVTTAdapter();
+        }
     }
 
     return crosshairAdapter;

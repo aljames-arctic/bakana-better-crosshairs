@@ -36,7 +36,7 @@ export class BaseFoundryVTTAdapter {
      * @type {typeof foundry.canvas.placeables.Token}
      */
     get Token() {
-        return foundry?.canvas?.placeables?.Token ?? Token;
+        return foundry.canvas?.placeables?.Token?.implementation ?? foundry.canvas?.placeables?.Token ?? Token;
     }
 
     /**
@@ -44,7 +44,7 @@ export class BaseFoundryVTTAdapter {
      * @type {typeof foundry.canvas.placeables.MeasuredTemplate}
      */
     get MeasuredTemplate() {
-        return foundry?.canvas?.placeables?.MeasuredTemplate;
+        return foundry.canvas?.placeables?.MeasuredTemplate;
     }
 
     /**
@@ -52,7 +52,7 @@ export class BaseFoundryVTTAdapter {
      * @type {typeof foundry.canvas.placeables.Region}
      */
     get Region() {
-        return foundry?.canvas?.placeables?.Region;
+        return foundry.canvas?.placeables?.Region;
     }
 
     /**
@@ -60,7 +60,7 @@ export class BaseFoundryVTTAdapter {
      * @type {typeof foundry.canvas.geometry.Ray}
      */
     get Ray() {
-        return foundry?.canvas?.geometry?.Ray;
+        return foundry.canvas?.geometry?.Ray;
     }
 
     /**
@@ -68,7 +68,7 @@ export class BaseFoundryVTTAdapter {
      */
     get PreciseText() {
         const globalPreciseText = typeof PreciseText !== "undefined" ? PreciseText : undefined;
-        return foundry?.canvas?.containers?.PreciseText ?? globalPreciseText ?? PIXI?.Text;
+        return foundry.canvas?.containers?.PreciseText ?? globalPreciseText ?? PIXI?.Text;
     }
 
     /**
@@ -224,7 +224,11 @@ export class BaseFoundryVTTAdapter {
      */
     fromUuidSync(uuid) {
         if (!uuid || typeof uuid !== "string") return null;
-        return foundry?.utils?.fromUuidSync ? foundry.utils.fromUuidSync(uuid) : null;
+        try {
+            return foundry.utils?.fromUuidSync ? (foundry.utils.fromUuidSync(uuid) ?? null) : null;
+        } catch (_) {
+            return null;
+        }
     }
 
     /**

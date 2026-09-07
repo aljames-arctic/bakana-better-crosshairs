@@ -19,14 +19,20 @@ export let canvasAdapter = new BaseCanvasAdapter();
  * @returns {BaseCanvasAdapter|CanvasV13Adapter|CanvasV14Adapter} The initialized canvas adapter instance.
  */
 export function initializeCanvasAdapter() {
-    const ver = game?.version ?? "14";
-
-    if (version.clamp(ver, "14")) {
+    const generation = game?.release?.generation;
+    if (generation >= 14) {
         canvasAdapter = new CanvasV14Adapter();
-    } else if (version.clamp(ver, "13", "14")) {
+    } else if (generation === 13) {
         canvasAdapter = new CanvasV13Adapter();
     } else {
-        canvasAdapter = new BaseCanvasAdapter();
+        const ver = game?.version ?? "14";
+        if (version.clamp(ver, "14")) {
+            canvasAdapter = new CanvasV14Adapter();
+        } else if (version.clamp(ver, "13", "14")) {
+            canvasAdapter = new CanvasV13Adapter();
+        } else {
+            canvasAdapter = new BaseCanvasAdapter();
+        }
     }
 
     log.info(`Initialized Canvas Adapter for Foundry VTT generation: v${canvasAdapter.version ?? "base"}`);
