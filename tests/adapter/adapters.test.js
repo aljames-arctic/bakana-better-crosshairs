@@ -350,6 +350,7 @@ test('BaseFoundryVTTAdapter strictly quarantines hook generation to version subc
     assert.throws(() => baseAdapter.registerPlacementHooks({}, systemAdapter), /Subclasses of BaseFoundryVTTAdapter must implement generatePlacementHooks/);
     assert.throws(() => baseAdapter.generatePlacementHooks({}, {}), /requires a valid BaseSystemAdapter instance/);
     assert.throws(() => baseAdapter.registerPlacementHooks({}, {}), /requires a valid BaseSystemAdapter instance/);
+    assert.rejects(async () => baseAdapter.loadTemplates([]), /Subclasses of BaseFoundryVTTAdapter must implement loadTemplates/);
 });
 
 test('FoundryVTTV14Adapter applyDocumentPlacement and updatePreviewShape handle both Region and MeasuredTemplate in V14', () => {

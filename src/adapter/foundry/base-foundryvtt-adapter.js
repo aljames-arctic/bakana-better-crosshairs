@@ -242,15 +242,12 @@ export class BaseFoundryVTTAdapter {
 
     /**
      * Preload Handlebars templates across Foundry generations.
-     * Namespaced under foundry.applications.handlebars.loadTemplates in Foundry V13+.
+     * @abstract
      * @param {string[]} paths - Array of template paths to preload
      * @returns {Promise<Function[]>}
      */
     async loadTemplates(paths) {
-        if (typeof foundry !== "undefined" && foundry.applications?.handlebars?.loadTemplates) {
-            return foundry.applications.handlebars.loadTemplates(paths);
-        }
-        return (typeof loadTemplates !== "undefined" ? loadTemplates(paths) : Promise.resolve([]));
+        throw new Error("Subclasses of BaseFoundryVTTAdapter must implement loadTemplates(paths).");
     }
 
     /**

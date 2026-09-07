@@ -893,5 +893,15 @@ export class FoundryVTTV13Adapter extends BaseFoundryVTTAdapter {
     _getGridCenterPoint(x, y) {
         return this.getCenterPoint({ x, y });
     }
+
+    /**
+     * Preload Handlebars templates using modern Foundry V13+ namespaced API.
+     * @override
+     * @param {string[]} paths - Array of template paths to preload
+     * @returns {Promise<Function[]>}
+     */
+    async loadTemplates(paths) {
+        return foundry.applications.handlebars.loadTemplates(paths);
+    }
 }
 
