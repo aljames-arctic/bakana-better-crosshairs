@@ -64,11 +64,11 @@ export class BaseFoundryVTTAdapter {
     }
 
     /**
-     * Reference to Foundry's canvas PreciseText container or PIXI.Text.
+     * Reference to Foundry's canvas PreciseText container.
      * @type {typeof foundry.canvas.containers.PreciseText}
      */
     get PreciseText() {
-        return foundry.canvas?.containers?.PreciseText ?? PIXI?.Text;
+        return foundry.canvas.containers.PreciseText;
     }
 
     /**
@@ -183,18 +183,13 @@ export class BaseFoundryVTTAdapter {
         const cleanData = typeof data === "string" ? data : JSON.stringify(data ?? {});
 
         try {
-            const utilsFn = foundry?.utils?.saveDataToFile;
-            if (utilsFn) {
-                utilsFn(cleanData, cleanType, cleanFilename);
-                log.debug(`BaseFoundryVTTAdapter.saveDataToFile | File "${cleanFilename}" saved via foundry.utils.saveDataToFile.`);
-                return true;
-            }
+            foundry.utils.saveDataToFile(cleanData, cleanType, cleanFilename);
+            log.debug(`BaseFoundryVTTAdapter.saveDataToFile | File "${cleanFilename}" saved via foundry.utils.saveDataToFile.`);
+            return true;
         } catch (err) {
             log.warn(`BaseFoundryVTTAdapter.saveDataToFile | Error calling foundry.utils.saveDataToFile for "${cleanFilename}".`, err);
+            return false;
         }
-
-        log.error(`BaseFoundryVTTAdapter.saveDataToFile | Failed to save file "${cleanFilename}": zero valid file writers available.`);
-        return false;
     }
 
     /**
