@@ -36,7 +36,7 @@ export class BaseFoundryVTTAdapter {
      * @type {typeof foundry.canvas.placeables.Token}
      */
     get Token() {
-        return foundry.canvas?.placeables?.Token?.implementation ?? foundry.canvas?.placeables?.Token;
+        return foundry.canvas.placeables.Token.implementation;
     }
 
     /**

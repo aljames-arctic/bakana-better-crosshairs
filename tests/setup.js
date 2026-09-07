@@ -112,7 +112,9 @@ globalThis.foundry = {
             }
         },
         placeables: {
-            Token: class Token {},
+            Token: {
+                implementation: class Token {}
+            },
             MeasuredTemplate: class MeasuredTemplate {},
             Region: class Region {}
         }

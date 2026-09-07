@@ -3749,6 +3749,9 @@ test('Canvas adapter grid geometry methods provide uniform coordinate operations
 test('Foundry adapter encapsulates randomID, fromUuidSync, lineSegmentIntersection, parseColor, and PreciseText', () => {
     const adapter = crosshairAdapter;
 
+    // Token
+    assert.equal(adapter.Token, globalThis.foundry.canvas.placeables.Token.implementation);
+
     // randomID
     const rand16 = adapter.randomID(16);
     assert.equal(typeof rand16, 'string');
